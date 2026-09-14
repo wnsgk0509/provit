@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/mvc"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:beans="http://www.springframework.org/schema/beans"
+             xmlns:context="http://www.springframework.org/schema/context"
+             xsi:schemaLocation="
+                 http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
+                 http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+                 http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!-- 1. Spring MVC 애노테이션 활성화 (Jackson JSON 변환 등 자동 처리) -->
+    <annotation-driven />
+
+    <!-- 2. 정적 리소스 핸들링 -->
+    <resources mapping="/resources/**" location="/resources/" />
+
+    <!-- 3. 개발 환경 CORS 전역 설정 (프론트엔드 localhost:5173 통신 허용) -->
+    <cors>
+        <mapping path="/api/**"
+                 allowed-origins="http://localhost:5173, http://127.0.0.1:5173"
+                 allowed-methods="GET, POST, PUT, DELETE, PATCH, OPTIONS"
+                 allowed-headers="*"
+                 allow-credentials="true"
+                 max-age="3600" />
+    </cors>
+
+    <!-- 4. Controller 및 Advice 계층 컴포넌트 스캔 -->
+    <context:component-scan base-package="com.provit.controller, com.provit.common" />
+
+</beans:beans>

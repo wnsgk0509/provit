@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="30 seconds">
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 프로젝트 패키지 로그 레벨 -->
+    <logger name="com.provit" level="DEBUG" />
+
+    <!-- Spring Framework 로그 레벨 -->
+    <logger name="org.springframework" level="INFO" />
+
+    <!-- MyBatis SQL 쿼리 로그 -->
+    <logger name="com.provit.mapper" level="DEBUG" />
+    <logger name="org.mybatis" level="INFO" />
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+</configuration>

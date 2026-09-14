@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+           http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+           http://www.springframework.org/schema/tx https://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!-- 1. 외부 프로퍼티 파일 로드 (DB 및 외부 API 키 설정) -->
+    <!-- ignore-resource-not-found="true"로 설정하여 파일이 아직 없거나 로컬 설정 전이어도 context 로딩 에러 방지 -->
+    <context:property-placeholder location="classpath:database.properties,classpath:api.properties" ignore-resource-not-found="true" />
+
+    <!-- 2. HikariCP 커넥션 풀 설정 (Oracle 19c) -->
+    <bean id="hikariConfig" class="com.zaxxer.hikari.HikariConfig">
+        <property name="driverClassName" value="${db.driverClassName:oracle.jdbc.OracleDriver}" />
+        <property name="jdbcUrl" value="${db.url:jdbc:oracle:thin:@localhost:1521:orcl}" />
+        <property name="username" value="${db.username:c##provit}" />
+        <property name="password" value="${db.password:1234}" />
+        <property name="maximumPoolSize" value="${db.maxPoolSize:10}" />
+        <property name="minimumIdle" value="${db.minIdle:2}" />
+        <property name="idleTimeout" value="30000" />
+        <property name="connectionTimeout" value="30000" />
+        <!-- DB 연결이 실패해도 톰캣 기동이 중단되지 않도록 비동기 지연 연결 설정 (-1) -->
+        <property name="initializationFailTimeout" value="-1" />
+    </bean>
+
+    <bean id="dataSource" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close">
+        <constructor-arg ref="hikariConfig" />
+    </bean>
+
+    <!-- 3. MyBatis SqlSessionFactoryBean 설정 -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource" />
+        <property name="configLocation" value="classpath:mybatis-config.xml" />
+        <property name="mapperLocations" value="classpath*:*mapper*/**/*.xml" />
+    </bean>
+
+    <!-- 4. MyBatis SqlSessionTemplate -->
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+        <constructor-arg ref="sqlSessionFactory" />
+    </bean>
+
+
+    <!-- 5. 비즈니스 로직 컴포넌트 스캔 (Controller 제외) -->
+    <context:component-scan base-package="com.provit">
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller" />
+        <context:exclude-filter type="annotation" expression="org.springframework.web.bind.annotation.RestController" />
+    </context:component-scan>
+
+</beans>

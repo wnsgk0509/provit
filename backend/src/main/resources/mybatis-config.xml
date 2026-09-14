@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <settings>
+        <!-- 언더스코어 컬럼명을 카멜케이스 자바 필드로 자동 매핑 (예: USER_NAME -> userName) -->
+        <setting name="mapUnderscoreToCamelCase" value="true" />
+        <!-- 파라미터가 null일 경우 Oracle NULL 타입으로 처리 -->
+        <setting name="jdbcTypeForNull" value="NULL" />
+        <!-- 조회 결과 컬럼값이 null이어도 Map이나 객체에 key/setter 호출 -->
+        <setting name="callSettersOnNulls" value="true" />
+    </settings>
+</configuration>

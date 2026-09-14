@@ -1,0 +1,74 @@
+================================================================================
+📌 [팀원 필독] database.properties 및 api.properties 생성 가이드
+================================================================================
+
+보안 및 개인별 개발 환경 차이로 인해 아래 2개 파일은 Git(.gitignore)에 올라가지 않습니다.
+프로젝트를 clone 또는 pull 받은 후, 이클립스에서 서버를 실행하기 전에
+반드시 아래 내용을 복사하여 각각 파일을 생성해 주세요!
+
+생성 위치: backend/src/main/resources/
+
+
+--------------------------------------------------------------------------------
+1. database.properties 파일 생성
+--------------------------------------------------------------------------------
+[파일 경로]
+backend/src/main/resources/database.properties
+
+[파일 내용 (아래 내용을 복사해서 붙여넣으세요)]
+# Oracle 19c 데이터베이스 접속 정보
+db.driverClassName=oracle.jdbc.OracleDriver
+
+# JDBC URL (팀 공통 Oracle 19c 기본 SID는 orcl 입니다)
+# SID 방식:
+db.url=jdbc:oracle:thin:@localhost:1521:orcl
+# (혹시 본인 로컬 오라클이 서비스명 방식이면: jdbc:oracle:thin:@localhost:1521/orcl)
+
+# 본인의 오라클 계정 및 비밀번호 입력
+db.username=scott
+db.password=tiger
+
+# 커넥션 풀 설정
+db.maxPoolSize=10
+db.minIdle=2
+
+
+--------------------------------------------------------------------------------
+2. api.properties 파일 생성
+--------------------------------------------------------------------------------
+[파일 경로]
+backend/src/main/resources/api.properties
+
+[파일 내용 (아래 내용을 복사해서 붙여넣으세요)]
+# 1. AI 모의 면접 LLM API 키 (OpenAI / Gemini)
+api.openai.key=발급받은_오픈AI_키를_입력하세요
+api.gemini.key=발급받은_제미나이_키를_입력하세요
+
+# 2. 채용 공고 검색 및 조회 API 키
+api.saramin.key=사람인_API키_입력
+api.data.go.kr.key=공공데이터포털_인증키_입력
+
+# 3. 오늘의 운세 API 키
+api.fortune.key=운세_API키_입력
+
+# 4. JWT 토큰 시크릿 (인증 기능용)
+jwt.secret=provit_team_project_secret_key_must_be_256bits_long_example
+jwt.expiration=86400000
+
+
+--------------------------------------------------------------------------------
+3. 설정 완료 후 체크리스트
+--------------------------------------------------------------------------------
+1. backend/src/main/resources/ 폴더 안에
+   - database.properties
+   - api.properties
+   두 파일이 정상적으로 생성되었는지 확인합니다.
+
+2. 이클립스에서 프로젝트 우클릭 -> Maven -> Update Project (Alt + F5) 실행합니다.
+
+3. Tomcat 9 서버를 시작(Start)하고, 브라우저에서 아래 주소로 접속해 정상 구동을 확인합니다:
+   http://localhost:8080/api/health
+   -> {"status": "UP", ...} JSON이 나오면 백엔드 준비 완료!
+
+4. 문의 사항이 있으시면 기술팀장에게 편하게 말씀해 주세요.
+================================================================================

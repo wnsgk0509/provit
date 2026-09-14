@@ -1,0 +1,27 @@
+# ==========================================
+# 외부 API 키 및 시크릿 정보 템플릿 (api.properties.example)
+# 
+# 📌 팀원 가이드:
+# 1. 이 파일을 복사하여 같은 위치(backend/src/main/resources/)에 'api.properties' 파일을 만드세요.
+# 2. 본인이 발급받은 API Key 또는 팀 공용 API Key를 입력하여 사용하세요.
+# 3. 'api.properties' 파일은 .gitignore에 등록되어 Git에 절대 올라가지 않습니다.
+# ==========================================
+
+# 1. AI 모의 면접 (LLM API)
+# OpenAI API Key (예: sk-proj-...)
+api.openai.key=your_openai_api_key_here
+# Google Gemini API Key (예: AIzaSy...)
+api.gemini.key=your_gemini_api_key_here
+
+# 2. 채용 공고 검색 및 조회 API
+# 사람인 / 잡코리아 / 원티드 API Key
+api.saramin.key=your_saramin_api_key_here
+# 공공데이터포털 채용정보 API Key (인코딩/디코딩 키)
+api.data.go.kr.key=your_public_data_api_key_here
+
+# 3. 오늘의 운세 API
+api.fortune.key=your_fortune_api_key_here
+
+# 4. JWT (토큰 인증 사용 시)
+jwt.secret=your_jwt_secret_key_must_be_at_least_256_bits_long_here
+jwt.expiration=86400000
