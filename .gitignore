@@ -64,6 +64,10 @@ yarn-error.log*
 # 3. 민감한 정보 및 환경 변수 파일
 # ==========================================
 
+# AI Assistant 개인 프롬프트 및 역할 설정
+agent.md
+**/agent.md
+
 # Backend (DB 접속정보, API Key 등)
 **/database.properties
 **/api.properties
