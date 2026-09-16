@@ -1,0 +1,60 @@
+-- ================================================================================
+-- Provit (프로빗) 전체 테이블 및 시퀀스 초기화/삭제 스크립트 (Oracle 19c)
+-- 
+-- 📌 주의사항:
+-- 1. CASCADE CONSTRAINTS: 외래키(FK) 참조 관계를 자동으로 함께 해제하여 삭제 에러 방지
+-- 2. PURGE: Oracle 휴지통(RecycleBin, BIN$...)에 임시 보관하지 않고 완전 영구 삭제
+-- 3. 테이블은 자식(참조하는) 테이블 -> 부모(참조되는) 테이블 역순으로 안전하게 배치
+-- ================================================================================
+
+-- ================================================================================
+-- 1. 테이블 삭제 (총 18개 + 미사용 2개)
+-- ================================================================================
+
+-- 1-5. 커뮤니티 및 스터디 도메인 (자식 -> 부모 순)
+DROP TABLE T_STUDY_MEMBER CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_STUDY CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_COMMENT CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_POST_LIKE CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_POST CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_CATEGORY CASCADE CONSTRAINTS PURGE;
+
+-- 1-4. 채용 공고 도메인
+DROP TABLE T_RECRUITMENT CASCADE CONSTRAINTS PURGE;
+
+-- 1-3. AI 모의 면접 도메인
+DROP TABLE T_INTERVIEW_RESULT CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_INTERVIEW_HISTORY CASCADE CONSTRAINTS PURGE;
+
+-- 1-2. 유저 이력 문서 도메인 (자식 -> 부모 순)
+DROP TABLE T_PORTFOLIO CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_COVER_LETTER CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_CERTIFICATION CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_CAREER CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_EDUCATION CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_RESUME CASCADE CONSTRAINTS PURGE;
+
+-- 1-1. 회원 및 직무 도메인 (자식 -> 부모 순)
+DROP TABLE T_USER CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_JOB CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_OCCUPATION CASCADE CONSTRAINTS PURGE;
+
+-- (선택) 이전 버전 미사용 테이블 잔여물 정리
+DROP TABLE T_JOB_SCRAP CASCADE CONSTRAINTS PURGE;
+DROP TABLE T_FORTUNE_RECOMMEND CASCADE CONSTRAINTS PURGE;
+
+
+-- ================================================================================
+-- 2. 시퀀스(Sequence) 삭제 (총 11개)
+-- ================================================================================
+DROP SEQUENCE SEQ_T_STUDY;
+DROP SEQUENCE SEQ_T_COMMENT;
+DROP SEQUENCE SEQ_T_POST;
+DROP SEQUENCE SEQ_T_CATEGORY;
+DROP SEQUENCE SEQ_T_RECRUITMENT;
+DROP SEQUENCE SEQ_T_INTERVIEW_HISTORY;
+DROP SEQUENCE SEQ_T_CERTIFICATION;
+DROP SEQUENCE SEQ_T_CAREER;
+DROP SEQUENCE SEQ_T_EDUCATION;
+DROP SEQUENCE SEQ_T_RESUME;
+DROP SEQUENCE SEQ_T_USER;
