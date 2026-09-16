@@ -1,0 +1,243 @@
+-- ================================================================================
+-- Provit (프로빗) 전체 통합 데이터베이스 DDL 스키마 (Oracle 19c)
+-- [간결형] 전통적 시퀀스 생성, 컬럼 인라인 PRIMARY KEY / REFERENCES, 필수 UNIQUE만 적용
+-- ================================================================================
+
+-- ================================================================================
+-- 0. 시퀀스(Sequence) 생성
+-- ================================================================================
+CREATE SEQUENCE SEQ_T_USER START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+CREATE SEQUENCE SEQ_T_RESUME START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+CREATE SEQUENCE SEQ_T_EDUCATION START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+CREATE SEQUENCE SEQ_T_CAREER START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+CREATE SEQUENCE SEQ_T_CERTIFICATION START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+CREATE SEQUENCE SEQ_T_INTERVIEW_HISTORY START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+CREATE SEQUENCE SEQ_T_RECRUITMENT START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+CREATE SEQUENCE SEQ_T_CATEGORY START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+CREATE SEQUENCE SEQ_T_POST START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+CREATE SEQUENCE SEQ_T_COMMENT START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+CREATE SEQUENCE SEQ_T_STUDY START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+
+
+-- ================================================================================
+-- 1. 회원 및 직무 도메인
+-- ================================================================================
+
+-- 1-1. 대분류 직군 테이블
+CREATE TABLE T_OCCUPATION (
+    OCCUPATION_CODE      VARCHAR2(20)        PRIMARY KEY,
+    OCCUPATION_NAME      VARCHAR2(200)       NOT NULL
+);
+
+-- 1-2. 소분류 직무 테이블
+CREATE TABLE T_JOB (
+    JOB_CODE             VARCHAR2(20)        PRIMARY KEY,
+    OCCUPATION_CODE      VARCHAR2(20)        NOT NULL REFERENCES T_OCCUPATION(OCCUPATION_CODE) ON DELETE CASCADE,
+    JOB_NAME             VARCHAR2(200)       NOT NULL
+);
+
+-- 1-3. 회원 기본 정보 테이블
+CREATE TABLE T_USER (
+    USER_NUM             NUMBER(9)           DEFAULT SEQ_T_USER.NEXTVAL PRIMARY KEY,
+    USER_NAME            VARCHAR2(100)       NOT NULL,
+    USER_NICKNAME        VARCHAR2(100)       NOT NULL,
+    USER_BIRTH_DATE      DATE,
+    USER_EMAIL           VARCHAR2(200)       NOT NULL UNIQUE,
+    USER_PW              VARCHAR2(255)       NOT NULL,
+    USER_REGISTER_DATE   DATE                DEFAULT SYSDATE NOT NULL,
+    USER_TYPE            VARCHAR2(30)        DEFAULT 'USER',
+    JOB_CODE             VARCHAR2(20)        REFERENCES T_JOB(JOB_CODE) ON DELETE SET NULL,
+    OCCUPATION_CODE      VARCHAR2(20)        REFERENCES T_OCCUPATION(OCCUPATION_CODE) ON DELETE SET NULL,
+    USER_IS_DELETED      NUMBER(1)           DEFAULT 0 NOT NULL
+);
+
+
+-- ================================================================================
+-- 2. 유저 이력 문서 도메인 (이력서 / 자소서 / 포트폴리오)
+-- ================================================================================
+
+-- 2-1. 이력서 기본 정보 (1:N 부모)
+CREATE TABLE T_RESUME (
+    RESUME_NUM           NUMBER(18)          DEFAULT SEQ_T_RESUME.NEXTVAL PRIMARY KEY,
+    USER_NUM             NUMBER(9)           NOT NULL REFERENCES T_USER(USER_NUM) ON DELETE CASCADE,
+    MOTIVATION           CLOB,
+    DESIRED_LOCATION     VARCHAR2(200),
+    DESIRED_WORK_TYPE    VARCHAR2(100),
+    CREATED_AT           DATE                DEFAULT SYSDATE NOT NULL,
+    UPDATED_AT           DATE                DEFAULT SYSDATE NOT NULL
+);
+CREATE INDEX IDX_RESUME_USER_NUM ON T_RESUME(USER_NUM);
+
+-- 2-2. 학력 정보 (1:N 자식)
+CREATE TABLE T_EDUCATION (
+    EDU_NUM              NUMBER(18)          DEFAULT SEQ_T_EDUCATION.NEXTVAL PRIMARY KEY,
+    RESUME_NUM           NUMBER(18)          NOT NULL REFERENCES T_RESUME(RESUME_NUM) ON DELETE CASCADE,
+    SCHOOL_NAME          VARCHAR2(200)       NOT NULL,
+    ADMISSION_DATE       DATE,
+    GRADUATION_DATE      DATE,
+    MAJOR                VARCHAR2(200)
+);
+CREATE INDEX IDX_EDU_RESUME_NUM ON T_EDUCATION(RESUME_NUM);
+CREATE INDEX IDX_EDU_GRADUATION_DATE ON T_EDUCATION(GRADUATION_DATE);
+
+-- 2-3. 경력 정보 (1:N 자식)
+CREATE TABLE T_CAREER (
+    CAREER_NUM           NUMBER(18)          DEFAULT SEQ_T_CAREER.NEXTVAL PRIMARY KEY,
+    RESUME_NUM           NUMBER(18)          NOT NULL REFERENCES T_RESUME(RESUME_NUM) ON DELETE CASCADE,
+    COMPANY_NAME         VARCHAR2(200)       NOT NULL,
+    JOIN_DATE            DATE,
+    RESIGN_DATE          DATE,
+    MAIN_DUTY            VARCHAR2(2000)
+);
+CREATE INDEX IDX_CAREER_RESUME_NUM ON T_CAREER(RESUME_NUM);
+CREATE INDEX IDX_CAREER_RESIGN_DATE ON T_CAREER(RESIGN_DATE);
+
+-- 2-4. 자격증 정보 (1:N 자식)
+CREATE TABLE T_CERTIFICATION (
+    CERT_NUM             NUMBER(18)          DEFAULT SEQ_T_CERTIFICATION.NEXTVAL PRIMARY KEY,
+    RESUME_NUM           NUMBER(18)          NOT NULL REFERENCES T_RESUME(RESUME_NUM) ON DELETE CASCADE,
+    CERT_NAME            VARCHAR2(200)       NOT NULL,
+    CERT_GRADE           VARCHAR2(100),
+    ISSUE_DATE           DATE
+);
+CREATE INDEX IDX_CERT_RESUME_NUM ON T_CERTIFICATION(RESUME_NUM);
+CREATE INDEX IDX_CERT_ISSUE_DATE ON T_CERTIFICATION(ISSUE_DATE);
+
+-- 2-5. 자기소개서 (1:1 관계)
+CREATE TABLE T_COVER_LETTER (
+    USER_NUM                          NUMBER(9)       PRIMARY KEY REFERENCES T_USER(USER_NUM) ON DELETE CASCADE,
+    GROWTH_PROCESS                    CLOB,
+    PERSONALITY_STRENGTHS_WEAKNESSES  CLOB,
+    PROBLEM_SOLVING_EXPERIENCE        CLOB,
+    POST_JOINING_ASPIRATION           CLOB,
+    CREATED_AT                        DATE            DEFAULT SYSDATE NOT NULL,
+    UPDATED_AT                        DATE            DEFAULT SYSDATE NOT NULL
+);
+
+-- 2-6. 포트폴리오 (1:1 관계)
+CREATE TABLE T_PORTFOLIO (
+    USER_NUM             NUMBER(9)           PRIMARY KEY REFERENCES T_USER(USER_NUM) ON DELETE CASCADE,
+    FILE_URL             VARCHAR2(500),
+    CREATED_AT           DATE                DEFAULT SYSDATE NOT NULL,
+    UPDATED_AT           DATE                DEFAULT SYSDATE NOT NULL
+);
+
+
+-- ================================================================================
+-- 3. AI 모의 면접 도메인
+-- ================================================================================
+
+-- 3-1. 면접 Q&A 내역
+CREATE TABLE T_INTERVIEW_HISTORY (
+    HISTORY_NUM          NUMBER(18)          DEFAULT SEQ_T_INTERVIEW_HISTORY.NEXTVAL PRIMARY KEY,
+    USER_NUM             NUMBER(9)           NOT NULL REFERENCES T_USER(USER_NUM) ON DELETE CASCADE,
+    QUESTION1            VARCHAR2(1000),
+    ANSWER1              VARCHAR2(3000),
+    QUESTION2            VARCHAR2(1000),
+    ANSWER2              VARCHAR2(3000),
+    QUESTION3            VARCHAR2(1000),
+    ANSWER3              VARCHAR2(3000),
+    QUESTION4            VARCHAR2(1000),
+    ANSWER4              VARCHAR2(3000),
+    QUESTION5            VARCHAR2(1000),
+    ANSWER5              VARCHAR2(3000),
+    INTERVIEW_DATE       DATE                DEFAULT SYSDATE NOT NULL
+);
+
+-- 3-2. 면접 평가 결과 (복합 기본키)
+CREATE TABLE T_INTERVIEW_RESULT (
+    HISTORY_NUM          NUMBER(18)          NOT NULL REFERENCES T_INTERVIEW_HISTORY(HISTORY_NUM) ON DELETE CASCADE,
+    USER_NUM             NUMBER(9)           NOT NULL REFERENCES T_USER(USER_NUM) ON DELETE CASCADE,
+    CONFIDENCE_SCORE     NUMBER(5,2)         DEFAULT 0.00,
+    PERSISTENCE_SCORE    NUMBER(5,2)         DEFAULT 0.00,
+    EXPERTISE_SCORE      NUMBER(5,2)         DEFAULT 0.00,
+    LOGIC_SCORE          NUMBER(5,2)         DEFAULT 0.00,
+    DELIVERY_SCORE       NUMBER(5,2)         DEFAULT 0.00,
+    TOTAL_SCORE          NUMBER(5,2)         DEFAULT 0.00,
+    INTERVIEW_DATE       DATE                DEFAULT SYSDATE NOT NULL,
+    PRIMARY KEY (HISTORY_NUM, USER_NUM)
+);
+
+
+-- ================================================================================
+-- 4. 채용 공고 도메인
+-- ================================================================================
+
+-- 4-1. 사람인 채용 공고 API 적재 테이블
+CREATE TABLE T_RECRUITMENT (
+    RECRUITMENT_NUM      NUMBER(18)          DEFAULT SEQ_T_RECRUITMENT.NEXTVAL PRIMARY KEY,
+    SARAMIN_JOB_ID       VARCHAR2(50)        NOT NULL UNIQUE,
+    COMPANY_NAME         VARCHAR2(200)       NOT NULL,
+    TITLE                VARCHAR2(400)       NOT NULL,
+    JOB_URL              VARCHAR2(500)       NOT NULL,
+    LOCATION_NAME        VARCHAR2(200),
+    JOB_NAME             VARCHAR2(300),
+    EXPERIENCE_LEVEL     VARCHAR2(100),
+    EXPIRATION_DATE      DATE,
+    CLOSE_TYPE           VARCHAR2(50),
+    IS_ACTIVE            NUMBER(1)           DEFAULT 1 NOT NULL,
+    CREATED_AT           DATE                DEFAULT SYSDATE NOT NULL
+);
+CREATE INDEX IDX_RECRUIT_ACTIVE_EXP ON T_RECRUITMENT(IS_ACTIVE, EXPIRATION_DATE);
+
+
+-- ================================================================================
+-- 5. 커뮤니티 및 스터디 도메인
+-- ================================================================================
+
+-- 5-1. 게시판 카테고리 종류
+CREATE TABLE T_CATEGORY (
+    CATEGORY_NUM         NUMBER(9)           DEFAULT SEQ_T_CATEGORY.NEXTVAL PRIMARY KEY,
+    CATEGORY_NAME        VARCHAR2(100)       NOT NULL
+);
+
+-- 5-2. 커뮤니티 게시글
+CREATE TABLE T_POST (
+    POST_NUM             NUMBER(18)          DEFAULT SEQ_T_POST.NEXTVAL PRIMARY KEY,
+    CATEGORY_NUM         NUMBER(9)           NOT NULL REFERENCES T_CATEGORY(CATEGORY_NUM) ON DELETE CASCADE,
+    USER_NUM             NUMBER(9)           NOT NULL REFERENCES T_USER(USER_NUM) ON DELETE CASCADE,
+    POST_TITLE           VARCHAR2(300)       NOT NULL,
+    POST_CONTENT         CLOB,
+    POST_LIKE_COUNT      NUMBER(9)           DEFAULT 0 NOT NULL,
+    VIEW_COUNT           NUMBER(9)           DEFAULT 0 NOT NULL,
+    POST_FILE            VARCHAR2(500),
+    POST_DATE            DATE                DEFAULT SYSDATE NOT NULL
+);
+CREATE INDEX IDX_POST_CATEGORY ON T_POST(CATEGORY_NUM);
+CREATE INDEX IDX_POST_USER ON T_POST(USER_NUM);
+
+-- 5-3. 게시글 좋아요 (N:M 해소, 복합 기본키)
+CREATE TABLE T_POST_LIKE (
+    POST_NUM             NUMBER(18)          NOT NULL REFERENCES T_POST(POST_NUM) ON DELETE CASCADE,
+    USER_NUM             NUMBER(9)           NOT NULL REFERENCES T_USER(USER_NUM) ON DELETE CASCADE,
+    CREATED_AT           DATE                DEFAULT SYSDATE NOT NULL,
+    PRIMARY KEY (POST_NUM, USER_NUM)
+);
+
+-- 5-4. 게시글 댓글
+CREATE TABLE T_COMMENT (
+    COMMENT_NUM          NUMBER(18)          DEFAULT SEQ_T_COMMENT.NEXTVAL PRIMARY KEY,
+    POST_NUM             NUMBER(18)          NOT NULL REFERENCES T_POST(POST_NUM) ON DELETE CASCADE,
+    USER_NUM             NUMBER(9)           NOT NULL REFERENCES T_USER(USER_NUM) ON DELETE CASCADE,
+    COMMENT_CONTENT      VARCHAR2(2000)      NOT NULL,
+    COMMENT_DATE         DATE                DEFAULT SYSDATE NOT NULL
+);
+CREATE INDEX IDX_COMMENT_POST ON T_COMMENT(POST_NUM);
+CREATE INDEX IDX_COMMENT_USER ON T_COMMENT(USER_NUM);
+
+-- 5-5. 스터디 모집 방
+CREATE TABLE T_STUDY (
+    STUDY_NUM            NUMBER(18)          DEFAULT SEQ_T_STUDY.NEXTVAL PRIMARY KEY,
+    USER_NUM             NUMBER(9)           NOT NULL REFERENCES T_USER(USER_NUM) ON DELETE CASCADE,
+    STUDY_NAME           VARCHAR2(200)       NOT NULL,
+    STUDY_EXPLAIN        VARCHAR2(2000),
+    STUDY_CREATE_DATE    DATE                DEFAULT SYSDATE NOT NULL
+);
+
+-- 5-6. 스터디 참여자 명단 (복합 기본키)
+CREATE TABLE T_STUDY_MEMBER (
+    STUDY_NUM            NUMBER(18)          NOT NULL REFERENCES T_STUDY(STUDY_NUM) ON DELETE CASCADE,
+    USER_NUM             NUMBER(9)           NOT NULL REFERENCES T_USER(USER_NUM) ON DELETE CASCADE,
+    STUDY_JOIN_DATE      DATE                DEFAULT SYSDATE NOT NULL,
+    PRIMARY KEY (STUDY_NUM, USER_NUM)
+);

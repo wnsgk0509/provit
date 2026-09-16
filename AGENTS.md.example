@@ -8,7 +8,7 @@
 - **Backend:** Spring Framework (Spring MVC 5.3.39 / Java 17 / Tomcat 9), MyBatis
 - **Database:** Oracle DB (19c)
 - **External API:** 
-  - LLM: Gemini API (모의 면접 및 이력서 첨삭)
+  - LLM: openai api (모의 면접 및 이력서 첨삭)
   - Data: 채용 공고 OpenAPI (사람인/워크넷 등), 운세 API
 
 ## 3. Core Features
