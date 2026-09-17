@@ -2,9 +2,9 @@
 
 - **Database Engine:** Oracle Database 19c Enterprise Edition
 - **Character Set:** AL32UTF8
-- **Total Tables:** 18개 테이블
-- **Total Sequences:** 11개 시퀀스
-- **Last Updated:** 2026-09-16
+- **총 테이블 수:** 19개
+- **총 시퀀스 수:** 11개
+- **최종 수정일:** 2026-09-17
 
 ---
 
@@ -15,17 +15,18 @@
    - [1.2 T_JOB (소분류 직무)](#12-t_job-소분류-직무)
    - [1.3 T_USER (회원 기본 정보)](#13-t_user-회원-기본-정보)
 2. [유저 이력 문서 도메인](#2-유저-이력-문서-도메인)
-   - [2.1 T_RESUME (이력서 기본 정보)](#21-t_resume-이력서-기본-정보)
-   - [2.2 T_EDUCATION (학력 정보)](#22-t_education-학력-정보)
-   - [2.3 T_CAREER (경력 정보)](#23-t_career-경력-정보)
-   - [2.4 T_CERTIFICATION (자격증 정보)](#24-t_certification-자격증-정보)
-   - [2.5 T_COVER_LETTER (자기소개서)](#25-t_cover_letter-자기소개서)
-   - [2.6 T_PORTFOLIO (포트폴리오)](#26-t_portfolio-포트폴리오)
+   - [2.1 T_EDUCODE (학력 코드 분류)](#21-t_educode-학력-코드-분류)
+   - [2.2 T_RESUME (이력서 기본 정보)](#22-t_resume-이력서-기본-정보)
+   - [2.3 T_EDUCATION (학력 정보)](#23-t_education-학력-정보)
+   - [2.4 T_CAREER (경력 정보)](#24-t_career-경력-정보)
+   - [2.5 T_CERTIFICATION (자격증 정보)](#25-t_certification-자격증-정보)
+   - [2.6 T_COVER_LETTER (자기소개서)](#26-t_cover_letter-자기소개서)
+   - [2.7 T_PORTFOLIO (포트폴리오)](#27-t_portfolio-포트폴리오)
 3. [AI 모의 면접 도메인](#3-ai-모의-면접-도메인)
-   - [3.1 T_INTERVIEW_HISTORY (면접 질문/답변 내역)](#31-t_interview_history-면접-질문답변-내역)
+   - [3.1 T_INTERVIEW_HISTORY (면접 Q&A 내역)](#31-t_interview_history-면접-qa-내역)
    - [3.2 T_INTERVIEW_RESULT (면접 평가 결과)](#32-t_interview_result-면접-평가-결과)
 4. [채용 공고 도메인](#4-채용-공고-도메인)
-   - [4.1 T_RECRUITMENT (사람인 채용 공고 API 적재)](#41-t_recruitment-사람인-채용-공고-api-적재)
+   - [4.1 T_RECRUITMENT (사람인 채용 공고)](#41-t_recruitment-사람인-채용-공고)
 5. [커뮤니티 및 스터디 도메인](#5-커뮤니티-및-스터디-도메인)
    - [5.1 T_CATEGORY (게시판 종류)](#51-t_category-게시판-종류)
    - [5.2 T_POST (커뮤니티 게시글)](#52-t_post-커뮤니티-게시글)
@@ -39,273 +40,425 @@
 # 1. 회원 및 직무 도메인
 
 ### 1.1 T_OCCUPATION (대분류 직군)
-- **설명:** 개발, 기획, 디자인 등 대분류 직군 코드 관리
+- **테이블 물리명:** `T_OCCUPATION`
+- **테이블 논리명:** 대분류 직군
+- **설명:** 개발, 기획, 디자인 등 대분류 직군 분류 코드 관리
 - **시퀀스:** 없음 (코드형 식별자 사용)
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `OCCUPATION_CODE` | 직군 코드 | VARCHAR2(20) | N | PK | - | 예: 'DEV', 'PLAN' |
-| 2 | `OCCUPATION_NAME` | 직군명 | VARCHAR2(200) | N | - | - | 예: '개발', '기획' |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | OCCUPATION_CODE | 직군 코드 | VARCHAR2 | 20 | PK | NOT NULL | | 대분류 직군 고유 식별 코드 | | 예: 'DEV', 'PLAN' |
+| 2 | OCCUPATION_NAME | 직군명 | VARCHAR2 | 200 | | NOT NULL | | 대분류 직군 이름 | | 예: '개발', '기획' |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_OCCUPATION_IDX | PK | Unique | OCCUPATION_CODE |
 
 ---
 
 ### 1.2 T_JOB (소분류 직무)
-- **설명:** 백엔드 개발자, 프론트엔드 개발자 등 직군에 종속된 상세 직무 코드 관리
+- **테이블 물리명:** `T_JOB`
+- **테이블 논리명:** 소분류 직무
+- **설명:** 백엔드 개발자, 프론트엔드 개발자 등 직군에 속한 상세 직무 코드 관리
 - **시퀀스:** 없음 (코드형 식별자 사용)
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `JOB_CODE` | 직무 코드 | VARCHAR2(20) | N | PK | - | 예: 'BACKEND', 'FRONTEND' |
-| 2 | `OCCUPATION_CODE` | 소속 직군 코드 | VARCHAR2(20) | N | FK | - | `T_OCCUPATION(OCCUPATION_CODE)` ON DELETE CASCADE |
-| 3 | `JOB_NAME` | 직무명 | VARCHAR2(200) | N | - | - | 예: '백엔드 개발자' |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | JOB_CODE | 직무 코드 | VARCHAR2 | 20 | PK | NOT NULL | | 소분류 직무 고유 식별 코드 | | 예: 'BACKEND', 'FRONTEND' |
+| 2 | OCCUPATION_CODE | 소속 직군 코드 | VARCHAR2 | 20 | | NOT NULL | | 소속 대분류 직군 코드 | T_OCCUPATION(OCCUPATION_CODE) | ON DELETE CASCADE |
+| 3 | JOB_NAME | 직무명 | VARCHAR2 | 200 | | NOT NULL | | 소분류 직무 이름 | | 예: '백엔드 개발자' |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_JOB_IDX | PK | Unique | JOB_CODE |
 
 ---
 
 ### 1.3 T_USER (회원 기본 정보)
-- **설명:** 서비스 전체 회원의 인증 및 기본 프로필 정보
+- **테이블 물리명:** `T_USER`
+- **테이블 논리명:** 회원 기본 정보
+- **설명:** 서비스 전체 회원의 계정 인증 및 프로필 기본 정보
 - **시퀀스:** `SEQ_T_USER`
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `USER_NUM` | 회원 번호 | NUMBER(9) | N | PK | `SEQ_T_USER.NEXTVAL` | 회원 고유 식별자 |
-| 2 | `USER_NAME` | 회원 실명 | VARCHAR2(100) | N | - | - | 사용자 본명 |
-| 3 | `USER_NICKNAME` | 닉네임 | VARCHAR2(100) | N | - | - | 서비스 내 활동명 |
-| 4 | `USER_BIRTH_DATE` | 생년월일 | DATE | Y | - | - | 생년월일 (YYYY-MM-DD) |
-| 5 | `USER_EMAIL` | 이메일 | VARCHAR2(200) | N | UK | - | 로그인 ID (중복 불가) |
-| 6 | `USER_PW` | 비밀번호 | VARCHAR2(255) | N | - | - | SHA-256/BCrypt 암호화 해시 |
-| 7 | `USER_REGISTER_DATE` | 가입일시 | DATE | N | - | `SYSDATE` | 최초 가입 시각 |
-| 8 | `USER_TYPE` | 권한 구분 | VARCHAR2(30) | Y | - | `'USER'` | 'USER', 'ADMIN' 등 |
-| 9 | `JOB_CODE` | 희망 직무 | VARCHAR2(20) | Y | FK | - | `T_JOB(JOB_CODE)` ON DELETE SET NULL |
-| 10 | `OCCUPATION_CODE` | 희망 직군 | VARCHAR2(20) | Y | FK | - | `T_OCCUPATION(OCCUPATION_CODE)` ON DELETE SET NULL |
-| 11 | `USER_IS_DELETED` | 탈퇴 여부 | NUMBER(1) | N | - | `0` | 0: 정상 회원, 1: 탈퇴 회원 |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | USER_NUM | 회원 번호 | NUMBER | 9 | PK | NOT NULL | SEQ_T_USER.NEXTVAL | 회원 고유 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | USER_NAME | 회원 실명 | VARCHAR2 | 100 | | NOT NULL | | 회원 실제 이름 | | 사용자 본명 |
+| 3 | USER_NICKNAME | 닉네임 | VARCHAR2 | 100 | | NOT NULL | | 서비스 내 활동 닉네임 | | UNIQUE (중복 불가) |
+| 4 | USER_BIRTH_DATE | 생년월일 | DATE | | | | | 회원 생년월일 (YYYY-MM-DD) | | |
+| 5 | USER_EMAIL | 이메일 | VARCHAR2 | 200 | | NOT NULL | | 로그인 이메일 계정 ID | | UNIQUE (중복 불가) |
+| 6 | USER_PW | 비밀번호 | VARCHAR2 | 255 | | NOT NULL | | 암호화된 비밀번호 해시 | | BCrypt 단방향 암호화 |
+| 7 | USER_REGISTER_DATE | 가입일시 | DATE | | | NOT NULL | SYSDATE | 최초 회원가입 일시 | | |
+| 8 | USER_TYPE | 권한 구분 | VARCHAR2 | 30 | | | 'USER' | 계정 권한 구분 | | 'USER', 'ADMIN' |
+| 9 | JOB_CODE | 희망 직무 코드 | VARCHAR2 | 20 | | | | 회원이 희망하는 소분류 직무 | T_JOB(JOB_CODE) | ON DELETE SET NULL |
+| 10 | OCCUPATION_CODE | 희망 직군 코드 | VARCHAR2 | 20 | | | | 회원이 희망하는 대분류 직군 | T_OCCUPATION(OCCUPATION_CODE) | ON DELETE SET NULL |
+| 11 | USER_IS_DELETED | 탈퇴 여부 | NUMBER | 1 | | NOT NULL | 0 | 회원 탈퇴 플래그 | | 0: 정상, 1: 탈퇴 |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_USER_IDX | PK | Unique | USER_NUM |
+| 2 | UK_T_USER_EMAIL_IDX | Unique | Unique | USER_EMAIL |
+| 3 | UK_T_USER_NICKNAME_IDX | Unique | Unique | USER_NICKNAME |
 
 ---
 
 # 2. 유저 이력 문서 도메인
 
-### 2.1 T_RESUME (이력서 기본 정보)
-- **설명:** 회원의 이력서 마스터 테이블 (학력/경력/자격증의 1:N 부모)
-- **시퀀스:** `SEQ_T_RESUME` / **인덱스:** `USER_NUM`
+### 2.1 T_EDUCODE (학력 코드 분류)
+- **테이블 물리명:** `T_EDUCODE`
+- **테이블 논리명:** 학력 코드 분류
+- **설명:** 사람인 채용 OpenAPI 연동 및 학력 검색 필터링용 표준 학력 코드 관리
+- **시퀀스:** 없음 (코드형 식별자 사용)
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `RESUME_NUM` | 이력서 번호 | NUMBER(18) | N | PK | `SEQ_T_RESUME.NEXTVAL` | 이력서 고유 번호 |
-| 2 | `USER_NUM` | 작성자 번호 | NUMBER(9) | N | FK | - | `T_USER(USER_NUM)` ON DELETE CASCADE |
-| 3 | `MOTIVATION` | 지원 동기 | CLOB | Y | - | - | 장문 지원 동기 텍스트 |
-| 4 | `DESIRED_LOCATION` | 희망 근무지 | VARCHAR2(200) | Y | - | - | 예: '서울 강남구' |
-| 5 | `DESIRED_WORK_TYPE` | 희망 고용형태 | VARCHAR2(100) | Y | - | - | 정규직, 계약직, 인턴 등 |
-| 6 | `CREATED_AT` | 등록일시 | DATE | N | - | `SYSDATE` | 이력서 생성일시 |
-| 7 | `UPDATED_AT` | 수정일시 | DATE | N | - | `SYSDATE` | 이력서 최종수정일시 |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | EDUCATION_CODE | 학력 코드 | NUMBER | 1 | PK | NOT NULL | | 학력 고유 식별 코드 | | 0:학력무관, 1:고졸, 2:초대졸, 3:대졸 등 |
+| 2 | EDUCATION_NAME | 학력 이름 | VARCHAR2 | 50 | | NOT NULL | | 학력 코드에 매칭되는 한글 명칭 | | 예: '대학교졸업(4년)' |
 
----
-
-### 2.2 T_EDUCATION (학력 정보)
-- **설명:** 이력서에 포함되는 최종/세부 학력 정보 (1:N)
-- **시퀀스:** `SEQ_T_EDUCATION` / **인덱스:** `RESUME_NUM`, `GRADUATION_DATE`
-
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `EDU_NUM` | 학력 번호 | NUMBER(18) | N | PK | `SEQ_T_EDUCATION.NEXTVAL` | 학력 항목 고유 번호 |
-| 2 | `RESUME_NUM` | 이력서 번호 | NUMBER(18) | N | FK | - | `T_RESUME(RESUME_NUM)` ON DELETE CASCADE |
-| 3 | `SCHOOL_NAME` | 학교명 | VARCHAR2(200) | N | - | - | 출신 학교명 |
-| 4 | `ADMISSION_DATE` | 입학일자 | DATE | Y | - | - | 입학 연월일 |
-| 5 | `GRADUATION_DATE` | 졸업일자 | DATE | Y | - | - | 졸업(예정) 연월일 |
-| 6 | `MAJOR` | 전공학과 | VARCHAR2(200) | Y | - | - | 주전공 / 복수전공명 |
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_EDUCODE_IDX | PK | Unique | EDUCATION_CODE |
 
 ---
 
-### 2.3 T_CAREER (경력 정보)
-- **설명:** 이력서에 포함되는 직장 경력 및 주요 업무 이력 (1:N)
-- **시퀀스:** `SEQ_T_CAREER` / **인덱스:** `RESUME_NUM`, `RESIGN_DATE`
+### 2.2 T_RESUME (이력서 기본 정보)
+- **테이블 물리명:** `T_RESUME`
+- **테이블 논리명:** 이력서 기본 정보
+- **설명:** 회원의 이력서 마스터 정보 (학력/경력/자격증의 1:N 부모)
+- **시퀀스:** `SEQ_T_RESUME`
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `CAREER_NUM` | 경력 번호 | NUMBER(18) | N | PK | `SEQ_T_CAREER.NEXTVAL` | 경력 항목 고유 번호 |
-| 2 | `RESUME_NUM` | 이력서 번호 | NUMBER(18) | N | FK | - | `T_RESUME(RESUME_NUM)` ON DELETE CASCADE |
-| 3 | `COMPANY_NAME` | 회사명 | VARCHAR2(200) | N | - | - | 근무 직장명 |
-| 4 | `JOIN_DATE` | 입사일자 | DATE | Y | - | - | 입사 연월일 |
-| 5 | `RESIGN_DATE` | 퇴사일자 | DATE | Y | - | - | 퇴사 연월일 (재직 중일 시 NULL) |
-| 6 | `MAIN_DUTY` | 주요 담당업무 | VARCHAR2(2000) | Y | - | - | 프로젝트 및 수행 업무 상세 |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | RESUME_NUM | 이력서 번호 | NUMBER | 18 | PK | NOT NULL | SEQ_T_RESUME.NEXTVAL | 이력서 고유 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | USER_NUM | 작성자 번호 | NUMBER | 9 | | NOT NULL | | 이력서 작성 회원 번호 | T_USER(USER_NUM) | ON DELETE CASCADE |
+| 3 | HIGHEST_LEVEL | 최종학력 | VARCHAR2 | 20 | | NOT NULL | | 최종 학력 기재 (고졸, 초대졸, 대졸 등) | | 목록/필터링 최적화 |
+| 4 | EDUCATION_CODE | 검색 학력 코드 | NUMBER | 1 | | NOT NULL | | 채용 API 요청 시 전달할 학력 검색 코드 | T_EDUCODE(EDUCATION_CODE) | OpenAPI 연동 |
+| 5 | MOTIVATION | 지원 동기 | CLOB | | | | | 장문 지원 동기 텍스트 | | |
+| 6 | DESIRED_LOCATION | 희망 근무지 | VARCHAR2 | 200 | | | | 희망 근무 지역 | | 예: '서울 강남구' |
+| 7 | DESIRED_WORK_TYPE | 희망 고용형태 | VARCHAR2 | 100 | | | | 희망 고용 형태 | | 정규직, 계약직 등 |
+| 8 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 이력서 최초 작성 일시 | | |
+| 9 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 이력서 최종 수정 일시 | | |
 
----
-
-### 2.4 T_CERTIFICATION (자격증 정보)
-- **설명:** 이력서에 포함되는 자격증, 면허, 어학 성적 정보 (1:N)
-- **시퀀스:** `SEQ_T_CERTIFICATION` / **인덱스:** `RESUME_NUM`, `ISSUE_DATE`
-
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `CERT_NUM` | 자격증 번호 | NUMBER(18) | N | PK | `SEQ_T_CERTIFICATION.NEXTVAL` | 자격증 항목 고유 번호 |
-| 2 | `RESUME_NUM` | 이력서 번호 | NUMBER(18) | N | FK | - | `T_RESUME(RESUME_NUM)` ON DELETE CASCADE |
-| 3 | `CERT_NAME` | 자격증명 | VARCHAR2(200) | N | - | - | 자격증/어학시험 명칭 |
-| 4 | `CERT_GRADE` | 등급/점수 | VARCHAR2(100) | Y | - | - | 등급(1급), 점수(TOEIC 850) |
-| 5 | `ISSUE_DATE` | 발급(취득)일 | DATE | Y | - | - | 자격증 취득 연월일 |
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_RESUME_IDX | PK | Unique | RESUME_NUM |
+| 2 | IDX_RESUME_USER_NUM | Normal | Non-Unique | USER_NUM |
 
 ---
 
-### 2.5 T_COVER_LETTER (자기소개서)
-- **설명:** 회원의 4대 핵심 문항 자기소개서 내용 (회원과 1:1 관계)
+### 2.3 T_EDUCATION (학력 정보)
+- **테이블 물리명:** `T_EDUCATION`
+- **테이블 논리명:** 학력 정보
+- **설명:** 이력서에 종속되는 회원의 출신 학교 및 학력 정보 (1:N 자식)
+- **시퀀스:** `SEQ_T_EDUCATION`
+
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | EDU_NUM | 학력 번호 | NUMBER | 18 | PK | NOT NULL | SEQ_T_EDUCATION.NEXTVAL | 학력 사항 고유 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | RESUME_NUM | 이력서 번호 | NUMBER | 18 | | NOT NULL | | 소속 이력서 번호 | T_RESUME(RESUME_NUM) | ON DELETE CASCADE |
+| 3 | SCHOOL_NAME | 학교명 | VARCHAR2 | 200 | | NOT NULL | | 출신 학교 이름 | | |
+| 4 | ADMISSION_DATE | 입학일자 | DATE | | | | | 입학 년월일 | | |
+| 5 | GRADUATION_DATE | 졸업일자 | DATE | | | | | 졸업 (예정) 년월일 | | |
+| 6 | MAJOR | 전공 | VARCHAR2 | 200 | | | | 전공 학과명 | | |
+| 7 | EDUCATION_STATUS | 학력 상태 | VARCHAR2 | 20 | | NOT NULL | | 학력 상태 선택 (졸업, 재학, 수료 등) | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_EDUCATION_IDX | PK | Unique | EDU_NUM |
+| 2 | IDX_EDU_RESUME_NUM | Normal | Non-Unique | RESUME_NUM |
+| 3 | IDX_EDU_GRADUATION_DATE | Normal | Non-Unique | GRADUATION_DATE |
+
+---
+
+### 2.4 T_CAREER (경력 정보)
+- **테이블 물리명:** `T_CAREER`
+- **테이블 논리명:** 경력 정보
+- **설명:** 이력서에 종속되는 회원의 이전 직장 및 경력 사항 (1:N 자식)
+- **시퀀스:** `SEQ_T_CAREER`
+
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | CAREER_NUM | 경력 번호 | NUMBER | 18 | PK | NOT NULL | SEQ_T_CAREER.NEXTVAL | 경력 사항 고유 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | RESUME_NUM | 이력서 번호 | NUMBER | 18 | | NOT NULL | | 소속 이력서 번호 | T_RESUME(RESUME_NUM) | ON DELETE CASCADE |
+| 3 | COMPANY_NAME | 회사명 | VARCHAR2 | 200 | | NOT NULL | | 근무 직장/기업 이름 | | |
+| 4 | JOIN_DATE | 입사일자 | DATE | | | | | 입사 년월일 | | |
+| 5 | RESIGN_DATE | 퇴사일자 | DATE | | | | | 퇴사 년월일 (재직 중일 경우 NULL) | | |
+| 6 | MAIN_DUTY | 담당 업무 | VARCHAR2 | 2000 | | | | 수행 주요 업무 및 역할 설명 | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_CAREER_IDX | PK | Unique | CAREER_NUM |
+| 2 | IDX_CAREER_RESUME_NUM | Normal | Non-Unique | RESUME_NUM |
+| 3 | IDX_CAREER_RESIGN_DATE | Normal | Non-Unique | RESIGN_DATE |
+
+---
+
+### 2.5 T_CERTIFICATION (자격증 정보)
+- **테이블 물리명:** `T_CERTIFICATION`
+- **테이블 논리명:** 자격증 정보
+- **설명:** 이력서에 종속되는 회원의 보유 자격증 및 어학 점수 (1:N 자식)
+- **시퀀스:** `SEQ_T_CERTIFICATION`
+
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | CERT_NUM | 자격증 번호 | NUMBER | 18 | PK | NOT NULL | SEQ_T_CERTIFICATION.NEXTVAL | 자격증 사항 고유 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | RESUME_NUM | 이력서 번호 | NUMBER | 18 | | NOT NULL | | 소속 이력서 번호 | T_RESUME(RESUME_NUM) | ON DELETE CASCADE |
+| 3 | CERT_NAME | 자격증명 | VARCHAR2 | 200 | | NOT NULL | | 취득 자격증/시험 이름 | | 예: '정보처리기사' |
+| 4 | CERT_GRADE | 등급/점수 | VARCHAR2 | 100 | | | | 취득 등급 또는 어학 점수 | | 예: 'TOEIC 850' |
+| 5 | ISSUE_DATE | 취득일자 | DATE | | | | | 자격증 취득 년월일 | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_CERTIFICATION_IDX | PK | Unique | CERT_NUM |
+| 2 | IDX_CERT_RESUME_NUM | Normal | Non-Unique | RESUME_NUM |
+| 3 | IDX_CERT_ISSUE_DATE | Normal | Non-Unique | ISSUE_DATE |
+
+---
+
+### 2.6 T_COVER_LETTER (자기소개서)
+- **테이블 물리명:** `T_COVER_LETTER`
+- **테이블 논리명:** 자기소개서
+- **설명:** 회원의 문항별 자기소개서 텍스트 데이터 (회원과 1:1 관계)
 - **시퀀스:** 없음 (`USER_NUM`을 PK 겸 FK로 사용)
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `USER_NUM` | 회원 번호 | NUMBER(9) | N | PK, FK | - | `T_USER(USER_NUM)` ON DELETE CASCADE |
-| 2 | `GROWTH_PROCESS` | 성장 과정 | CLOB | Y | - | - | 1번 문항 본문 |
-| 3 | `PERSONALITY_STRENGTHS_WEAKNESSES` | 성격의 장단점 | CLOB | Y | - | - | 2번 문항 본문 |
-| 4 | `PROBLEM_SOLVING_EXPERIENCE` | 문제해결/직무경험 | CLOB | Y | - | - | 3번 문항 본문 |
-| 5 | `POST_JOINING_ASPIRATION` | 입사 후 포부 | CLOB | Y | - | - | 4번 문항 본문 |
-| 6 | `CREATED_AT` | 등록일시 | DATE | N | - | `SYSDATE` | 자소서 생성일시 |
-| 7 | `UPDATED_AT` | 수정일시 | DATE | N | - | `SYSDATE` | 자소서 최종수정일시 |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | USER_NUM | 회원 번호 | NUMBER | 9 | PK | NOT NULL | | 작성 회원 번호 (식별자 겸 FK) | T_USER(USER_NUM) | ON DELETE CASCADE |
+| 2 | GROWTH_PROCESS | 성장 과정 | VARCHAR2 | 3000 | | | | 성장 과정 및 배경 기술서 | | 한글 약 1,000자 |
+| 3 | PERSONALITY_STRENGTHS_WEAKNESSES | 성격의 장단점 | VARCHAR2 | 3000 | | | | 성격의 장단점 기술서 | | 한글 약 1,000자 |
+| 4 | PROBLEM_SOLVING_EXPERIENCE | 문제 해결 경험 | VARCHAR2 | 3000 | | | | 위기 극복 및 문제 해결 경험 | | 한글 약 1,000자 |
+| 5 | POST_JOINING_ASPIRATION | 입사 후 포부 | VARCHAR2 | 3000 | | | | 입사 후 포부 및 비전 | | 한글 약 1,000자 |
+| 6 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 자기소개서 최초 등록 일시 | | |
+| 7 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 자기소개서 최종 수정 일시 | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_COVER_LETTER_IDX | PK | Unique | USER_NUM |
 
 ---
 
-### 2.6 T_PORTFOLIO (포트폴리오)
-- **설명:** 회원의 외부 포트폴리오 파일 또는 노션/깃허브 링크 (회원과 1:1 관계)
+### 2.7 T_PORTFOLIO (포트폴리오)
+- **테이블 물리명:** `T_PORTFOLIO`
+- **테이블 논리명:** 포트폴리오
+- **설명:** 회원의 포트폴리오 파일 업로드 정보 (회원과 1:1 관계)
 - **시퀀스:** 없음 (`USER_NUM`을 PK 겸 FK로 사용)
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `USER_NUM` | 회원 번호 | NUMBER(9) | N | PK, FK | - | `T_USER(USER_NUM)` ON DELETE CASCADE |
-| 2 | `FILE_URL` | 포트폴리오 링크 | VARCHAR2(500) | Y | - | - | 첨부파일 저장 경로 or 웹 링크 |
-| 3 | `CREATED_AT` | 등록일시 | DATE | N | - | `SYSDATE` | 포트폴리오 등록일시 |
-| 4 | `UPDATED_AT` | 수정일시 | DATE | N | - | `SYSDATE` | 포트폴리오 수정일시 |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | USER_NUM | 회원 번호 | NUMBER | 9 | PK | NOT NULL | | 소유 회원 번호 (식별자 겸 FK) | T_USER(USER_NUM) | ON DELETE CASCADE |
+| 2 | FILE_URL | 파일 URL | VARCHAR2 | 500 | | | | 업로드된 포트폴리오 파일 URL | | PDF/문서 링크 |
+| 3 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 포트폴리오 최초 등록 일시 | | |
+| 4 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 포트폴리오 최종 수정 일시 | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_PORTFOLIO_IDX | PK | Unique | USER_NUM |
 
 ---
 
 # 3. AI 모의 면접 도메인
 
-### 3.1 T_INTERVIEW_HISTORY (면접 질문/답변 내역)
-- **설명:** 사용자가 진행한 AI 모의면접 5문항 질의응답 세션 기록
+### 3.1 T_INTERVIEW_HISTORY (면접 Q&A 내역)
+- **테이블 물리명:** `T_INTERVIEW_HISTORY`
+- **테이블 논리명:** 면접 질문/답변 내역
+- **설명:** AI 모의 면접 진행 시 오간 5문항의 질문 및 답변 텍스트 기록
 - **시퀀스:** `SEQ_T_INTERVIEW_HISTORY`
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `HISTORY_NUM` | 면접 기록 번호 | NUMBER(18) | N | PK | `SEQ_T_INTERVIEW_HISTORY.NEXTVAL` | 모의면접 고유 세션 ID |
-| 2 | `USER_NUM` | 응시자 번호 | NUMBER(9) | N | FK | - | `T_USER(USER_NUM)` ON DELETE CASCADE |
-| 3 | `QUESTION1` ~ `5` | AI 질문 1~5 | VARCHAR2(1000) | Y | - | - | AI가 생성한 단계별 질문 |
-| 4 | `ANSWER1` ~ `5` | 유저 답변 1~5 | VARCHAR2(3000) | Y | - | - | 사용자가 제출한 텍스트 답변 |
-| 5 | `INTERVIEW_DATE` | 면접 일시 | DATE | N | - | `SYSDATE` | 모의면접 응시 일시 |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | HISTORY_NUM | 면접 내역 번호 | NUMBER | 18 | PK | NOT NULL | SEQ_T_INTERVIEW_HISTORY.NEXTVAL | 모의 면접 고유 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | USER_NUM | 응시자 번호 | NUMBER | 9 | | NOT NULL | | 면접 응시 회원 번호 | T_USER(USER_NUM) | ON DELETE CASCADE |
+| 3 | QUESTION1 | 질문 1 | VARCHAR2 | 1000 | | | | AI 생성 1번 질문 내용 | | |
+| 4 | ANSWER1 | 답변 1 | VARCHAR2 | 3000 | | | | 응시자 1번 답변 내용 | | 음성 인식/텍스트 |
+| 5 | QUESTION2 | 질문 2 | VARCHAR2 | 1000 | | | | AI 생성 2번 질문 내용 (꼬리질문) | | |
+| 6 | ANSWER2 | 답변 2 | VARCHAR2 | 3000 | | | | 응시자 2번 답변 내용 | | |
+| 7 | QUESTION3 | 질문 3 | VARCHAR2 | 1000 | | | | AI 생성 3번 질문 내용 | | |
+| 8 | ANSWER3 | 답변 3 | VARCHAR2 | 3000 | | | | 응시자 3번 답변 내용 | | |
+| 9 | QUESTION4 | 질문 4 | VARCHAR2 | 1000 | | | | AI 생성 4번 질문 내용 | | |
+| 10 | ANSWER4 | 답변 4 | VARCHAR2 | 3000 | | | | 응시자 4번 답변 내용 | | |
+| 11 | QUESTION5 | 질문 5 | VARCHAR2 | 1000 | | | | AI 생성 5번 질문 내용 | | |
+| 12 | ANSWER5 | 답변 5 | VARCHAR2 | 3000 | | | | 응시자 5번 답변 내용 | | |
+| 13 | INTERVIEW_DATE | 응시일시 | DATE | | | NOT NULL | SYSDATE | 모의 면접 진행 일시 | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_INTERVIEW_HISTORY_IDX | PK | Unique | HISTORY_NUM |
+| 2 | IDX_INTERVIEW_USER_NUM | Normal | Non-Unique | USER_NUM |
 
 ---
 
 ### 3.2 T_INTERVIEW_RESULT (면접 평가 결과)
-- **설명:** 모의면접 세션 종료 후 LLM이 분석한 5대 핵심 역량 지표 평가 점수
-- **시퀀스:** 없음 (복합 기본키: `HISTORY_NUM` + `USER_NUM`)
+- **테이블 물리명:** `T_INTERVIEW_RESULT`
+- **테이블 논리명:** 면접 평가 결과
+- **설명:** AI 모의 면접 완료 후 산출된 5대 역량 세부 스코어 및 총점 (복합 기본키)
+- **시퀀스:** 없음 (`HISTORY_NUM`, `USER_NUM` 복합 PK)
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `HISTORY_NUM` | 면접 기록 번호 | NUMBER(18) | N | PK, FK | - | `T_INTERVIEW_HISTORY(HISTORY_NUM)` ON DELETE CASCADE |
-| 2 | `USER_NUM` | 응시자 번호 | NUMBER(9) | N | PK, FK | - | `T_USER(USER_NUM)` ON DELETE CASCADE |
-| 3 | `CONFIDENCE_SCORE` | 자신감 점수 | NUMBER(5,2) | Y | - | `0.00` | 점수 (0.00 ~ 100.00) |
-| 4 | `PERSISTENCE_SCORE` | 집요함 점수 | NUMBER(5,2) | Y | - | `0.00` | 점수 (0.00 ~ 100.00) |
-| 5 | `EXPERTISE_SCORE` | 전문성 점수 | NUMBER(5,2) | Y | - | `0.00` | 점수 (0.00 ~ 100.00) |
-| 6 | `LOGIC_SCORE` | 논리성 점수 | NUMBER(5,2) | Y | - | `0.00` | 점수 (0.00 ~ 100.00) |
-| 7 | `DELIVERY_SCORE` | 전달력 점수 | NUMBER(5,2) | Y | - | `0.00` | 점수 (0.00 ~ 100.00) |
-| 8 | `TOTAL_SCORE` | 종합 점수 | NUMBER(5,2) | Y | - | `0.00` | 종합 평균 평점 |
-| 9 | `INTERVIEW_DATE` | 평가 일시 | DATE | N | - | `SYSDATE` | 분석 완료 일시 |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | HISTORY_NUM | 면접 내역 번호 | NUMBER | 18 | PK | NOT NULL | | 해당 모의 면접 내역 번호 | T_INTERVIEW_HISTORY(HISTORY_NUM) | 복합 PK, ON DELETE CASCADE |
+| 2 | USER_NUM | 응시자 번호 | NUMBER | 9 | PK | NOT NULL | | 면접 응시 회원 번호 | T_USER(USER_NUM) | 복합 PK, ON DELETE CASCADE |
+| 3 | CONFIDENCE_SCORE | 자신감 점수 | NUMBER | 5,2 | | | 0.00 | 면접 태도 및 자신감 점수 (100점 만점) | | |
+| 4 | PERSISTENCE_SCORE | 끈기/열정 점수 | NUMBER | 5,2 | | | 0.00 | 도전 정신 및 끈기 점수 (100점 만점) | | |
+| 5 | EXPERTISE_SCORE | 전문성 점수 | NUMBER | 5,2 | | | 0.00 | 직무 지식 및 기술 역량 점수 (100점 만점) | | |
+| 6 | LOGIC_SCORE | 논리력 점수 | NUMBER | 5,2 | | | 0.00 | 논리적 사고 및 답변 전개 점수 (100점 만점) | | |
+| 7 | DELIVERY_SCORE | 전달력 점수 | NUMBER | 5,2 | | | 0.00 | 표현력 및 명확한 전달력 점수 (100점 만점) | | |
+| 8 | TOTAL_SCORE | 종합 총점 | NUMBER | 5,2 | | | 0.00 | 5개 지표 가중 종합 평점 (100점 만점) | | |
+| 9 | INTERVIEW_DATE | 평가일시 | DATE | | | NOT NULL | SYSDATE | 면접 평가 분석 완료 일시 | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_INTERVIEW_RESULT_IDX | PK | Unique | HISTORY_NUM, USER_NUM |
 
 ---
 
-# 4. 채용 공고 도메인 (전담 파트)
+# 4. 채용 공고 도메인
 
-### 4.1 T_RECRUITMENT (사람인 채용 공고 API 적재)
-- **설명:** 사람인 OpenAPI로 수집된 실시간 채용 공고 (메인 배너 및 공고 탐색용)
-- **시퀀스:** `SEQ_T_RECRUITMENT` / **인덱스:** `(IS_ACTIVE, EXPIRATION_DATE)`
+### 4.1 T_RECRUITMENT (사람인 채용 공고)
+- **테이블 물리명:** `T_RECRUITMENT`
+- **테이블 논리명:** 사람인 채용 공고
+- **설명:** 사람인 채용 OpenAPI로부터 주기적으로 수집/동기화한 최신 채용 공고 데이터
+- **시퀀스:** `SEQ_T_RECRUITMENT`
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `RECRUITMENT_NUM` | 공고 내부 식별자 | NUMBER(18) | N | PK | `SEQ_T_RECRUITMENT.NEXTVAL` | 시스템 내부 관리용 PK |
-| 2 | `SARAMIN_JOB_ID` | 사람인 공고 ID | VARCHAR2(50) | N | UK | - | 사람인 원본 고유 ID (중복방지) |
-| 3 | `COMPANY_NAME` | 회사명 | VARCHAR2(200) | N | - | - | 기업 명칭 (배너 노출) |
-| 4 | `TITLE` | 공고 제목 | VARCHAR2(400) | N | - | - | 채용 공고 제목 (배너 노출) |
-| 5 | `JOB_URL` | 사람인 원본 링크 | VARCHAR2(500) | N | - | - | 클릭 시 바로 이동할 원본 URL |
-| 6 | `LOCATION_NAME` | 근무 지역 | VARCHAR2(200) | Y | - | - | 예: '서울 강남구' |
-| 7 | `JOB_NAME` | 직무 명칭 | VARCHAR2(300) | Y | - | - | 예: '백엔드/서버개발' |
-| 8 | `EXPERIENCE_LEVEL` | 요구 경력 | VARCHAR2(100) | Y | - | - | 예: '신입', '경력 1~3년' |
-| 9 | `EXPIRATION_DATE` | 공고 마감일시 | DATE | Y | - | - | D-Day 뱃지 계산용 마감일자 |
-| 10 | `CLOSE_TYPE` | 마감 유형 | VARCHAR2(50) | Y | - | - | 접수마감일, 채용시, 상시채용 등 |
-| 11 | `IS_ACTIVE` | 진행 상태 | NUMBER(1) | N | - | `1` | 1: 채용 진행중, 0: 채용 마감 |
-| 12 | `CREATED_AT` | DB 수집일시 | DATE | N | - | `SYSDATE` | 우리 DB 최초 적재 시각 |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | RECRUITMENT_NUM | 채용공고 번호 | NUMBER | 18 | PK | NOT NULL | SEQ_T_RECRUITMENT.NEXTVAL | 채용 공고 고유 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | SARAMIN_JOB_ID | 사람인 공고 ID | VARCHAR2 | 50 | | NOT NULL | | 사람인 OpenAPI 고유 식별 ID | | UNIQUE (중복 적재 방지) |
+| 3 | COMPANY_NAME | 기업명 | VARCHAR2 | 200 | | NOT NULL | | 채용 기업/회사 이름 | | |
+| 4 | TITLE | 공고 제목 | VARCHAR2 | 400 | | NOT NULL | | 채용 공고 제목 | | |
+| 5 | JOB_URL | 사람인 공고 URL | VARCHAR2 | 500 | | NOT NULL | | 클릭 시 연결되는 사람인 원본 URL | | 아웃링크 연동 |
+| 6 | LOCATION_NAME | 근무지 | VARCHAR2 | 200 | | | | 근무 지역 (예: 서울 강남구) | | |
+| 7 | JOB_NAME | 직무/포지션명 | VARCHAR2 | 300 | | | | 모집 직무 포지션 명칭 | | |
+| 8 | EXPERIENCE_LEVEL | 경력 요건 | VARCHAR2 | 100 | | | | 요구 경력 (신입, 경력, 경력무관 등) | | |
+| 9 | EXPIRATION_DATE | 마감일자 | DATE | | | | | 공고 마감 일시 (상시 채용 시 NULL) | | |
+| 10 | CLOSE_TYPE | 마감 형태 | VARCHAR2 | 50 | | | | 마감 방식 (접수마감일, 채용시 등) | | |
+| 11 | IS_ACTIVE | 노출 활성 여부 | NUMBER | 1 | | NOT NULL | 1 | 공고 노출 여부 (1: 노출, 0: 비노출) | | |
+| 12 | CREATED_AT | 수집일시 | DATE | | | NOT NULL | SYSDATE | DB 최초 수집 및 적재 일시 | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_RECRUITMENT_IDX | PK | Unique | RECRUITMENT_NUM |
+| 2 | UK_T_RECRUIT_JOB_ID_IDX | Unique | Unique | SARAMIN_JOB_ID |
+| 3 | IDX_RECRUIT_ACTIVE_EXP | Normal | Non-Unique | IS_ACTIVE, EXPIRATION_DATE |
 
 ---
 
 # 5. 커뮤니티 및 스터디 도메인
 
 ### 5.1 T_CATEGORY (게시판 종류)
-- **설명:** 커뮤니티 게시글의 카테고리 분류 (자유게시판, 취업후기 등)
+- **테이블 물리명:** `T_CATEGORY`
+- **테이블 논리명:** 게시판 종류
+- **설명:** 커뮤니티 게시판 종류 구분 (자유게시판, Q&A, 합격후기 등)
 - **시퀀스:** `SEQ_T_CATEGORY`
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `CATEGORY_NUM` | 카테고리 번호 | NUMBER(9) | N | PK | `SEQ_T_CATEGORY.NEXTVAL` | 카테고리 고유 식별자 |
-| 2 | `CATEGORY_NAME` | 카테고리 명칭 | VARCHAR2(100) | N | - | - | 예: '자유게시판', '취업후기' |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | CATEGORY_NUM | 카테고리 번호 | NUMBER | 9 | PK | NOT NULL | SEQ_T_CATEGORY.NEXTVAL | 게시판 종류 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | CATEGORY_NAME | 카테고리명 | VARCHAR2 | 100 | | NOT NULL | | 게시판 이름 | | 예: '자유', 'Q&A' |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_CATEGORY_IDX | PK | Unique | CATEGORY_NUM |
 
 ---
 
 ### 5.2 T_POST (커뮤니티 게시글)
-- **설명:** 사용자가 작성하는 커뮤니티 게시글 본문 및 메타데이터
-- **시퀀스:** `SEQ_T_POST` / **인덱스:** `CATEGORY_NUM`, `USER_NUM`
+- **테이블 물리명:** `T_POST`
+- **테이블 논리명:** 커뮤니티 게시글
+- **설명:** 회원이 작성한 커뮤니티 게시글 본문 및 메타 정보
+- **시퀀스:** `SEQ_T_POST`
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `POST_NUM` | 게시글 번호 | NUMBER(18) | N | PK | `SEQ_T_POST.NEXTVAL` | 게시글 고유 식별자 |
-| 2 | `CATEGORY_NUM` | 카테고리 번호 | NUMBER(9) | N | FK | - | `T_CATEGORY(CATEGORY_NUM)` ON DELETE CASCADE |
-| 3 | `USER_NUM` | 작성자 번호 | NUMBER(9) | N | FK | - | `T_USER(USER_NUM)` ON DELETE CASCADE |
-| 4 | `POST_TITLE` | 게시글 제목 | VARCHAR2(300) | N | - | - | 제목 |
-| 5 | `POST_CONTENT` | 게시글 본문 | CLOB | Y | - | - | 장문 본문 내용 |
-| 6 | `POST_LIKE_COUNT` | 좋아요 수 | NUMBER(9) | N | - | `0` | 누적 추천(좋아요) 수 |
-| 7 | `VIEW_COUNT` | 조회수 | NUMBER(9) | N | - | `0` | 누적 조회수 |
-| 8 | `POST_FILE` | 첨부파일 | VARCHAR2(500) | Y | - | - | 업로드 파일 경로 |
-| 9 | `POST_DATE` | 작성일시 | DATE | N | - | `SYSDATE` | 등록일시 |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | POST_NUM | 게시글 번호 | NUMBER | 18 | PK | NOT NULL | SEQ_T_POST.NEXTVAL | 게시글 고유 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | CATEGORY_NUM | 카테고리 번호 | NUMBER | 9 | | NOT NULL | | 소속 게시판 카테고리 번호 | T_CATEGORY(CATEGORY_NUM) | ON DELETE CASCADE |
+| 3 | USER_NUM | 작성자 번호 | NUMBER | 9 | | NOT NULL | | 게시글 작성 회원 번호 | T_USER(USER_NUM) | ON DELETE CASCADE |
+| 4 | POST_TITLE | 게시글 제목 | VARCHAR2 | 300 | | NOT NULL | | 게시글 제목 | | |
+| 5 | POST_CONTENT | 게시글 본문 | VARCHAR2 | 4000 | | | | 게시글 본문 내용 | | 한글 약 1,300자 |
+| 6 | POST_LIKE_COUNT | 좋아요 수 | NUMBER | 9 | | NOT NULL | 0 | 게시글 추천/좋아요 합계 수 | | 집계 캐시 컬럼 |
+| 7 | VIEW_COUNT | 조회수 | NUMBER | 9 | | NOT NULL | 0 | 게시글 열람 조회수 | | |
+| 8 | POST_FILE | 첨부 파일 | VARCHAR2 | 500 | | | | 첨부 이미지 또는 파일 URL | | |
+| 9 | POST_DATE | 작성일시 | DATE | | | NOT NULL | SYSDATE | 게시글 최초 등록 일시 | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_POST_IDX | PK | Unique | POST_NUM |
+| 2 | IDX_POST_CATEGORY | Normal | Non-Unique | CATEGORY_NUM |
+| 3 | IDX_POST_USER | Normal | Non-Unique | USER_NUM |
 
 ---
 
-### 5.3 T_POST_LIKE (게시글 좋아요 이력)
-- **설명:** 회원이 게시글에 좋아요를 누른 내역 (중복 추천 방지)
-- **시퀀스:** 없음 (복합 기본키: `POST_NUM` + `USER_NUM`)
+### 5.3 T_POST_LIKE (게시글 좋아요)
+- **테이블 물리명:** `T_POST_LIKE`
+- **테이블 논리명:** 게시글 좋아요
+- **설명:** 회원의 게시글 중복 추천 방지를 위한 좋아요 이력 테이블 (복합 기본키)
+- **시퀀스:** 없음 (`POST_NUM`, `USER_NUM` 복합 PK)
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `POST_NUM` | 대상 게시글 번호 | NUMBER(18) | N | PK, FK | - | `T_POST(POST_NUM)` ON DELETE CASCADE |
-| 2 | `USER_NUM` | 누른 유저 번호 | NUMBER(9) | N | PK, FK | - | `T_USER(USER_NUM)` ON DELETE CASCADE |
-| 3 | `CREATED_AT` | 추천 일시 | DATE | N | - | `SYSDATE` | 좋아요 누른 시각 |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | POST_NUM | 게시글 번호 | NUMBER | 18 | PK | NOT NULL | | 추천 대상 게시글 번호 | T_POST(POST_NUM) | 복합 PK, ON DELETE CASCADE |
+| 2 | USER_NUM | 회원 번호 | NUMBER | 9 | PK | NOT NULL | | 추천을 누른 회원 번호 | T_USER(USER_NUM) | 복합 PK, ON DELETE CASCADE |
+| 3 | CREATED_AT | 추천일시 | DATE | | | NOT NULL | SYSDATE | 추천 클릭 일시 | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_POST_LIKE_IDX | PK | Unique | POST_NUM, USER_NUM |
 
 ---
 
 ### 5.4 T_COMMENT (게시글 댓글)
-- **설명:** 커뮤니티 게시글에 달리는 댓글 목록
-- **시퀀스:** `SEQ_T_COMMENT` / **인덱스:** `POST_NUM`, `USER_NUM`
+- **테이블 물리명:** `T_COMMENT`
+- **테이블 논리명:** 게시글 댓글
+- **설명:** 커뮤니티 게시글에 등록된 댓글 정보
+- **시퀀스:** `SEQ_T_COMMENT`
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `COMMENT_NUM` | 댓글 번호 | NUMBER(18) | N | PK | `SEQ_T_COMMENT.NEXTVAL` | 댓글 고유 번호 |
-| 2 | `POST_NUM` | 소속 게시글 번호 | NUMBER(18) | N | FK | - | `T_POST(POST_NUM)` ON DELETE CASCADE |
-| 3 | `USER_NUM` | 작성자 번호 | NUMBER(9) | N | FK | - | `T_USER(USER_NUM)` ON DELETE CASCADE |
-| 4 | `COMMENT_CONTENT` | 댓글 내용 | VARCHAR2(2000) | N | - | - | 댓글 텍스트 본문 |
-| 5 | `COMMENT_DATE` | 작성일시 | DATE | N | - | `SYSDATE` | 등록일시 |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | COMMENT_NUM | 댓글 번호 | NUMBER | 18 | PK | NOT NULL | SEQ_T_COMMENT.NEXTVAL | 댓글 고유 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | POST_NUM | 게시글 번호 | NUMBER | 18 | | NOT NULL | | 댓글이 달린 대상 게시글 번호 | T_POST(POST_NUM) | ON DELETE CASCADE |
+| 3 | USER_NUM | 작성자 번호 | NUMBER | 9 | | NOT NULL | | 댓글 작성 회원 번호 | T_USER(USER_NUM) | ON DELETE CASCADE |
+| 4 | COMMENT_CONTENT | 댓글 내용 | VARCHAR2 | 2000 | | NOT NULL | | 댓글 본문 내용 | | |
+| 5 | COMMENT_DATE | 등록일시 | DATE | | | NOT NULL | SYSDATE | 댓글 작성 일시 | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_COMMENT_IDX | PK | Unique | COMMENT_NUM |
+| 2 | IDX_COMMENT_POST | Normal | Non-Unique | POST_NUM |
+| 3 | IDX_COMMENT_USER | Normal | Non-Unique | USER_NUM |
 
 ---
 
 ### 5.5 T_STUDY (스터디 모집 방)
-- **설명:** 취업/면접 스터디 모집 게시판의 개설 스터디 방 정보
+- **테이블 물리명:** `T_STUDY`
+- **테이블 논리명:** 스터디 모집 방
+- **설명:** 회원이 개설한 취업/면접 대비 스터디 모집 방 정보
 - **시퀀스:** `SEQ_T_STUDY`
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `STUDY_NUM` | 스터디 방 번호 | NUMBER(18) | N | PK | `SEQ_T_STUDY.NEXTVAL` | 스터디 고유 번호 |
-| 2 | `USER_NUM` | 개설자(방장) 번호 | NUMBER(9) | N | FK | - | `T_USER(USER_NUM)` ON DELETE CASCADE |
-| 3 | `STUDY_NAME` | 스터디 방 이름 | VARCHAR2(200) | N | - | - | 스터디 그룹 명칭 |
-| 4 | `STUDY_EXPLAIN` | 스터디 소개/설명 | VARCHAR2(2000) | Y | - | - | 스터디 목표, 규칙 등 설명 |
-| 5 | `STUDY_CREATE_DATE` | 개설일시 | DATE | N | - | `SYSDATE` | 방 개설 시각 |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | STUDY_NUM | 스터디 방 번호 | NUMBER | 18 | PK | NOT NULL | SEQ_T_STUDY.NEXTVAL | 스터디 모임 고유 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | USER_NUM | 개설자 번호 | NUMBER | 9 | | NOT NULL | | 스터디 개설(방장) 회원 번호 | T_USER(USER_NUM) | ON DELETE CASCADE |
+| 3 | STUDY_NAME | 스터디 모임명 | VARCHAR2 | 200 | | NOT NULL | | 스터디 방 제목/이름 | | |
+| 4 | STUDY_EXPLAIN | 스터디 설명 | VARCHAR2 | 2000 | | | | 스터디 모임 규칙 및 상세 소개 | | |
+| 5 | STUDY_CREATE_DATE | 개설일시 | DATE | | | NOT NULL | SYSDATE | 스터디 방 개설 일시 | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_STUDY_IDX | PK | Unique | STUDY_NUM |
 
 ---
 
 ### 5.6 T_STUDY_MEMBER (스터디 참여자 명단)
-- **설명:** 개설된 스터디에 가입/참여한 회원 목록 (N:M 해소)
-- **시퀀스:** 없음 (복합 기본키: `STUDY_NUM` + `USER_NUM`)
+- **테이블 물리명:** `T_STUDY_MEMBER`
+- **테이블 논리명:** 스터디 참여자 명단
+- **설명:** 스터디 방에 가입한 참여자 명단 관리 테이블 (복합 기본키)
+- **시퀀스:** 없음 (`STUDY_NUM`, `USER_NUM` 복합 PK)
 
-| No | 컬럼 물리명 | 컬럼 논리명 | 데이터 타입 | Null 허용 | Key | 기본값 | 비고 및 제약사항 |
-|:--:|:---|:---|:---|:--:|:--:|:---|:---|
-| 1 | `STUDY_NUM` | 참여 스터디 번호 | NUMBER(18) | N | PK, FK | - | `T_STUDY(STUDY_NUM)` ON DELETE CASCADE |
-| 2 | `USER_NUM` | 참여 회원 번호 | NUMBER(9) | N | PK, FK | - | `T_USER(USER_NUM)` ON DELETE CASCADE |
-| 3 | `STUDY_JOIN_DATE` | 참여(가입)일시 | DATE | N | - | `SYSDATE` | 스터디 참가 시각 |
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | STUDY_NUM | 스터디 방 번호 | NUMBER | 18 | PK | NOT NULL | | 소속 스터디 모임 번호 | T_STUDY(STUDY_NUM) | 복합 PK, ON DELETE CASCADE |
+| 2 | USER_NUM | 참여 회원 번호 | NUMBER | 9 | PK | NOT NULL | | 참여 회원 번호 | T_USER(USER_NUM) | 복합 PK, ON DELETE CASCADE |
+| 3 | STUDY_JOIN_DATE | 참여일시 | DATE | | | NOT NULL | SYSDATE | 스터디 방 가입/참여 일시 | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_STUDY_MEMBER_IDX | PK | Unique | STUDY_NUM, USER_NUM |
