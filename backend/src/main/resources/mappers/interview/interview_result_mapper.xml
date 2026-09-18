@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.mapper.interview.InterviewResultMapper">
+
+    <sql id="interviewResultColumns">
+        HISTORY_NUM,
+        USER_NUM,
+        CONFIDENCE_SCORE,
+        PERSISTENCE_SCORE,
+        EXPERTISE_SCORE,
+        LOGIC_SCORE,
+        DELIVERY_SCORE,
+        TOTAL_SCORE,
+        INTERVIEW_DATE
+    </sql>
+
+    <insert id="insertInterviewResult"
+            parameterType="com.provit.dto.interview.InterviewResultDTO">
+        INSERT INTO T_INTERVIEW_RESULT (
+            <include refid="interviewResultColumns" />
+        ) VALUES (
+            #{historyNum},
+            #{userNum},
+            #{confidenceScore},
+            #{persistenceScore},
+            #{expertiseScore},
+            #{logicScore},
+            #{deliveryScore},
+            #{totalScore},
+            NVL(#{interviewDate, jdbcType=DATE}, SYSDATE)
+        )
+    </insert>
+
+    <select id="selectInterviewResultListByUserNum"
+            parameterType="int"
+            resultType="com.provit.dto.interview.InterviewResultDTO">
+        SELECT
+            <include refid="interviewResultColumns" />
+        FROM T_INTERVIEW_RESULT
+        WHERE USER_NUM = #{userNum}
+        ORDER BY INTERVIEW_DATE DESC, HISTORY_NUM DESC
+    </select>
+
+    <select id="selectInterviewResult"
+            parameterType="map"
+            resultType="com.provit.dto.interview.InterviewResultDTO">
+        SELECT
+            <include refid="interviewResultColumns" />
+        FROM T_INTERVIEW_RESULT
+        WHERE HISTORY_NUM = #{number}
+          AND USER_NUM = #{userNum}
+    </select>
+
+    <select id="selectLatestInterviewResultByUserNum"
+            parameterType="int"
+            resultType="com.provit.dto.interview.InterviewResultDTO">
+        SELECT
+            <include refid="interviewResultColumns" />
+        FROM T_INTERVIEW_RESULT
+        WHERE USER_NUM = #{userNum}
+        ORDER BY INTERVIEW_DATE DESC, HISTORY_NUM DESC
+        FETCH FIRST 1 ROWS ONLY
+    </select>
+
+</mapper>
