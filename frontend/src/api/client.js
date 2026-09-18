@@ -12,21 +12,28 @@ const client = axios.create({
   },
 });
 
-// 요청 인터셉터 (향후 인증 토큰 추가 시 활용)
+// 요청 인터셉터 (JWT 토큰 자동 첨부)
 client.interceptors.request.use(
   (config) => {
-    // const token = localStorage.getItem('token');
-    // if (token) config.headers.Authorization = `Bearer ${token}`;
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// 응답 인터셉터 (공통 에러 처리)
+// 응답 인터셉터 (공통 에러 처리 및 401 토큰 만료 처리)
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', error.response || error.message);
+    if (error.response && error.response.status === 401) {
+      // 만료되거나 위조된 토큰 제거
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    }
     return Promise.reject(error);
   }
 );

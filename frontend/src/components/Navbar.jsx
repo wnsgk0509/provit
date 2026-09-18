@@ -61,7 +61,7 @@ function Navbar() {
                     {isLoggedIn ? (
                         <>
                             <span className="text-light me-2 small">
-                                <strong className="text-info">{user?.name || "사용자"}</strong>님 환영합니다
+                                <strong className="text-info">{user?.userNickname || user?.userName || user?.name || "사용자"}</strong>님 환영합니다
                             </span>
                             <button type="button" className="btn btn-outline-danger btn-sm" onClick={logout}>
                                 로그아웃
