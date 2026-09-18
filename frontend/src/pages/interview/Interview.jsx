@@ -1,5 +1,9 @@
-import { useState } from 'react';
-import { createInterview, submitInterviewAnswer } from '../../api/interviewApi';
+import { useEffect, useState } from 'react';
+import {
+    createInterview,
+    fetchInterviewDocuments,
+    submitInterviewAnswer,
+} from '../../api/interviewApi';
 import InterviewCustom from './components/InterviewCustom';
 import InterviewQuestion from './components/InterviewQuestion';
 import InterviewResult from './components/InterviewResult';
@@ -12,10 +16,18 @@ const INTERVIEW_STEP = {
 };
 
 const INITIAL_SETTINGS = {
-    portfolioDocumentId: '',
-    coverLetterDocumentId: '',
+    resumeNum: '',
+    usePortfolio: false,
+    useCoverLetter: false,
     interviewStyle: '',
-    difficulty: '',
+    interviewDifficulty: '',
+};
+
+const INITIAL_DOCUMENTS = {
+    portfolio: null,
+    coverLetter: null,
+    resumeList: [],
+    jobPreference: null,
 };
 
 const STEP_ORDER = {
@@ -27,6 +39,8 @@ const STEP_ORDER = {
 function Interview() {
     const [step, setStep] = useState(INTERVIEW_STEP.CUSTOM);
     const [settings, setSettings] = useState(INITIAL_SETTINGS);
+    const [documents, setDocuments] = useState(INITIAL_DOCUMENTS);
+    const [isDocumentLoading, setIsDocumentLoading] = useState(true);
     const [interviewId, setInterviewId] = useState(null);
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -35,6 +49,37 @@ function Interview() {
     const [result, setResult] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadDocuments = async () => {
+            try {
+                const documentData = await fetchInterviewDocuments();
+                if (isMounted) {
+                    setDocuments({
+                        ...INITIAL_DOCUMENTS,
+                        ...documentData,
+                        resumeList: documentData.resumeList ?? [],
+                    });
+                }
+            } catch {
+                if (isMounted) {
+                    setErrorMessage('면접에 사용할 서류를 불러오지 못했습니다. 서버와 DB 연결을 확인해 주세요.');
+                }
+            } finally {
+                if (isMounted) {
+                    setIsDocumentLoading(false);
+                }
+            }
+        };
+
+        void loadDocuments();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const handleSettingChange = (name, value) => {
         setSettings((previousSettings) => ({
@@ -170,6 +215,8 @@ function Interview() {
                     {step === INTERVIEW_STEP.CUSTOM && (
                         <InterviewCustom
                             settings={settings}
+                            documents={documents}
+                            isDocumentLoading={isDocumentLoading}
                             isLoading={isLoading}
                             onSettingChange={handleSettingChange}
                             onStart={handleStart}

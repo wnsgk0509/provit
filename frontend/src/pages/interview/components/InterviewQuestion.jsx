@@ -130,7 +130,7 @@ function InterviewQuestion({
 
             <div className="interview-setting-summary">
                 <span>{STYLE_NAMES[settings.interviewStyle]}</span>
-                <span>{DIFFICULTY_NAMES[settings.difficulty]}</span>
+                <span>{DIFFICULTY_NAMES[settings.interviewDifficulty]}</span>
             </div>
 
             <div className="interview-question-card">

@@ -1,20 +1,6 @@
-const DOCUMENT_QUESTIONS = [
-    {
-        questionId: 'document-1',
-        questionType: 'DOCUMENT',
-        questionText: '포트폴리오에서 가장 주도적으로 참여한 프로젝트와 본인이 담당한 역할을 설명해 주세요.',
-    },
-    {
-        questionId: 'document-2',
-        questionType: 'DOCUMENT',
-        questionText: '자기소개서에 작성한 기술적 문제를 해결하는 과정에서 가장 중요하게 판단한 기준은 무엇인가요?',
-    },
-    {
-        questionId: 'document-3',
-        questionType: 'DOCUMENT',
-        questionText: '지원 직무에서 본인의 경험과 기술이 어떤 강점으로 작용할 수 있는지 구체적인 사례와 함께 설명해 주세요.',
-    },
-];
+import client from './client';
+
+const TEMP_USER_NUM = 1;
 
 const mockSessions = new Map();
 
@@ -25,6 +11,33 @@ const waitForMockResponse = () => new Promise((resolve) => {
 const summarizeAnswer = (answer) => (
     answer.length > 35 ? `${answer.slice(0, 35)}...` : answer
 );
+
+const createDocumentQuestions = (llmRequest) => {
+    const context = llmRequest.context;
+    const jobName = context.jobPreference?.jobName || '지원 직무';
+
+    return [
+        {
+            questionId: 'document-1',
+            questionType: 'DOCUMENT',
+            questionText: `선택한 이력서를 바탕으로 ${jobName}에 지원한 동기와 본인의 강점을 설명해 주세요.`,
+        },
+        {
+            questionId: 'document-2',
+            questionType: 'DOCUMENT',
+            questionText: context.portfolio
+                ? '포트폴리오에서 가장 주도적으로 참여한 프로젝트와 본인이 담당한 역할을 설명해 주세요.'
+                : '이력서에 작성한 경험 중 가장 주도적으로 수행한 업무와 본인의 역할을 설명해 주세요.',
+        },
+        {
+            questionId: 'document-3',
+            questionType: 'DOCUMENT',
+            questionText: context.coverLetter
+                ? '자기소개서에 작성한 문제 해결 경험에서 가장 중요하게 판단한 기준은 무엇인가요?'
+                : `${jobName} 업무에서 본인의 경험과 기술이 어떤 강점으로 작용할 수 있는지 구체적인 사례와 함께 설명해 주세요.`,
+        },
+    ];
+};
 
 const createFollowUpQuestion = (answerCount, latestAnswer) => {
     if (answerCount === 3) {
@@ -46,7 +59,7 @@ const createResult = (session) => ({
     interviewId: session.interviewId,
     totalScore: 82,
     interviewStyle: session.settings.interviewStyle,
-    difficulty: session.settings.difficulty,
+    difficulty: session.settings.interviewDifficulty,
     scores: [
         { category: 'CONFIDENCE', label: '자신감', score: 84 },
         { category: 'LOGIC', label: '논리성', score: 79 },
@@ -63,14 +76,48 @@ const createResult = (session) => ({
     completedAt: new Date().toISOString(),
 });
 
+const extractResponseData = (response) => response.data.data;
+
+export async function fetchInterviewDocuments() {
+    const response = await client.get('/interviews/documents', {
+        params: { userNum: TEMP_USER_NUM },
+    });
+
+    return extractResponseData(response);
+}
+
+export async function fetchResumeDetail(resumeNum) {
+    const response = await client.get(`/interviews/resumes/${resumeNum}`, {
+        params: { userNum: TEMP_USER_NUM },
+    });
+
+    return extractResponseData(response);
+}
+
+export async function prepareInterviewContext(settings) {
+    const response = await client.post('/interviews/context', {
+        resumeNum: Number(settings.resumeNum),
+        usePortfolio: settings.usePortfolio,
+        useCoverLetter: settings.useCoverLetter,
+        interviewStyle: settings.interviewStyle,
+        interviewDifficulty: settings.interviewDifficulty,
+    }, {
+        params: { userNum: TEMP_USER_NUM },
+    });
+
+    return extractResponseData(response);
+}
+
 export async function createInterview(settings) {
+    const llmRequest = await prepareInterviewContext(settings);
     await waitForMockResponse();
 
     const interviewId = `mock-interview-${Date.now()}`;
     const session = {
         interviewId,
         settings: { ...settings },
-        questions: [...DOCUMENT_QUESTIONS],
+        llmRequest,
+        questions: createDocumentQuestions(llmRequest),
         answers: [],
     };
 

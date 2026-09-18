@@ -1,13 +1,3 @@
-const PORTFOLIOS = [
-    { documentId: 'portfolio-1', title: '웹 서비스 프로젝트 포트폴리오' },
-    { documentId: 'portfolio-2', title: '백엔드 개발 포트폴리오' },
-];
-
-const COVER_LETTERS = [
-    { documentId: 'cover-letter-1', title: '신입 개발자 자기소개서' },
-    { documentId: 'cover-letter-2', title: '프로젝트 중심 자기소개서' },
-];
-
 const INTERVIEW_STYLES = [
     { value: 'RANDOM', label: '랜덤면접' },
     { value: 'ONE_TO_ONE', label: '일대일면접' },
@@ -21,7 +11,36 @@ const DIFFICULTIES = [
     { value: 'EASY', label: '일반면접' },
 ];
 
-function InterviewCustom({ settings, isLoading, onSettingChange, onStart }) {
+const formatDate = (dateTime) => dateTime?.split(' ')[0] ?? '';
+
+const getPortfolioName = (fileUrl) => {
+    if (!fileUrl) {
+        return '등록된 포트폴리오';
+    }
+
+    const normalizedUrl = fileUrl.replaceAll('\\', '/');
+    const fileName = normalizedUrl.split('/').pop();
+
+    try {
+        return decodeURIComponent(fileName) || '등록된 포트폴리오';
+    } catch {
+        return fileName || '등록된 포트폴리오';
+    }
+};
+
+function InterviewCustom({
+    settings,
+    documents,
+    isDocumentLoading,
+    isLoading,
+    onSettingChange,
+    onStart,
+}) {
+    const hasResume = documents.resumeList.length > 0;
+    const hasPortfolio = Boolean(documents.portfolio);
+    const hasCoverLetter = Boolean(documents.coverLetter);
+    const jobPreference = documents.jobPreference;
+
     const handleSubmit = (event) => {
         event.preventDefault();
         onStart();
@@ -35,19 +54,48 @@ function InterviewCustom({ settings, isLoading, onSettingChange, onStart }) {
                 <p>면접에 사용할 서류와 진행 방식을 선택해 주세요.</p>
             </div>
 
+            {jobPreference && (
+                <div className="interview-job-summary">
+                    <span>희망 직군</span>
+                    <strong>{jobPreference.occupationName || '미설정'}</strong>
+                    <span>희망 직무</span>
+                    <strong>{jobPreference.jobName || '미설정'}</strong>
+                </div>
+            )}
+
             <form onSubmit={handleSubmit}>
+                <div className="interview-form-group">
+                    <label htmlFor="interview-resume">이력서</label>
+                    <select
+                        id="interview-resume"
+                        value={settings.resumeNum}
+                        onChange={(event) => onSettingChange('resumeNum', event.target.value)}
+                        disabled={isDocumentLoading || !hasResume}
+                        required
+                    >
+                        <option value="">
+                            {isDocumentLoading ? '이력서를 불러오는 중입니다' : '이력서를 선택해 주세요'}
+                        </option>
+                        {documents.resumeList.map((resume) => (
+                            <option key={resume.resumeNum} value={resume.resumeNum}>
+                                {`이력서 #${resume.resumeNum} · ${resume.educationName} · ${formatDate(resume.updatedAt)}`}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
                 <div className="interview-form-group">
                     <label htmlFor="interview-portfolio">포트폴리오</label>
                     <select
                         id="interview-portfolio"
-                        value={settings.portfolioDocumentId}
-                        onChange={(event) => onSettingChange('portfolioDocumentId', event.target.value)}
-                        required
+                        value={String(settings.usePortfolio)}
+                        onChange={(event) => onSettingChange('usePortfolio', event.target.value === 'true')}
+                        disabled={isDocumentLoading || !hasPortfolio}
                     >
-                        <option value="">포트폴리오를 선택해 주세요</option>
-                        {PORTFOLIOS.map((portfolio) => (
-                            <option key={portfolio.documentId} value={portfolio.documentId}>{portfolio.title}</option>
-                        ))}
+                        <option value="false">사용하지 않음</option>
+                        {hasPortfolio && (
+                            <option value="true">{getPortfolioName(documents.portfolio.fileUrl)}</option>
+                        )}
                     </select>
                 </div>
 
@@ -55,14 +103,12 @@ function InterviewCustom({ settings, isLoading, onSettingChange, onStart }) {
                     <label htmlFor="interview-cover-letter">자기소개서</label>
                     <select
                         id="interview-cover-letter"
-                        value={settings.coverLetterDocumentId}
-                        onChange={(event) => onSettingChange('coverLetterDocumentId', event.target.value)}
-                        required
+                        value={String(settings.useCoverLetter)}
+                        onChange={(event) => onSettingChange('useCoverLetter', event.target.value === 'true')}
+                        disabled={isDocumentLoading || !hasCoverLetter}
                     >
-                        <option value="">자기소개서를 선택해 주세요</option>
-                        {COVER_LETTERS.map((coverLetter) => (
-                            <option key={coverLetter.documentId} value={coverLetter.documentId}>{coverLetter.title}</option>
-                        ))}
+                        <option value="false">사용하지 않음</option>
+                        {hasCoverLetter && <option value="true">등록된 자기소개서</option>}
                     </select>
                 </div>
 
@@ -91,8 +137,8 @@ function InterviewCustom({ settings, isLoading, onSettingChange, onStart }) {
                                     type="radio"
                                     name="interview-difficulty"
                                     value={difficulty.value}
-                                    checked={settings.difficulty === difficulty.value}
-                                    onChange={(event) => onSettingChange('difficulty', event.target.value)}
+                                    checked={settings.interviewDifficulty === difficulty.value}
+                                    onChange={(event) => onSettingChange('interviewDifficulty', event.target.value)}
                                     required
                                 />
                                 <span>{difficulty.label}</span>
@@ -101,7 +147,15 @@ function InterviewCustom({ settings, isLoading, onSettingChange, onStart }) {
                     </div>
                 </fieldset>
 
-                <button className="btn btn-primary interview-primary-button" type="submit" disabled={isLoading}>
+                {!isDocumentLoading && !hasResume && (
+                    <p className="interview-document-empty">등록된 이력서가 없어 면접을 시작할 수 없습니다.</p>
+                )}
+
+                <button
+                    className="btn btn-primary interview-primary-button"
+                    type="submit"
+                    disabled={isLoading || isDocumentLoading || !hasResume}
+                >
                     {isLoading ? '면접 준비 중...' : '면접 시작'}
                 </button>
             </form>
