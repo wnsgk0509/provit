@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -27,6 +28,26 @@ public class GlobalExceptionHandler {
         // 체이닝(.status().body()) 대신 순수 new 생성자 방식 사용
         ApiResponse<String> response = new ApiResponse<>(ResponseCode.BAD_REQUEST, e.getMessage());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * 상태 오류 예외 (400 Bad Request)
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<String>> handleIllegalStateException(IllegalStateException e) {
+        log.warn("상태 오류: {}", e.getMessage());
+        ApiResponse<String> response = new ApiResponse<>(ResponseCode.BAD_REQUEST, e.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * 동시 가입 등 DB 고유 제약조건 충돌 (409 Conflict)
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<String>> handleDataIntegrityViolationException(DataIntegrityViolationException e) {
+        log.warn("데이터 무결성 제약조건 위반: {}", e.getMostSpecificCause().getMessage());
+        ApiResponse<String> response = new ApiResponse<>(ResponseCode.BAD_REQUEST, "이미 사용 중인 이메일 또는 닉네임입니다.");
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
     /**
