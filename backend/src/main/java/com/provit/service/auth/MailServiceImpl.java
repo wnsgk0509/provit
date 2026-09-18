@@ -2,6 +2,7 @@ package com.provit.service.auth;
 
 import java.nio.charset.StandardCharsets;
 
+import javax.annotation.PostConstruct;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
@@ -23,8 +24,11 @@ public class MailServiceImpl implements MailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${mail.username:no-reply@provit.com}")
+    @Value("${mail.username:}")
     private String fromEmail;
+
+    @Value("${mail.password:}")
+    private String mailPassword;
 
     @Value("${mail.sender.name:Provit}")
     private String senderName;
@@ -32,6 +36,16 @@ public class MailServiceImpl implements MailService {
     @Autowired
     public MailServiceImpl(JavaMailSender mailSender) {
         this.mailSender = mailSender;
+    }
+
+    @PostConstruct
+    public void validateMailConfiguration() {
+        if (fromEmail == null || fromEmail.trim().isEmpty()) {
+            throw new IllegalStateException("mail.username SMTP 발신 계정을 반드시 설정해야 합니다.");
+        }
+        if (mailPassword == null || mailPassword.trim().isEmpty()) {
+            throw new IllegalStateException("mail.password SMTP 앱 비밀번호를 반드시 설정해야 합니다.");
+        }
     }
 
     @Override
