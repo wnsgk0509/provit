@@ -40,8 +40,8 @@ function Navbar() {
                             </Link>
                         </li>
                         <li className="nav-item">
-                            <Link className={`nav-link py-1 ${isActive("/study")}`} to="/study">
-                                스터디 모집
+                            <Link className={`nav-link py-1 ${isActive("/community")}`} to="/community">
+                                커뮤니티
                             </Link>
                         </li>
 
