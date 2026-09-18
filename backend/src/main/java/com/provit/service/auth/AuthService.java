@@ -1,9 +1,9 @@
 package com.provit.service.auth;
 
-import com.provit.dto.auth.LoginRequestDto;
-import com.provit.dto.auth.LoginResponseDto;
-import com.provit.dto.auth.SignupRequestDto;
-import com.provit.dto.auth.UserResponseDto;
+import com.provit.dto.auth.LoginRequestDTO;
+import com.provit.dto.auth.LoginResponseDTO;
+import com.provit.dto.auth.SignupRequestDTO;
+import com.provit.dto.auth.UserResponseDTO;
 
 /**
  * 인증 및 회원 관리 비즈니스 로직 인터페이스
@@ -33,15 +33,15 @@ public interface AuthService {
     /**
      * 신규 회원가입 처리
      */
-    UserResponseDto signup(SignupRequestDto requestDto);
+    UserResponseDTO signup(SignupRequestDTO requestDTO);
 
     /**
      * 로그인 처리 및 JWT 발급
      */
-    LoginResponseDto login(LoginRequestDto requestDto);
+    LoginResponseDTO login(LoginRequestDTO requestDTO);
 
     /**
      * 토큰 기반 회원 프로필 조회
      */
-    UserResponseDto getUserProfile(Long userNum);
+    UserResponseDTO getUserProfile(Long userNum);
 }
