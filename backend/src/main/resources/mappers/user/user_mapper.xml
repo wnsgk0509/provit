@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.mapper.UserInterviewMapper">
+
+    <select id="selectPortfolioByUserNum"
+            parameterType="int"
+            resultType="com.provit.dto.user.PortfolioDTO">
+        SELECT
+            USER_NUM,
+            FILE_URL,
+            CREATED_AT,
+            UPDATED_AT
+        FROM T_PORTFOLIO
+        WHERE USER_NUM = #{userNum}
+    </select>
+
+    <select id="selectCoverLetterByUserNum"
+            parameterType="int"
+            resultType="com.provit.dto.user.CoverLetterDTO">
+        SELECT
+            USER_NUM,
+            GROWTH_PROCESS,
+            PERSONALITY_STRENGTHS_WEAKNESSES,
+            PROBLEM_SOLVING_EXPERIENCE,
+            POST_JOINING_ASPIRATION,
+            CREATED_AT,
+            UPDATED_AT
+        FROM T_COVER_LETTER
+        WHERE USER_NUM = #{userNum}
+    </select>
+
+    <select id="selectResumeListByUserNum"
+            parameterType="int"
+            resultType="com.provit.dto.user.ResumeDTO">
+        SELECT
+            r.RESUME_NUM,
+            r.USER_NUM,
+            r.HIGHEST_LEVEL,
+            r.EDUCATION_CODE,
+            ec.EDUCATION_NAME,
+            r.MOTIVATION,
+            r.DESIRED_LOCATION,
+            r.DESIRED_WORK_TYPE,
+            r.CREATED_AT,
+            r.UPDATED_AT
+        FROM T_RESUME r
+        JOIN T_EDUCODE ec
+          ON r.EDUCATION_CODE = ec.EDUCATION_CODE
+        WHERE r.USER_NUM = #{userNum}
+        ORDER BY r.UPDATED_AT DESC, r.RESUME_NUM DESC
+    </select>
+
+    <select id="selectResumeByResumeNumAndUserNum"
+            parameterType="map"
+            resultType="com.provit.dto.user.ResumeDTO">
+        SELECT
+            r.RESUME_NUM,
+            r.USER_NUM,
+            r.HIGHEST_LEVEL,
+            r.EDUCATION_CODE,
+            ec.EDUCATION_NAME,
+            r.MOTIVATION,
+            r.DESIRED_LOCATION,
+            r.DESIRED_WORK_TYPE,
+            r.CREATED_AT,
+            r.UPDATED_AT
+        FROM T_RESUME r
+        JOIN T_EDUCODE ec
+          ON r.EDUCATION_CODE = ec.EDUCATION_CODE
+        WHERE r.RESUME_NUM = #{number}
+          AND r.USER_NUM = #{userNum}
+    </select>
+
+    <select id="selectEducationListByResumeNum"
+            parameterType="int"
+            resultType="com.provit.dto.user.EducationDTO">
+        SELECT
+            EDU_NUM,
+            RESUME_NUM,
+            SCHOOL_NAME,
+            ADMISSION_DATE,
+            GRADUATION_DATE,
+            MAJOR,
+            EDUCATION_STATUS
+        FROM T_EDUCATION
+        WHERE RESUME_NUM = #{resumeNum}
+        ORDER BY ADMISSION_DATE DESC, EDU_NUM DESC
+    </select>
+
+    <select id="selectCareerListByResumeNum"
+            parameterType="int"
+            resultType="com.provit.dto.user.CareerDTO">
+        SELECT
+            CAREER_NUM,
+            RESUME_NUM,
+            COMPANY_NAME,
+            JOIN_DATE,
+            RESIGN_DATE,
+            MAIN_DUTY
+        FROM T_CAREER
+        WHERE RESUME_NUM = #{resumeNum}
+        ORDER BY JOIN_DATE DESC, CAREER_NUM DESC
+    </select>
+
+    <select id="selectCertificationListByResumeNum"
+            parameterType="int"
+            resultType="com.provit.dto.user.CertificationDTO">
+        SELECT
+            CERT_NUM,
+            RESUME_NUM,
+            CERT_NAME,
+            CERT_GRADE,
+            ISSUE_DATE
+        FROM T_CERTIFICATION
+        WHERE RESUME_NUM = #{resumeNum}
+        ORDER BY ISSUE_DATE DESC, CERT_NUM DESC
+    </select>
+
+    <select id="selectUserJobPreferenceByUserNum"
+            parameterType="int"
+            resultType="com.provit.dto.user.UserJobPreferenceDTO">
+        SELECT
+            u.USER_NUM,
+            u.JOB_CODE,
+            j.JOB_NAME,
+            u.OCCUPATION_CODE,
+            o.OCCUPATION_NAME
+        FROM T_USER u
+        LEFT JOIN T_JOB j
+          ON u.JOB_CODE = j.JOB_CODE
+        LEFT JOIN T_OCCUPATION o
+          ON u.OCCUPATION_CODE = o.OCCUPATION_CODE
+        WHERE u.USER_NUM = #{userNum}
+          AND u.USER_IS_DELETED = 0
+    </select>
+
+</mapper>
