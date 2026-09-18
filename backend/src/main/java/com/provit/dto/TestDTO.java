@@ -16,7 +16,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-public class TestDto {
+public class TestDTO {
     private Long id;
     private String title;
     private String content;
