@@ -5,7 +5,7 @@
 <mapper namespace="com.provit.mapper.PostMapper">
 
     <!-- 1. 게시글 목록 페이징 조회 (조인 포함) -->
-    <select id="selectPostList" resultType="PostDTO" parameterType="PostSearchDTO">
+    <select id="selectPostList" resultType="com.provit.dto.community.PostDTO" parameterType="com.provit.dto.community.PostSearchDTO">
         SELECT
             p.POST_NUM,
             p.CATEGORY_NUM,
@@ -48,7 +48,7 @@
     </select>
 
     <!-- 2. 전체 게시글 갯수 카운트 (페이징 총 페이지 수 계산용) -->
-    <select id="countPosts" resultType="int" parameterType="PostSearchDTO">
+    <select id="countPosts" resultType="int" parameterType="com.provit.dto.community.PostSearchDTO">
         SELECT COUNT(p.POST_NUM)
         FROM T_POST p
         JOIN T_USER u ON p.USER_NUM = u.USER_NUM
