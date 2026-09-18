@@ -1,4 +1,4 @@
-package com.provit.dto.interview;
+package com.provit.dto.user;
 
 import java.util.Date;
 
