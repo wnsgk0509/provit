@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class InterviewAnswerRequestDTO {
 
-    private Integer questionOrder;
+    private int questionOrder;
     private String answer;
     private boolean timedOut;
 }

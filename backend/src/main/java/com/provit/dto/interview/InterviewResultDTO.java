@@ -1,6 +1,5 @@
 package com.provit.dto.interview;
 
-import java.math.BigDecimal;
 import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -10,14 +9,14 @@ import lombok.Data;
 @Data
 public class InterviewResultDTO {
 
-    private Long historyNum;
-    private Integer userNum;
-    private BigDecimal confidenceScore;
-    private BigDecimal persistenceScore;
-    private BigDecimal expertiseScore;
-    private BigDecimal logicScore;
-    private BigDecimal deliveryScore;
-    private BigDecimal totalScore;
+    private int historyNum;
+    private int userNum;
+    private double confidenceScore;
+    private double persistenceScore;
+    private double expertiseScore;
+    private double logicScore;
+    private double deliveryScore;
+    private double totalScore;
     private String strengths;
     private String weaknesses;
     private String comparison;

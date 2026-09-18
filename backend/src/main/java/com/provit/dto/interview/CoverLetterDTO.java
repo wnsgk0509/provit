@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class CoverLetterDTO {
 
-    private Integer userNum;
+    private int userNum;
     private String growthProcess;
     private String personalityStrengthsWeaknesses;
     private String problemSolvingExperience;

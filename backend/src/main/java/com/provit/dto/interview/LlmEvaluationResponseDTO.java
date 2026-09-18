@@ -7,12 +7,12 @@ import lombok.Data;
 @Data
 public class LlmEvaluationResponseDTO {
 
-    private BigDecimal confidenceScore;
-    private BigDecimal persistenceScore;
-    private BigDecimal expertiseScore;
-    private BigDecimal logicScore;
-    private BigDecimal deliveryScore;
-    private BigDecimal totalScore;
+    private double confidenceScore;
+    private double persistenceScore;
+    private double expertiseScore;
+    private double logicScore;
+    private double deliveryScore;
+    private double totalScore;
     private String strengths;
     private String weaknesses;
     private String comparison;

@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class PortfolioDTO {
 
-    private Integer userNum;
+    private int userNum;
     private String fileUrl;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")

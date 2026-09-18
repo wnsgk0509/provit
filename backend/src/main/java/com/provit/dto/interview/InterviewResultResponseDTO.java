@@ -1,19 +1,18 @@
 package com.provit.dto.interview;
 
-import java.math.BigDecimal;
 
 import lombok.Data;
 
 @Data
 public class InterviewResultResponseDTO {
 
-    private Long historyNum;
-    private BigDecimal confidenceScore;
-    private BigDecimal persistenceScore;
-    private BigDecimal expertiseScore;
-    private BigDecimal logicScore;
-    private BigDecimal deliveryScore;
-    private BigDecimal totalScore;
+    private int historyNum;
+    private double confidenceScore;
+    private double persistenceScore;
+    private double expertiseScore;
+    private double logicScore;
+    private double deliveryScore;
+    private double totalScore;
     private String strengths;
     private String weaknesses;
     private String comparison;

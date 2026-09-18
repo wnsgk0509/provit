@@ -9,8 +9,8 @@ import lombok.Data;
 @Data
 public class InterviewHistoryDTO {
 
-    private Long historyNum;
-    private Integer userNum;
+    private int historyNum;
+    private int userNum;
     private String question1;
     private String answer1;
     private String question2;

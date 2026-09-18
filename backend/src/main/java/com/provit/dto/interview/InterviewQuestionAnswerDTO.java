@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class InterviewQuestionAnswerDTO {
 
-    private Integer questionOrder;
+    private int questionOrder;
     private String questionType;
     private String question;
     private String answer;

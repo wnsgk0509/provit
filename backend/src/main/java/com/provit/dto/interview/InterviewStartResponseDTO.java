@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 public class InterviewStartResponseDTO {
 
-    private Long historyNum;
+    private int historyNum;
     private List<InterviewQuestionDTO> questions;
     private int answerTimeLimitSeconds;
 }
