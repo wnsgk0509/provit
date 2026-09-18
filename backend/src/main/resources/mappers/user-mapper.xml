@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.provit.mapper.UserMapper">
+
+    <!-- 회원 기본 ResultMap (자동 카멜 매핑도 동작하지만 명시적 ResultMap으로 안정성 극대화) -->
+    <resultMap id="UserResultMap" type="com.provit.dto.auth.UserDto">
+        <id property="userNum" column="USER_NUM" />
+        <result property="userName" column="USER_NAME" />
+        <result property="userNickname" column="USER_NICKNAME" />
+        <result property="userBirthDate" column="USER_BIRTH_DATE" />
+        <result property="userEmail" column="USER_EMAIL" />
+        <result property="userPw" column="USER_PW" />
+        <result property="userRegisterDate" column="USER_REGISTER_DATE" />
+        <result property="userType" column="USER_TYPE" />
+        <result property="jobCode" column="JOB_CODE" />
+        <result property="occupationCode" column="OCCUPATION_CODE" />
+        <result property="userIsDeleted" column="USER_IS_DELETED" />
+    </resultMap>
+
+    <!-- 1. 이메일로 회원 단건 조회 -->
+    <select id="selectByEmail" parameterType="string" resultMap="UserResultMap">
+        SELECT 
+            USER_NUM,
+            USER_NAME,
+            USER_NICKNAME,
+            USER_BIRTH_DATE,
+            USER_EMAIL,
+            USER_PW,
+            USER_REGISTER_DATE,
+            USER_TYPE,
+            JOB_CODE,
+            OCCUPATION_CODE,
+            USER_IS_DELETED
+        FROM T_USER
+        WHERE USER_EMAIL = #{userEmail}
+    </select>
+
+    <!-- 2. 닉네임으로 회원 단건 조회 -->
+    <select id="selectByNickname" parameterType="string" resultMap="UserResultMap">
+        SELECT 
+            USER_NUM,
+            USER_NAME,
+            USER_NICKNAME,
+            USER_BIRTH_DATE,
+            USER_EMAIL,
+            USER_PW,
+            USER_REGISTER_DATE,
+            USER_TYPE,
+            JOB_CODE,
+            OCCUPATION_CODE,
+            USER_IS_DELETED
+        FROM T_USER
+        WHERE USER_NICKNAME = #{userNickname}
+    </select>
+
+    <!-- 3. 회원 식별 번호로 단건 조회 -->
+    <select id="selectByUserNum" parameterType="long" resultMap="UserResultMap">
+        SELECT 
+            USER_NUM,
+            USER_NAME,
+            USER_NICKNAME,
+            USER_BIRTH_DATE,
+            USER_EMAIL,
+            USER_PW,
+            USER_REGISTER_DATE,
+            USER_TYPE,
+            JOB_CODE,
+            OCCUPATION_CODE,
+            USER_IS_DELETED
+        FROM T_USER
+        WHERE USER_NUM = #{userNum}
+    </select>
+
+    <!-- 4. 이메일 중복 건수 조회 -->
+    <select id="countByEmail" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM T_USER
+        WHERE USER_EMAIL = #{userEmail}
+    </select>
+
+    <!-- 5. 닉네임 중복 건수 조회 -->
+    <select id="countByNickname" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM T_USER
+        WHERE USER_NICKNAME = #{userNickname}
+    </select>
+
+    <!-- 6. 신규 회원가입 INSERT -->
+    <insert id="insertUser" parameterType="com.provit.dto.auth.UserDto">
+        <selectKey keyProperty="userNum" resultType="long" order="BEFORE">
+            SELECT SEQ_T_USER.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_USER (
+            USER_NUM,
+            USER_NAME,
+            USER_NICKNAME,
+            USER_BIRTH_DATE,
+            USER_EMAIL,
+            USER_PW,
+            USER_REGISTER_DATE,
+            USER_TYPE,
+            JOB_CODE,
+            OCCUPATION_CODE,
+            USER_IS_DELETED
+        ) VALUES (
+            #{userNum},
+            #{userName},
+            #{userNickname},
+            #{userBirthDate, jdbcType=DATE},
+            #{userEmail},
+            #{userPw},
+            SYSDATE,
+            NVL(#{userType, jdbcType=VARCHAR}, 'USER'),
+            #{jobCode, jdbcType=VARCHAR},
+            #{occupationCode, jdbcType=VARCHAR},
+            0
+        )
+    </insert>
+
+</mapper>
