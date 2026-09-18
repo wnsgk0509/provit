@@ -5,7 +5,7 @@
 <mapper namespace="com.provit.mapper.UserMapper">
 
     <!-- 회원 기본 ResultMap (자동 카멜 매핑도 동작하지만 명시적 ResultMap으로 안정성 극대화) -->
-    <resultMap id="UserResultMap" type="com.provit.dto.auth.UserDto">
+    <resultMap id="UserResultMap" type="com.provit.dto.auth.UserDTO">
         <id property="userNum" column="USER_NUM" />
         <result property="userName" column="USER_NAME" />
         <result property="userNickname" column="USER_NICKNAME" />
@@ -88,7 +88,7 @@
     </select>
 
     <!-- 6. 신규 회원가입 INSERT -->
-    <insert id="insertUser" parameterType="com.provit.dto.auth.UserDto">
+    <insert id="insertUser" parameterType="com.provit.dto.auth.UserDTO">
         <selectKey keyProperty="userNum" resultType="long" order="BEFORE">
             SELECT SEQ_T_USER.NEXTVAL FROM DUAL
         </selectKey>
