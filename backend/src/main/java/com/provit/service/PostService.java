@@ -14,4 +14,23 @@ public interface PostService {
      */
     PageResponseDTO<PostDTO> getPostList(PostSearchDTO searchDto);
     
+    /**
+     * 특정 게시글의 상세 정보를 조회합니다. (조회수 증가 포함)
+     */
+    PostDTO getPostDetail(Long postNum);
+
+    /**
+     * 새 게시글을 등록합니다.
+     */
+    Long createPost(PostDTO postDto);
+
+    /**
+     * 기존 게시글을 수정합니다.
+     */
+    void updatePost(PostDTO postDto);
+
+    /**
+     * 특정 게시글을 삭제합니다.
+     */
+    void deletePost(Long postNum);
 }

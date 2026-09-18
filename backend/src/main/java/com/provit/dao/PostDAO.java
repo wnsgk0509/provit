@@ -39,4 +39,38 @@ public class PostDAO {
     public int countPosts(PostSearchDTO searchDto) {
         return sqlSession.selectOne(NAMESPACE + ".countPosts", searchDto);
     }
+    /**
+     * 특정 게시글의 상세 정보를 조회합니다.
+     */
+    public PostDTO selectPostDetail(Long postNum) {
+        return sqlSession.selectOne(NAMESPACE + ".selectPostDetail", postNum);
+    }
+
+    /**
+     * 특정 게시글의 조회수를 1 증가시킵니다.
+     */
+    public int updateViewCount(Long postNum) {
+        return sqlSession.update(NAMESPACE + ".updateViewCount", postNum);
+    }
+
+    /**
+     * 새 게시글을 등록합니다.
+     */
+    public int insertPost(PostDTO postDto) {
+        return sqlSession.insert(NAMESPACE + ".insertPost", postDto);
+    }
+
+    /**
+     * 게시글을 수정합니다.
+     */
+    public int updatePost(PostDTO postDto) {
+        return sqlSession.update(NAMESPACE + ".updatePost", postDto);
+    }
+
+    /**
+     * 게시글을 삭제합니다.
+     */
+    public int deletePost(Long postNum) {
+        return sqlSession.delete(NAMESPACE + ".deletePost", postNum);
+    }
 }

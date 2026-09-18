@@ -74,5 +74,61 @@
             </if>
         </where>
     </select>
+    
+    <!-- 3. 게시글 상세 조회 -->
+    <select id="selectPostDetail" resultType="com.provit.dto.community.PostDTO" parameterType="long">
+        SELECT
+            p.POST_NUM,
+            p.CATEGORY_NUM,
+            c.CATEGORY_NAME,
+            p.USER_NUM,
+            u.USER_NICKNAME,
+            p.POST_TITLE,
+            p.POST_CONTENT,
+            p.POST_LIKE_COUNT,
+            p.VIEW_COUNT,
+            p.POST_FILE,
+            p.POST_DATE
+        FROM T_POST p
+        JOIN T_CATEGORY c ON p.CATEGORY_NUM = c.CATEGORY_NUM
+        JOIN T_USER u ON p.USER_NUM = u.USER_NUM
+        WHERE p.POST_NUM = #{postNum}
+    </select>
+
+    <!-- 4. 게시글 조회수 1 증가 -->
+    <update id="updateViewCount" parameterType="long">
+        UPDATE T_POST
+        SET VIEW_COUNT = VIEW_COUNT + 1
+        WHERE POST_NUM = #{postNum}
+    </update>
+
+    <!-- 5. 게시글 등록 -->
+    <insert id="insertPost" parameterType="com.provit.dto.community.PostDTO">
+        <selectKey keyProperty="postNum" resultType="long" order="BEFORE">
+            SELECT SEQ_T_POST.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_POST (
+            POST_NUM, CATEGORY_NUM, USER_NUM, POST_TITLE, POST_CONTENT, POST_FILE, POST_DATE
+        ) VALUES (
+            #{postNum}, #{categoryNum}, #{userNum}, #{postTitle}, #{postContent}, #{postFile, jdbcType=VARCHAR}, SYSDATE
+        )
+    </insert>
+
+    <!-- 6. 게시글 수정 (제목, 내용, 카테고리, 첨부파일만 수정) -->
+    <update id="updatePost" parameterType="com.provit.dto.community.PostDTO">
+        UPDATE T_POST
+        SET
+            CATEGORY_NUM = #{categoryNum},
+            POST_TITLE = #{postTitle},
+            POST_CONTENT = #{postContent},
+            POST_FILE = #{postFile, jdbcType=VARCHAR}
+        WHERE POST_NUM = #{postNum}
+    </update>
+
+    <!-- 7. 게시글 삭제 -->
+    <delete id="deletePost" parameterType="long">
+        DELETE FROM T_POST
+        WHERE POST_NUM = #{postNum}
+    </delete>
 
 </mapper>

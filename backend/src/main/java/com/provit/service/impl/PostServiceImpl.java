@@ -35,4 +35,34 @@ public class PostServiceImpl implements PostService {
         // 3. 조회된 목록과 전체 수, 페이지 정보를 담은 통합 응답 객체를 반환
         return new PageResponseDTO<>(list, totalCount, searchDto.getPage(), searchDto.getPageSize());
     }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public PostDTO getPostDetail(Long postNum) {
+        // 1. 상세 조회 시 조회수를 1 증가시킵니다.
+        postDao.updateViewCount(postNum);
+        
+        // 2. 최신 정보(증가된 조회수 포함)로 게시글 데이터를 조회하여 반환합니다.
+        return postDao.selectPostDetail(postNum);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public Long createPost(PostDTO postDto) {
+        // DB에 삽입 (MyBatis selectKey 기능으로 postDto에 생성된 PK가 담김)
+        postDao.insertPost(postDto);
+        return postDto.getPostNum();
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void updatePost(PostDTO postDto) {
+        postDao.updatePost(postDto);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void deletePost(Long postNum) {
+        postDao.deletePost(postNum);
+    }
 }

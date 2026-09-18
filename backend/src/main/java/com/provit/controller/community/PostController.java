@@ -38,4 +38,45 @@ public class PostController {
         // 2. 완성된 요리를 규격화된 공통 접시(ApiResponse)에 담아 손님(React)에게 서빙합니다.
         return ApiResponse.success(responseData);
     }
+
+    /**
+     * 게시글 상세 정보를 조회합니다.
+     * URL 호출 예시: GET /api/community/posts/15
+     */
+    @GetMapping("/{postNum}")
+    public ApiResponse<PostDTO> getPostDetail(@org.springframework.web.bind.annotation.PathVariable Long postNum) {
+        PostDTO postDetail = postService.getPostDetail(postNum);
+        return ApiResponse.success(postDetail);
+    }
+
+    /**
+     * 새 게시글을 등록합니다.
+     */
+    @org.springframework.web.bind.annotation.PostMapping
+    public ApiResponse<Long> createPost(@org.springframework.web.bind.annotation.RequestBody PostDTO postDto) {
+        Long createdPostNum = postService.createPost(postDto);
+        return ApiResponse.success(createdPostNum);
+    }
+
+    /**
+     * 기존 게시글을 수정합니다.
+     */
+    @org.springframework.web.bind.annotation.PutMapping("/{postNum}")
+    public ApiResponse<Void> updatePost(
+            @org.springframework.web.bind.annotation.PathVariable Long postNum, 
+            @org.springframework.web.bind.annotation.RequestBody PostDTO postDto) {
+        // 안전을 위해 URL의 번호를 DTO에 세팅합니다.
+        postDto.setPostNum(postNum);
+        postService.updatePost(postDto);
+        return ApiResponse.success();
+    }
+
+    /**
+     * 특정 게시글을 삭제합니다.
+     */
+    @org.springframework.web.bind.annotation.DeleteMapping("/{postNum}")
+    public ApiResponse<Void> deletePost(@org.springframework.web.bind.annotation.PathVariable Long postNum) {
+        postService.deletePost(postNum);
+        return ApiResponse.success();
+    }
 }
