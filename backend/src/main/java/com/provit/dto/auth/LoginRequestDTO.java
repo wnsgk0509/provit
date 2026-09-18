@@ -6,16 +6,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-/**
- * 이메일 인증번호 검증 요청 DTO
- */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = "code")
-public class EmailVerifyRequestDto {
+@ToString(exclude = "userPw")
+public class LoginRequestDTO {
 
-    private String email;
-    private String code;
+    private String userEmail;
+    private String userPw;
 }

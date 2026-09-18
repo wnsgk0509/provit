@@ -1,4 +1,4 @@
-package com.provit.service.auth;
+package com.provit.service.auth.impl;
 
 import java.security.SecureRandom;
 import java.time.LocalDate;
@@ -19,12 +19,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.provit.common.ResponseCode;
-import com.provit.dao.auth.UserDao;
-import com.provit.dto.auth.LoginRequestDto;
-import com.provit.dto.auth.LoginResponseDto;
-import com.provit.dto.auth.SignupRequestDto;
-import com.provit.dto.auth.UserDto;
-import com.provit.dto.auth.UserResponseDto;
+import com.provit.dao.auth.UserDAO;
+import com.provit.dto.auth.LoginRequestDTO;
+import com.provit.dto.auth.LoginResponseDTO;
+import com.provit.dto.auth.SignupRequestDTO;
+import com.provit.dto.auth.UserDTO;
+import com.provit.dto.auth.UserResponseDTO;
+import com.provit.service.auth.AuthService;
+import com.provit.service.auth.MailService;
 import com.provit.util.CommonUtil;
 import com.provit.util.jwt.JwtProvider;
 
@@ -36,7 +38,7 @@ public class AuthServiceImpl implements AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
-    private final UserDao userDao;
+    private final UserDAO userDAO;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final MailService mailService;
@@ -59,11 +61,11 @@ public class AuthServiceImpl implements AuthService {
     private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=\\S{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9\\s]).*$");
 
     @Autowired
-    public AuthServiceImpl(UserDao userDao,
+    public AuthServiceImpl(UserDAO userDAO,
                            PasswordEncoder passwordEncoder,
                            JwtProvider jwtProvider,
                            MailService mailService) {
-        this.userDao = userDao;
+        this.userDAO = userDAO;
         this.passwordEncoder = passwordEncoder;
         this.jwtProvider = jwtProvider;
         this.mailService = mailService;
@@ -112,7 +114,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public boolean isEmailAvailable(String email) {
-        return userDao.countByEmail(normalizeEmail(email)) == 0;
+        return userDAO.countByEmail(normalizeEmail(email)) == 0;
     }
 
     @Override
@@ -120,7 +122,7 @@ public class AuthServiceImpl implements AuthService {
         if (CommonUtil.isEmpty(nickname)) {
             throw new IllegalArgumentException("닉네임을 입력해 주세요.");
         }
-        return userDao.countByNickname(nickname.trim()) == 0;
+        return userDAO.countByNickname(nickname.trim()) == 0;
     }
 
     @Override
@@ -128,7 +130,7 @@ public class AuthServiceImpl implements AuthService {
         String trimmedEmail = normalizeEmail(email);
 
         // 1. 이미 등록된 이메일인지 검증
-        if (userDao.countByEmail(trimmedEmail) > 0) {
+        if (userDAO.countByEmail(trimmedEmail) > 0) {
             throw new IllegalArgumentException("이미 가입된 이메일 주소입니다.");
         }
 
@@ -199,35 +201,35 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public UserResponseDto signup(SignupRequestDto requestDto) {
+    public UserResponseDTO signup(SignupRequestDTO requestDTO) {
         // 1. 필수 입력값 검증
-        if (requestDto == null) {
+        if (requestDTO == null) {
             throw new IllegalArgumentException("회원가입 정보가 전달되지 않았습니다.");
         }
-        if (CommonUtil.isEmpty(requestDto.getUserName())) {
+        if (CommonUtil.isEmpty(requestDTO.getUserName())) {
             throw new IllegalArgumentException("이름을 입력해 주세요.");
         }
-        if (CommonUtil.isEmpty(requestDto.getUserNickname())) {
+        if (CommonUtil.isEmpty(requestDTO.getUserNickname())) {
             throw new IllegalArgumentException("닉네임을 입력해 주세요.");
         }
-        if (CommonUtil.isEmpty(requestDto.getUserEmail())) {
+        if (CommonUtil.isEmpty(requestDTO.getUserEmail())) {
             throw new IllegalArgumentException("이메일을 입력해 주세요.");
         }
-        if (CommonUtil.isEmpty(requestDto.getUserPw())) {
+        if (CommonUtil.isEmpty(requestDTO.getUserPw())) {
             throw new IllegalArgumentException("비밀번호를 입력해 주세요.");
         }
-        if (!PASSWORD_PATTERN.matcher(requestDto.getUserPw()).matches()) {
+        if (!PASSWORD_PATTERN.matcher(requestDTO.getUserPw()).matches()) {
             throw new IllegalArgumentException("비밀번호는 8자 이상이며 영문 대문자, 소문자, 숫자, 특수문자를 각각 포함해야 합니다.");
         }
-        if (!requestDto.getUserPw().equals(requestDto.getConfirmPw())) {
+        if (!requestDTO.getUserPw().equals(requestDTO.getConfirmPw())) {
             throw new IllegalArgumentException("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
         }
 
-        String email = normalizeEmail(requestDto.getUserEmail());
-        String nickname = requestDto.getUserNickname().trim();
+        String email = normalizeEmail(requestDTO.getUserEmail());
+        String nickname = requestDTO.getUserNickname().trim();
 
         // 2. 이메일 인증 토큰 검증
-        String token = requestDto.getVerificationToken();
+        String token = requestDTO.getVerificationToken();
         if (CommonUtil.isEmpty(token)) {
             throw new IllegalArgumentException("이메일 인증을 먼저 완료해 주세요.");
         }
@@ -242,18 +244,18 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 3. 중복 검사 (DB 제약조건 2차 방어)
-        if (userDao.countByEmail(email) > 0) {
+        if (userDAO.countByEmail(email) > 0) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
-        if (userDao.countByNickname(nickname) > 0) {
+        if (userDAO.countByNickname(nickname) > 0) {
             throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
         }
 
         // 4. 생년월일 파싱
         Date birthDate = null;
-        if (!CommonUtil.isEmpty(requestDto.getUserBirthDate())) {
+        if (!CommonUtil.isEmpty(requestDTO.getUserBirthDate())) {
             try {
-                String birthDateText = requestDto.getUserBirthDate().trim();
+                String birthDateText = requestDTO.getUserBirthDate().trim();
                 LocalDate parsedBirthDate = LocalDate.parse(birthDateText);
                 LocalDate latestAllowedBirthDate = LocalDate.now().minusYears(ADULT_AGE);
                 if (parsedBirthDate.isBefore(MIN_BIRTH_DATE) || parsedBirthDate.isAfter(latestAllowedBirthDate)) {
@@ -266,43 +268,43 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 5. 비밀번호 BCrypt 해싱 단방향 암호화
-        String encodedPassword = passwordEncoder.encode(requestDto.getUserPw());
+        String encodedPassword = passwordEncoder.encode(requestDTO.getUserPw());
 
         // 6. 회원 DTO 구성 및 DB 등록
-        UserDto userDto = UserDto.builder()
-                .userName(requestDto.getUserName().trim())
+        UserDTO userDTO = UserDTO.builder()
+                .userName(requestDTO.getUserName().trim())
                 .userNickname(nickname)
                 .userEmail(email)
                 .userPw(encodedPassword)
                 .userBirthDate(birthDate)
                 .userType("USER")
-                .jobCode(requestDto.getJobCode())
-                .occupationCode(requestDto.getOccupationCode())
+                .jobCode(requestDTO.getJobCode())
+                .occupationCode(requestDTO.getOccupationCode())
                 .userIsDeleted(0)
                 .build();
 
-        userDao.insertUser(userDto);
+        userDAO.insertUser(userDTO);
 
         // 인증 토큰 1회용 소비 완료
         verifiedTokenMap.remove(token);
 
-        log.info("새로운 회원이 성공적으로 가입되었습니다. (회원번호: {}, 이메일: {})", userDto.getUserNum(), email);
+        log.info("새로운 회원이 성공적으로 가입되었습니다. (회원번호: {}, 이메일: {})", userDTO.getUserNum(), email);
 
         // 비밀번호 및 해시 제외된 응답 DTO 반환
-        return UserResponseDto.from(userDto);
+        return UserResponseDTO.from(userDTO);
     }
 
     @Override
-    public LoginResponseDto login(LoginRequestDto requestDto) {
+    public LoginResponseDTO login(LoginRequestDTO requestDTO) {
         // 1. 파라미터 유효성 검사
-        if (requestDto == null || CommonUtil.isEmpty(requestDto.getUserEmail()) || CommonUtil.isEmpty(requestDto.getUserPw())) {
+        if (requestDTO == null || CommonUtil.isEmpty(requestDTO.getUserEmail()) || CommonUtil.isEmpty(requestDTO.getUserPw())) {
             throw new IllegalArgumentException("이메일과 비밀번호를 모두 입력해 주세요.");
         }
 
-        String email = normalizeEmail(requestDto.getUserEmail());
+        String email = normalizeEmail(requestDTO.getUserEmail());
 
         // 2. 이메일로 회원 조회
-        UserDto user = userDao.selectByEmail(email);
+        UserDTO user = userDAO.selectByEmail(email);
         if (user == null) {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다.");
         }
@@ -313,7 +315,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 4. BCrypt 비밀번호 일치 검증
-        if (!passwordEncoder.matches(requestDto.getUserPw(), user.getUserPw())) {
+        if (!passwordEncoder.matches(requestDTO.getUserPw(), user.getUserPw())) {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다.");
         }
 
@@ -323,23 +325,23 @@ public class AuthServiceImpl implements AuthService {
 
         log.info("회원 로그인 성공 (회원번호: {}, 이메일: {})", user.getUserNum(), user.getUserEmail());
 
-        return LoginResponseDto.builder()
+        return LoginResponseDTO.builder()
                 .accessToken(accessToken)
                 .tokenType("Bearer")
                 .expiresIn(expiresIn)
-                .user(UserResponseDto.from(user))
+                .user(UserResponseDTO.from(user))
                 .build();
     }
 
     @Override
-    public UserResponseDto getUserProfile(Long userNum) {
+    public UserResponseDTO getUserProfile(Long userNum) {
         if (userNum == null) {
             throw new IllegalArgumentException("회원 식별 번호가 누락되었습니다.");
         }
-        UserDto user = userDao.selectByUserNum(userNum);
+        UserDTO user = userDAO.selectByUserNum(userNum);
         if (user == null || (user.getUserIsDeleted() != null && user.getUserIsDeleted() == 1)) {
             throw new IllegalArgumentException("존재하지 않거나 탈퇴한 회원입니다.");
         }
-        return UserResponseDto.from(user);
+        return UserResponseDTO.from(user);
     }
 }

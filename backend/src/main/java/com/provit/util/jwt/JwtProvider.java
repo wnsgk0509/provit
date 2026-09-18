@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.provit.dto.auth.UserDto;
+import com.provit.dto.auth.UserDTO;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -49,7 +49,7 @@ public class JwtProvider {
     /**
      * 회원 정보를 바탕으로 JWT Access Token 생성 (비밀번호 제외)
      */
-    public String createToken(UserDto user) {
+    public String createToken(UserDTO user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expirationTime);
 

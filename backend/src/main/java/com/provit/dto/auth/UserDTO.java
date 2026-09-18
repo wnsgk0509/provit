@@ -9,16 +9,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-/**
- * T_USER 테이블과 매핑되는 회원 엔티티 DTO
- */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @ToString(exclude = "userPw")
-public class UserDto {
+public class UserDTO {
 
     private Long userNum;
     private String userName;

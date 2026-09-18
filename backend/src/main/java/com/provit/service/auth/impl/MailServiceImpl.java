@@ -1,4 +1,4 @@
-package com.provit.service.auth;
+package com.provit.service.auth.impl;
 
 import java.nio.charset.StandardCharsets;
 
@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+
+import com.provit.service.auth.MailService;
 
 /**
  * 이메일 발송 서비스 구현체
