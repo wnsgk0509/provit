@@ -175,6 +175,7 @@
 			<groupId>org.jsoup</groupId>
 			<artifactId>jsoup</artifactId>
 			<version>1.17.2</version>
+		</dependency>
 		<!-- Spring Context Support (Mail / JavaMailSender) -->
 		<dependency>
 			<groupId>org.springframework</groupId>
