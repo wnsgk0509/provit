@@ -47,8 +47,8 @@
 
 | no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
 |:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
-| 1 | OCCUPATION_CODE | 직군 코드 | VARCHAR2 | 20 | PK | NOT NULL | | 대분류 직군 고유 식별 코드 | | 예: 'DEV', 'PLAN' |
-| 2 | OCCUPATION_NAME | 직군명 | VARCHAR2 | 200 | | NOT NULL | | 대분류 직군 이름 | | 예: '개발', '기획' |
+| 1 | OCCUPATION_CODE | 직군 코드 | VARCHAR2 | 20 | PK | NOT NULL | | 대분류 직군 고유 식별 코드 | | 사람인 표준 코드 (예: '2', '16', '5') |
+| 2 | OCCUPATION_NAME | 직군명 | VARCHAR2 | 200 | | NOT NULL | | 대분류 직군 이름 | | 예: 'IT개발·데이터', '기획·전략' (총 21개) |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|
@@ -59,14 +59,14 @@
 ### 1.2 T_JOB (소분류 직무)
 - **테이블 물리명:** `T_JOB`
 - **테이블 논리명:** 소분류 직무
-- **설명:** 백엔드 개발자, 프론트엔드 개발자 등 직군에 속한 상세 직무 코드 관리
+- **설명:** 백엔드/서버개발, 웹개발, 기획, 인사 등 직군에 속한 상세 직무 코드 관리 (사람인 표준 2,178개)
 - **시퀀스:** 없음 (코드형 식별자 사용)
 
 | no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
 |:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
-| 1 | JOB_CODE | 직무 코드 | VARCHAR2 | 20 | PK | NOT NULL | | 소분류 직무 고유 식별 코드 | | 예: 'BACKEND', 'FRONTEND' |
+| 1 | JOB_CODE | 직무 코드 | VARCHAR2 | 20 | PK | NOT NULL | | 소분류 직무 고유 식별 코드 | | 사람인 표준 코드 (예: '84', '87', '2198') |
 | 2 | OCCUPATION_CODE | 소속 직군 코드 | VARCHAR2 | 20 | | NOT NULL | | 소속 대분류 직군 코드 | T_OCCUPATION(OCCUPATION_CODE) | ON DELETE CASCADE |
-| 3 | JOB_NAME | 직무명 | VARCHAR2 | 200 | | NOT NULL | | 소분류 직무 이름 | | 예: '백엔드 개발자' |
+| 3 | JOB_NAME | 직무명 | VARCHAR2 | 200 | | NOT NULL | | 소분류 직무 이름 | | 예: '백엔드/서버개발', '웹개발' (총 2,178개) |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|

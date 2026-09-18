@@ -170,6 +170,11 @@
 			<version>1.3.2</version>
 		</dependency>
 
+		<!-- Jsoup (HTML Web Crawler & Parser) -->
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.17.2</version>
 		<!-- Spring Context Support (Mail / JavaMailSender) -->
 		<dependency>
 			<groupId>org.springframework</groupId>
