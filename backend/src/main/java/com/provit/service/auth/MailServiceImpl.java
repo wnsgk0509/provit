@@ -40,16 +40,30 @@ public class MailServiceImpl implements MailService {
 
     @PostConstruct
     public void validateMailConfiguration() {
-        if (fromEmail == null || fromEmail.trim().isEmpty()) {
-            throw new IllegalStateException("mail.username SMTP 발신 계정을 반드시 설정해야 합니다.");
+        if (fromEmail == null || fromEmail.trim().isEmpty() || mailPassword == null || mailPassword.trim().isEmpty()) {
+            log.warn("⚠️ [MailService] SMTP 발신 계정(mail.username / mail.password)이 설정되지 않았습니다. 개발/테스트 모드로 동작하며 콘솔창에 인증코드가 출력됩니다.");
+        } else {
+            log.info("✅ [MailService] SMTP 발신 계정({})이 정상 설정되었습니다.", fromEmail);
         }
-        if (mailPassword == null || mailPassword.trim().isEmpty()) {
-            throw new IllegalStateException("mail.password SMTP 앱 비밀번호를 반드시 설정해야 합니다.");
-        }
+    }
+
+    private boolean isMailConfigured() {
+        return fromEmail != null && !fromEmail.trim().isEmpty() && mailPassword != null && !mailPassword.trim().isEmpty();
     }
 
     @Override
     public boolean sendVerificationCode(String toEmail, String code) {
+        if (!isMailConfigured()) {
+            log.warn(">> [DEV MODE] SMTP 미설정 상태: 인증번호를 콘솔에 출력합니다.");
+            System.out.println("\n=======================================================");
+            System.out.println("  [DEV MODE] 회원가입 이메일 인증번호 모의 발송");
+            System.out.println("  - 수신 이메일: " + toEmail);
+            System.out.println("  - 인증 코드: [" + code + "]");
+            System.out.println("  (실제 이메일 발송은 api.properties에 mail.username/mail.password를 등록하세요)");
+            System.out.println("=======================================================\n");
+            return true;
+        }
+
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
