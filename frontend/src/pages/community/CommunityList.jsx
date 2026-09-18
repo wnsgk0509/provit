@@ -35,8 +35,8 @@ function CommunityList() {
         setLoading(true);
         try {
             const result = await fetchPostList(params);
-            if (result.success) {
-                setPosts(result.data.items);
+            if (result && result.responseCode && result.responseCode.code === 200) {
+                setPosts(result.data.list || []);
                 setPageInfo({
                     currentPage: result.data.currentPage,
                     totalPages: result.data.totalPages,
