@@ -49,11 +49,10 @@ const createResult = (session) => ({
     difficulty: session.settings.difficulty,
     scores: [
         { category: 'CONFIDENCE', label: '자신감', score: 84 },
-        { category: 'PERSISTENCE', label: '끈기', score: 79 },
+        { category: 'PERSISTENCE', label: '끈기/열정', score: 79 },
         { category: 'EXPERTISE', label: '전문성', score: 86 },
-        { category: 'LOGIC', label: '논리력', score: 83 },
-        { category: 'DELIVERY', label: '전달력', score: 80 },
-        
+        { category: 'LOGIC', label: '논리력', score: 80 },
+        { category: 'DELIVERY', label: '전달력', score: 83 },
     ],
     feedback: {
         strengths: '프로젝트 경험을 구체적인 상황과 본인의 역할 중심으로 설명해 답변의 신뢰도가 높았습니다.',

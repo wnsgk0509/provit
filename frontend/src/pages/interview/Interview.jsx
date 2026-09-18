@@ -157,10 +157,10 @@ function Interview() {
                     <p className="interview-analysis-title">분석 항목</p>
                     <div className="interview-analysis-list">
                         <span>자신감</span>
-                        <span>논리성</span>
+                        <span>끈기/열정</span>
                         <span>전문성</span>
+                        <span>논리력</span>
                         <span>전달력</span>
-                        <span>직무적합성</span>
                     </div>
                 </div>
 
