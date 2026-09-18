@@ -131,13 +131,14 @@
 |:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
 | 1 | RESUME_NUM | 이력서 번호 | NUMBER | 18 | PK | NOT NULL | SEQ_T_RESUME.NEXTVAL | 이력서 고유 식별 번호 | | 시퀀스 자동 채번 |
 | 2 | USER_NUM | 작성자 번호 | NUMBER | 9 | | NOT NULL | | 이력서 작성 회원 번호 | T_USER(USER_NUM) | ON DELETE CASCADE |
-| 3 | HIGHEST_LEVEL | 최종학력 | VARCHAR2 | 20 | | NOT NULL | | 최종 학력 기재 (고졸, 초대졸, 대졸 등) | | 목록/필터링 최적화 |
-| 4 | EDUCATION_CODE | 검색 학력 코드 | NUMBER | 1 | | NOT NULL | | 채용 API 요청 시 전달할 학력 검색 코드 | T_EDUCODE(EDUCATION_CODE) | OpenAPI 연동 |
-| 5 | MOTIVATION | 지원 동기 | CLOB | | | | | 장문 지원 동기 텍스트 | | |
-| 6 | DESIRED_LOCATION | 희망 근무지 | VARCHAR2 | 200 | | | | 희망 근무 지역 | | 예: '서울 강남구' |
-| 7 | DESIRED_WORK_TYPE | 희망 고용형태 | VARCHAR2 | 100 | | | | 희망 고용 형태 | | 정규직, 계약직 등 |
-| 8 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 이력서 최초 작성 일시 | | |
-| 9 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 이력서 최종 수정 일시 | | |
+| 3 | RESUME_TITLE | 이력서 제목 | VARCHAR2 | 200 | | | | 이력서 제목 | | 예: '신입 백엔드 개발자 홍길동의 이력서' |
+| 4 | HIGHEST_LEVEL | 최종학력 | VARCHAR2 | 20 | | NOT NULL | | 최종 학력 기재 (고졸, 초대졸, 대졸 등) | | 목록/필터링 최적화 |
+| 5 | EDUCATION_CODE | 검색 학력 코드 | NUMBER | 1 | | NOT NULL | | 채용 API 요청 시 전달할 학력 검색 코드 | T_EDUCODE(EDUCATION_CODE) | OpenAPI 연동 |
+| 6 | MOTIVATION | 지원 동기 | CLOB | | | | | 장문 지원 동기 텍스트 | | |
+| 7 | DESIRED_LOCATION | 희망 근무지 | VARCHAR2 | 200 | | | | 희망 근무 지역 | | 예: '서울 강남구' |
+| 8 | DESIRED_WORK_TYPE | 희망 고용형태 | VARCHAR2 | 100 | | | | 희망 고용 형태 | | 정규직, 계약직 등 |
+| 9 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 이력서 최초 작성 일시 | | |
+| 10 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 이력서 최종 수정 일시 | | |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|
@@ -224,12 +225,13 @@
 | no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
 |:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
 | 1 | USER_NUM | 회원 번호 | NUMBER | 9 | PK | NOT NULL | | 작성 회원 번호 (식별자 겸 FK) | T_USER(USER_NUM) | ON DELETE CASCADE |
-| 2 | GROWTH_PROCESS | 성장 과정 | VARCHAR2 | 3000 | | | | 성장 과정 및 배경 기술서 | | 한글 약 1,000자 |
-| 3 | PERSONALITY_STRENGTHS_WEAKNESSES | 성격의 장단점 | VARCHAR2 | 3000 | | | | 성격의 장단점 기술서 | | 한글 약 1,000자 |
-| 4 | PROBLEM_SOLVING_EXPERIENCE | 문제 해결 경험 | VARCHAR2 | 3000 | | | | 위기 극복 및 문제 해결 경험 | | 한글 약 1,000자 |
-| 5 | POST_JOINING_ASPIRATION | 입사 후 포부 | VARCHAR2 | 3000 | | | | 입사 후 포부 및 비전 | | 한글 약 1,000자 |
-| 6 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 자기소개서 최초 등록 일시 | | |
-| 7 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 자기소개서 최종 수정 일시 | | |
+| 2 | COVER_LETTER_TITLE | 자기소개서 제목 | VARCHAR2 | 200 | | | | 자기소개서 제목 | | 예: '도전하는 백엔드 개발자 자기소개서' |
+| 3 | GROWTH_PROCESS | 성장 과정 | VARCHAR2 | 3000 | | | | 성장 과정 및 배경 기술서 | | 한글 약 1,000자 |
+| 4 | PERSONALITY_STRENGTHS_WEAKNESSES | 성격의 장단점 | VARCHAR2 | 3000 | | | | 성격의 장단점 기술서 | | 한글 약 1,000자 |
+| 5 | PROBLEM_SOLVING_EXPERIENCE | 문제 해결 경험 | VARCHAR2 | 3000 | | | | 위기 극복 및 문제 해결 경험 | | 한글 약 1,000자 |
+| 6 | POST_JOINING_ASPIRATION | 입사 후 포부 | VARCHAR2 | 3000 | | | | 입사 후 포부 및 비전 | | 한글 약 1,000자 |
+| 7 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 자기소개서 최초 등록 일시 | | |
+| 8 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 자기소개서 최종 수정 일시 | | |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|
@@ -246,9 +248,10 @@
 | no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
 |:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
 | 1 | USER_NUM | 회원 번호 | NUMBER | 9 | PK | NOT NULL | | 소유 회원 번호 (식별자 겸 FK) | T_USER(USER_NUM) | ON DELETE CASCADE |
-| 2 | FILE_URL | 파일 URL | VARCHAR2 | 500 | | | | 업로드된 포트폴리오 파일 URL | | PDF/문서 링크 |
-| 3 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 포트폴리오 최초 등록 일시 | | |
-| 4 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 포트폴리오 최종 수정 일시 | | |
+| 2 | PORTFOLIO_TITLE | 포트폴리오 제목 | VARCHAR2 | 200 | | | | 포트폴리오 제목 | | 예: 'Provit 프로젝트 포트폴리오' |
+| 3 | FILE_URL | 파일 URL | VARCHAR2 | 500 | | | | 업로드된 포트폴리오 파일 URL | | PDF/문서 링크 |
+| 4 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 포트폴리오 최초 등록 일시 | | |
+| 5 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 포트폴리오 최종 수정 일시 | | |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|
@@ -278,7 +281,11 @@
 | 10 | ANSWER4 | 답변 4 | VARCHAR2 | 3000 | | | | 응시자 4번 답변 내용 | | |
 | 11 | QUESTION5 | 질문 5 | VARCHAR2 | 1000 | | | | AI 생성 5번 질문 내용 | | |
 | 12 | ANSWER5 | 답변 5 | VARCHAR2 | 3000 | | | | 응시자 5번 답변 내용 | | |
-| 13 | INTERVIEW_DATE | 응시일시 | DATE | | | NOT NULL | SYSDATE | 모의 면접 진행 일시 | | |
+| 13 | STRENGTH | 잘한 점 | VARCHAR2 | 500 | | | | 면접 답변 중 우수한 역량 및 강점 피드백 | | LLM 평가 |
+| 14 | WEAKNESS | 아쉬운 점 | VARCHAR2 | 500 | | | | 미흡했던 부분 및 약점 피드백 | | LLM 평가 |
+| 15 | PREVIOUS_COMPARISON | 이전 기록 비교 | VARCHAR2 | 500 | | | | 직전 모의면접 대비 변화 및 성장 추이 | | LLM 분석 |
+| 16 | IMPROVEMENT_POINT | 개선할 점 | VARCHAR2 | 500 | | | | 차기 면접을 위한 구체적 행동 개선 제안 | | LLM 조언 |
+| 17 | INTERVIEW_DATE | 응시일시 | DATE | | | NOT NULL | SYSDATE | 모의 면접 진행 일시 | | |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|
