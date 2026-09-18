@@ -15,7 +15,7 @@ import java.util.Date;
 @Setter
 @NoArgsConstructor
 @ToString
-public class PostDto {
+public class PostDTO {
     // 1. T_POST 테이블 기본 컬럼
     private Long postNum;          // 게시글 고유 번호
     private Integer categoryNum;   // 카테고리 번호

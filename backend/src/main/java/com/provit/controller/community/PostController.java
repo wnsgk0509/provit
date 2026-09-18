@@ -1,8 +1,8 @@
 package com.provit.controller.community;
 
-import com.provit.dto.common.PageResponseDto;
-import com.provit.dto.community.PostDto;
-import com.provit.dto.community.PostSearchDto;
+import com.provit.dto.common.PageResponseDTO;
+import com.provit.dto.community.PostDTO;
+import com.provit.dto.community.PostSearchDTO;
 import com.provit.dto.response.ApiResponse;
 import com.provit.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,9 +31,9 @@ public class PostController {
      * URL 호출 예시: GET /api/community/posts?page=2&categoryNum=1&keyword=안녕
      */
     @GetMapping
-    public ApiResponse<PageResponseDto<PostDto>> getPostList(@ModelAttribute PostSearchDto searchDto) {
+    public ApiResponse<PageResponseDTO<PostDTO>> getPostList(@ModelAttribute PostSearchDTO searchDto) {
         // 1. 웨이터가 프론트에서 온 파라미터(searchDto)를 그대로 주방장(Service)에게 전달해 요리를 부탁합니다.
-        PageResponseDto<PostDto> responseData = postService.getPostList(searchDto);
+        PageResponseDTO<PostDTO> responseData = postService.getPostList(searchDto);
 
         // 2. 완성된 요리를 규격화된 공통 접시(ApiResponse)에 담아 손님(React)에게 서빙합니다.
         return ApiResponse.success(responseData);

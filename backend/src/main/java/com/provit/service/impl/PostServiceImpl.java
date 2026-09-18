@@ -1,9 +1,9 @@
 package com.provit.service.impl;
 
-import com.provit.dao.PostDao;
-import com.provit.dto.common.PageResponseDto;
-import com.provit.dto.community.PostDto;
-import com.provit.dto.community.PostSearchDto;
+import com.provit.dao.PostDAO;
+import com.provit.dto.common.PageResponseDTO;
+import com.provit.dto.community.PostDTO;
+import com.provit.dto.community.PostSearchDTO;
 import com.provit.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,23 +16,23 @@ import java.util.List;
 @Service
 public class PostServiceImpl implements PostService {
 
-    private final PostDao postDao;
+    private final PostDAO postDao;
 
     // DAO(창고 관리인)를 주입받습니다.
     @Autowired
-    public PostServiceImpl(PostDao postDao) {
+    public PostServiceImpl(PostDAO postDao) {
         this.postDao = postDao;
     }
 
     @Override
-    public PageResponseDto<PostDto> getPostList(PostSearchDto searchDto) {
-        // 1. 전체 게시글 갯수 조회 (페이징의 '총 페이지 수'를 알기 위해 필수)
+    public PageResponseDTO<PostDTO> getPostList(PostSearchDTO searchDto) {
+        // 1. 전체 게시글 수 조회 (페이징 계산을 위해 필요)
         int totalCount = postDao.countPosts(searchDto);
 
-        // 2. 조건에 맞는 게시글 목록 조회 (OFFSET과 PAGE_SIZE 기반으로 잘라서 가져옴)
-        List<PostDto> list = postDao.selectPostList(searchDto);
+        // 2. 현재 페이지에 노출될 게시글 목록 조회
+        List<PostDTO> list = postDao.selectPostList(searchDto);
 
-        // 3. 우리가 만들어둔 공통 페이징 응답 객체(접시)에 데이터와 페이징 정보를 예쁘게 담아 반환
-        return new PageResponseDto<>(list, totalCount, searchDto.getPage(), searchDto.getPageSize());
+        // 3. 조회된 목록과 전체 수, 페이지 정보를 담은 통합 응답 객체를 반환
+        return new PageResponseDTO<>(list, totalCount, searchDto.getPage(), searchDto.getPageSize());
     }
 }

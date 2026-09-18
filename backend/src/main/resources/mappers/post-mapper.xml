@@ -5,7 +5,7 @@
 <mapper namespace="com.provit.mapper.PostMapper">
 
     <!-- 1. 게시글 목록 페이징 조회 (조인 포함) -->
-    <select id="selectPostList" resultType="com.provit.dto.community.PostDto" parameterType="com.provit.dto.community.PostSearchDto">
+    <select id="selectPostList" resultType="PostDTO" parameterType="PostSearchDTO">
         SELECT
             p.POST_NUM,
             p.CATEGORY_NUM,
@@ -26,7 +26,20 @@
             </if>
             <!-- 검색어가 넘어왔을 때만 동작 -->
             <if test="keyword != null and keyword != ''">
-                AND p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                <choose>
+                    <when test="searchType == 'TITLE'">
+                        AND p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                    </when>
+                    <when test="searchType == 'CONTENT'">
+                        AND p.POST_CONTENT LIKE '%' || #{keyword} || '%'
+                    </when>
+                    <when test="searchType == 'WRITER'">
+                        AND u.USER_NICKNAME LIKE '%' || #{keyword} || '%'
+                    </when>
+                    <otherwise>
+                        AND p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                    </otherwise>
+                </choose>
             </if>
         </where>
         ORDER BY p.POST_NUM DESC
@@ -35,15 +48,29 @@
     </select>
 
     <!-- 2. 전체 게시글 갯수 카운트 (페이징 총 페이지 수 계산용) -->
-    <select id="countPosts" resultType="int" parameterType="com.provit.dto.community.PostSearchDto">
+    <select id="countPosts" resultType="int" parameterType="PostSearchDTO">
         SELECT COUNT(p.POST_NUM)
         FROM T_POST p
+        JOIN T_USER u ON p.USER_NUM = u.USER_NUM
         <where>
             <if test="categoryNum != null">
                 AND p.CATEGORY_NUM = #{categoryNum}
             </if>
             <if test="keyword != null and keyword != ''">
-                AND p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                <choose>
+                    <when test="searchType == 'TITLE'">
+                        AND p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                    </when>
+                    <when test="searchType == 'CONTENT'">
+                        AND p.POST_CONTENT LIKE '%' || #{keyword} || '%'
+                    </when>
+                    <when test="searchType == 'WRITER'">
+                        AND u.USER_NICKNAME LIKE '%' || #{keyword} || '%'
+                    </when>
+                    <otherwise>
+                        AND p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                    </otherwise>
+                </choose>
             </if>
         </where>
     </select>

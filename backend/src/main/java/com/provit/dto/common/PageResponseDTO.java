@@ -15,7 +15,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @ToString
-public class PageResponseDto<T> {
+public class PageResponseDTO<T> {
     private List<T> list;        // 현재 페이지의 데이터 목록
     private int totalCount;      // 전체 데이터 개수
     private int currentPage;     // 현재 페이지 번호
@@ -27,7 +27,7 @@ public class PageResponseDto<T> {
     /**
      * 데이터를 받아 페이징 메타데이터를 자동 계산하는 생성자
      */
-    public PageResponseDto(List<T> list, int totalCount, int currentPage, int pageSize) {
+    public PageResponseDTO(List<T> list, int totalCount, int currentPage, int pageSize) {
         this.list = list;
         this.totalCount = totalCount;
         this.currentPage = currentPage;
