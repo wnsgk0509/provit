@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.mapper.interview.PortfolioMapper">
+
+    <select id="selectPortfolioByUserNum"
+            parameterType="int"
+            resultType="com.provit.dto.user.PortfolioDTO">
+        SELECT
+            USER_NUM,
+            FILE_URL,
+            CREATED_AT,
+            UPDATED_AT
+        FROM T_PORTFOLIO
+        WHERE USER_NUM = #{userNum}
+    </select>
+
+</mapper>

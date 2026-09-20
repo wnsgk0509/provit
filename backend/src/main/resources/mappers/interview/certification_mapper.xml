@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.mapper.interview.CertificationMapper">
+
+    <select id="selectCertificationListByResumeNum"
+            parameterType="int"
+            resultType="com.provit.dto.user.CertificationDTO">
+        SELECT
+            CERT_NUM,
+            RESUME_NUM,
+            CERT_NAME,
+            CERT_GRADE,
+            ISSUE_DATE
+        FROM T_CERTIFICATION
+        WHERE RESUME_NUM = #{resumeNum}
+        ORDER BY ISSUE_DATE DESC, CERT_NUM DESC
+    </select>
+
+</mapper>

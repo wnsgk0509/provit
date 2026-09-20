@@ -1,0 +1,46 @@
+package com.provit.dao.interview;
+
+import java.util.List;
+
+import com.provit.dto.interview.InterviewHistoryDTO;
+import com.provit.dto.interview.InterviewResultDTO;
+import com.provit.dto.user.CareerDTO;
+import com.provit.dto.user.CertificationDTO;
+import com.provit.dto.user.CoverLetterDTO;
+import com.provit.dto.user.EducationDTO;
+import com.provit.dto.user.PortfolioDTO;
+import com.provit.dto.user.ResumeDTO;
+import com.provit.dto.user.UserJobPreferenceDTO;
+
+public interface InterviewDAO {
+
+    PortfolioDTO selectPortfolioByUserNum(int userNum);
+
+    CoverLetterDTO selectCoverLetterByUserNum(int userNum);
+
+    List<ResumeDTO> selectResumeListByUserNum(int userNum);
+
+    ResumeDTO selectResumeByResumeNumAndUserNum(int resumeNum, int userNum);
+
+    List<EducationDTO> selectEducationListByResumeNum(int resumeNum);
+
+    List<CareerDTO> selectCareerListByResumeNum(int resumeNum);
+
+    List<CertificationDTO> selectCertificationListByResumeNum(int resumeNum);
+
+    UserJobPreferenceDTO selectUserJobPreferenceByUserNum(int userNum);
+
+    int selectNextHistoryNum();
+
+    int insertInterviewHistory(InterviewHistoryDTO history);
+
+    int insertInterviewResult(InterviewResultDTO result);
+
+    List<InterviewResultDTO> selectInterviewResultListByUserNum(int userNum);
+
+    InterviewHistoryDTO selectInterviewHistory(int historyNum, int userNum);
+
+    InterviewResultDTO selectInterviewResult(int historyNum, int userNum);
+
+    InterviewResultDTO selectLatestInterviewResultByUserNum(int userNum);
+}
