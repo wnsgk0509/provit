@@ -139,10 +139,10 @@ function CommunityList() {
                     <button className="btn btn-outline-primary" type="submit">검색</button>
                 </form>
                 
-                {/* 추후 구현할 글쓰기 버튼 */}
-                <button className="btn btn-primary" onClick={() => alert('글쓰기 기능은 준비중입니다.')}>
+                {/* 글쓰기 버튼 */}
+                <Link to="/community/write" className="btn btn-primary">
                     글쓰기
-                </button>
+                </Link>
             </div>
 
             {/* 게시글 목록 테이블 */}
@@ -183,7 +183,7 @@ function CommunityList() {
                                         </span>
                                     </td>
                                     <td className="text-start">
-                                        <Link to={`/community/${post.postNum}`} className="text-decoration-none text-dark fw-semibold" onClick={(e) => { e.preventDefault(); alert('상세보기는 추후 구현됩니다.'); }}>
+                                        <Link to={`/community/${post.postNum}`} className="text-decoration-none text-dark fw-semibold">
                                             {post.postTitle}
                                         </Link>
                                     </td>

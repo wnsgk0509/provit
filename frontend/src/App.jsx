@@ -7,6 +7,8 @@ import Fortune from './pages/fortune/Fortune';
 import Interview from './pages/interview/Interview';
 import Study from './pages/study/Study';
 import CommunityList from './pages/community/CommunityList';
+import CommunityWrite from './pages/community/CommunityWrite';
+import CommunityDetail from './pages/community/CommunityDetail';
 import MyPage from './pages/mypage/MyPage';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
@@ -25,6 +27,8 @@ function App() {
             <Route path="/fortune" element={<Fortune />} />
             <Route path="/interview" element={<Interview />} />
             <Route path="/community" element={<CommunityList />} />
+            <Route path="/community/write" element={<CommunityWrite />} />
+            <Route path="/community/:postNum" element={<CommunityDetail />} />
             {/* <Route path="/study" element={<Study />} /> 기존 개별 스터디 라우트는 커뮤니티로 통합 */}
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/login" element={<Login />} />
