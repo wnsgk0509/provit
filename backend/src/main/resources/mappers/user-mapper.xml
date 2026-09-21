@@ -119,4 +119,23 @@
         )
     </insert>
 
+    <!-- 7. 본인 닉네임/비밀번호 수정 (null 필드는 변경하지 않음) -->
+    <update id="updateMyProfile" parameterType="com.provit.dto.auth.UserDTO">
+        UPDATE T_USER
+        <set>
+            <if test="userNickname != null">USER_NICKNAME = #{userNickname},</if>
+            <if test="userPw != null">USER_PW = #{userPw},</if>
+        </set>
+        WHERE USER_NUM = #{userNum}
+          AND USER_IS_DELETED = 0
+    </update>
+
+    <!-- 8. 회원 데이터는 유지한 채 탈퇴 상태로만 변경 -->
+    <update id="withdrawMyAccount" parameterType="long">
+        UPDATE T_USER
+        SET USER_IS_DELETED = 1
+        WHERE USER_NUM = #{userNum}
+          AND USER_IS_DELETED = 0
+    </update>
+
 </mapper>

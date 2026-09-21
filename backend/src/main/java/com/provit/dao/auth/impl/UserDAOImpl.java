@@ -50,4 +50,14 @@ public class UserDAOImpl implements UserDAO {
     public int insertUser(UserDTO userDTO) {
         return sqlSession.insert(NAMESPACE + ".insertUser", userDTO);
     }
+
+    @Override
+    public int updateMyProfile(UserDTO userDTO) {
+        return sqlSession.update(NAMESPACE + ".updateMyProfile", userDTO);
+    }
+
+    @Override
+    public int withdrawMyAccount(Long userNum) {
+        return sqlSession.update(NAMESPACE + ".withdrawMyAccount", userNum);
+    }
 }

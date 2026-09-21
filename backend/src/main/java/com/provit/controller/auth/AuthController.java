@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,8 +22,10 @@ import com.provit.dto.auth.EmailSendRequestDTO;
 import com.provit.dto.auth.EmailVerifyRequestDTO;
 import com.provit.dto.auth.LoginRequestDTO;
 import com.provit.dto.auth.LoginResponseDTO;
+import com.provit.dto.auth.MyPageUpdateRequestDTO;
 import com.provit.dto.auth.SignupRequestDTO;
 import com.provit.dto.auth.UserResponseDTO;
+import com.provit.dto.auth.WithdrawalRequestDTO;
 import com.provit.dto.response.ApiResponse;
 import com.provit.service.auth.AuthService;
 import com.provit.util.jwt.JwtProvider;
@@ -125,6 +129,54 @@ public class AuthController {
         Long userNum = jwtProvider.getUserNum(token);
         UserResponseDTO userProfile = authService.getUserProfile(userNum);
         ApiResponse<UserResponseDTO> response = new ApiResponse<>(ResponseCode.SUCCESS, userProfile);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    // JWT로 식별한 현재 로그인 회원만 자신의 닉네임/비밀번호를 수정한다.
+    @PatchMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponseDTO>> updateMyProfile(
+            HttpServletRequest request,
+            @RequestBody MyPageUpdateRequestDTO requestDTO) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            ApiResponse<UserResponseDTO> response = new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        }
+
+        String token = authHeader.substring(7).trim();
+        if (!jwtProvider.validateToken(token)) {
+            ResponseCode code = jwtProvider.isTokenExpired(token) ? ResponseCode.AUTH_TOKEN_EXPIRED : ResponseCode.AUTH_TOKEN_INVALID;
+            ApiResponse<UserResponseDTO> response = new ApiResponse<>(code, null);
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        }
+
+        // 요청 본문의 회원 번호를 신뢰하지 않고 JWT의 회원 번호를 사용한다.
+        Long userNum = jwtProvider.getUserNum(token);
+        UserResponseDTO updatedProfile = authService.updateMyProfile(userNum, requestDTO);
+        ApiResponse<UserResponseDTO> response = new ApiResponse<>(ResponseCode.SUCCESS, updatedProfile);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    // JWT의 회원 번호와 현재 비밀번호를 모두 검증한 뒤 소프트 삭제 처리한다.
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<Void>> withdrawMyAccount(
+            HttpServletRequest request,
+            @RequestBody WithdrawalRequestDTO requestDTO) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            ApiResponse<Void> response = new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        }
+
+        String token = authHeader.substring(7).trim();
+        if (!jwtProvider.validateToken(token)) {
+            ResponseCode code = jwtProvider.isTokenExpired(token) ? ResponseCode.AUTH_TOKEN_EXPIRED : ResponseCode.AUTH_TOKEN_INVALID;
+            ApiResponse<Void> response = new ApiResponse<>(code, null);
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        }
+
+        authService.withdrawMyAccount(jwtProvider.getUserNum(token), requestDTO);
+        ApiResponse<Void> response = new ApiResponse<>(ResponseCode.SUCCESS_EMPTY, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

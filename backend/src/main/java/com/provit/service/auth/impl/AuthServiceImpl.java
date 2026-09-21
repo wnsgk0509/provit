@@ -22,9 +22,11 @@ import com.provit.common.ResponseCode;
 import com.provit.dao.auth.UserDAO;
 import com.provit.dto.auth.LoginRequestDTO;
 import com.provit.dto.auth.LoginResponseDTO;
+import com.provit.dto.auth.MyPageUpdateRequestDTO;
 import com.provit.dto.auth.SignupRequestDTO;
 import com.provit.dto.auth.UserDTO;
 import com.provit.dto.auth.UserResponseDTO;
+import com.provit.dto.auth.WithdrawalRequestDTO;
 import com.provit.service.auth.AuthService;
 import com.provit.service.auth.MailService;
 import com.provit.util.CommonUtil;
@@ -306,6 +308,7 @@ public class AuthServiceImpl implements AuthService {
         // 2. 이메일로 회원 조회
         UserDTO user = userDAO.selectByEmail(email);
         if (user == null) {
+            // 이메일 존재 여부가 노출되지 않도록 인증 실패 메시지를 통일한다.
             throw new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다.");
         }
 
@@ -316,6 +319,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 4. BCrypt 비밀번호 일치 검증
         if (!passwordEncoder.matches(requestDTO.getUserPw(), user.getUserPw())) {
+            // 이메일 존재 여부가 노출되지 않도록 인증 실패 메시지를 통일한다.
             throw new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다.");
         }
 
@@ -343,5 +347,110 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("존재하지 않거나 탈퇴한 회원입니다.");
         }
         return UserResponseDTO.from(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponseDTO updateMyProfile(Long userNum, MyPageUpdateRequestDTO requestDTO) {
+        if (userNum == null) {
+            throw new IllegalArgumentException("회원 식별 번호가 누락되었습니다.");
+        }
+        if (requestDTO == null) {
+            throw new IllegalArgumentException("수정할 정보가 없습니다.");
+        }
+
+        UserDTO user = userDAO.selectByUserNum(userNum);
+        if (user == null || (user.getUserIsDeleted() != null && user.getUserIsDeleted() == 1)) {
+            throw new IllegalArgumentException("존재하지 않거나 탈퇴한 회원입니다.");
+        }
+
+        // Mapper의 동적 UPDATE에 전달할 값만 별도 DTO에 담는다.
+        UserDTO updateUser = UserDTO.builder().userNum(userNum).build();
+        boolean hasChange = false;
+        boolean passwordChanged = false;
+
+        if (requestDTO.getUserNickname() != null) {
+            String nickname = requestDTO.getUserNickname().trim();
+            if (nickname.isEmpty()) {
+                throw new IllegalArgumentException("닉네임을 입력해 주세요.");
+            }
+            if (!nickname.equals(user.getUserNickname())) {
+                if (userDAO.countByNickname(nickname) > 0) {
+                    throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+                }
+                updateUser.setUserNickname(nickname);
+                hasChange = true;
+            }
+        }
+
+        // 비밀번호 관련 필드 중 하나라도 전달되면 세 필드를 모두 검증한다.
+        boolean hasPasswordInput = requestDTO.getCurrentPassword() != null
+                || requestDTO.getNewPassword() != null
+                || requestDTO.getNewPasswordConfirm() != null;
+        if (hasPasswordInput) {
+            if (CommonUtil.isEmpty(requestDTO.getCurrentPassword())
+                    || CommonUtil.isEmpty(requestDTO.getNewPassword())
+                    || CommonUtil.isEmpty(requestDTO.getNewPasswordConfirm())) {
+                throw new IllegalArgumentException("비밀번호를 변경하려면 현재 비밀번호와 새 비밀번호를 모두 입력해 주세요.");
+            }
+            // DB에는 BCrypt 해시만 저장하므로 현재 비밀번호는 matches로 비교한다.
+            if (!passwordEncoder.matches(requestDTO.getCurrentPassword(), user.getUserPw())) {
+                throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+            }
+            if (!PASSWORD_PATTERN.matcher(requestDTO.getNewPassword()).matches()) {
+                throw new IllegalArgumentException("비밀번호는 8자 이상이며 영문 대소문자, 숫자, 특수문자를 각각 포함해야 합니다.");
+            }
+            if (!requestDTO.getNewPassword().equals(requestDTO.getNewPasswordConfirm())) {
+                throw new IllegalArgumentException("새 비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+            }
+            if (passwordEncoder.matches(requestDTO.getNewPassword(), user.getUserPw())) {
+                throw new IllegalArgumentException("새 비밀번호는 현재 비밀번호와 다르게 설정해 주세요.");
+            }
+
+            // 새 비밀번호는 평문으로 저장하지 않고 BCrypt 해시로 변경한다.
+            updateUser.setUserPw(passwordEncoder.encode(requestDTO.getNewPassword()));
+            hasChange = true;
+            passwordChanged = true;
+        }
+
+        if (!hasChange) {
+            return UserResponseDTO.from(user);
+        }
+        if (userDAO.updateMyProfile(updateUser) != 1) {
+            throw new IllegalStateException("회원 정보 수정에 실패했습니다.");
+        }
+
+        // DB 저장 뒤에만 기존 JWT를 무효화해 실패한 요청으로 로그아웃되는 일을 막는다.
+        if (passwordChanged) {
+            jwtProvider.invalidateTokensForUser(userNum);
+        }
+
+        return getUserProfile(userNum);
+    }
+
+    @Override
+    @Transactional
+    public void withdrawMyAccount(Long userNum, WithdrawalRequestDTO requestDTO) {
+        if (userNum == null || requestDTO == null || CommonUtil.isEmpty(requestDTO.getCurrentPassword())) {
+            throw new IllegalArgumentException("회원 탈퇴를 위해 현재 비밀번호를 입력해 주세요.");
+        }
+
+        UserDTO user = userDAO.selectByUserNum(userNum);
+        if (user == null || (user.getUserIsDeleted() != null && user.getUserIsDeleted() == 1)) {
+            throw new IllegalArgumentException("이미 탈퇴했거나 존재하지 않는 회원입니다.");
+        }
+
+        // 탈퇴 요청은 JWT뿐 아니라 현재 비밀번호까지 일치해야 처리한다.
+        if (!passwordEncoder.matches(requestDTO.getCurrentPassword(), user.getUserPw())) {
+            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        // 연관 데이터를 삭제하지 않고 로그인과 재가입을 막는 탈퇴 플래그만 변경한다.
+        if (userDAO.withdrawMyAccount(userNum) != 1) {
+            throw new IllegalStateException("회원 탈퇴 처리에 실패했습니다.");
+        }
+
+        // 탈퇴 직후에도 기존 JWT로 접근할 수 없도록 현재 서버의 토큰을 무효화한다.
+        jwtProvider.invalidateTokensForUser(userNum);
     }
 }

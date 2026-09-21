@@ -18,4 +18,8 @@ public interface UserDAO {
     int countByNickname(String userNickname);
 
     int insertUser(UserDTO userDTO);
+
+    int updateMyProfile(UserDTO userDTO);
+
+    int withdrawMyAccount(Long userNum);
 }
