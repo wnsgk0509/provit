@@ -1,10 +1,11 @@
-package com.provit.service.impl;
+package com.provit.service.community.impl;
 
-import com.provit.dao.PostDAO;
+import com.provit.dao.community.impl.PostDAOImpl;
 import com.provit.dto.common.PageResponseDTO;
 import com.provit.dto.community.PostDTO;
 import com.provit.dto.community.PostSearchDTO;
-import com.provit.service.PostService;
+import com.provit.service.community.PostService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,11 +17,11 @@ import java.util.List;
 @Service
 public class PostServiceImpl implements PostService {
 
-    private final PostDAO postDao;
+    private final PostDAOImpl postDao;
 
     // DAO(창고 관리인)를 주입받습니다.
     @Autowired
-    public PostServiceImpl(PostDAO postDao) {
+    public PostServiceImpl(PostDAOImpl postDao) {
         this.postDao = postDao;
     }
 

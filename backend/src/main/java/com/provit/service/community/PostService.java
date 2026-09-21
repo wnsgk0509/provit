@@ -1,4 +1,4 @@
-package com.provit.service;
+package com.provit.service.community;
 
 import com.provit.dto.common.PageResponseDTO;
 import com.provit.dto.community.PostDTO;

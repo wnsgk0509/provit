@@ -4,7 +4,8 @@ import com.provit.dto.common.PageResponseDTO;
 import com.provit.dto.community.PostDTO;
 import com.provit.dto.community.PostSearchDTO;
 import com.provit.dto.response.ApiResponse;
-import com.provit.service.PostService;
+import com.provit.service.community.PostService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;

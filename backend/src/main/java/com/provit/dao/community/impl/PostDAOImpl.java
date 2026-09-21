@@ -1,4 +1,4 @@
-package com.provit.dao;
+package com.provit.dao.community.impl;
 
 import com.provit.dto.community.PostDTO;
 import com.provit.dto.community.PostSearchDTO;
@@ -12,7 +12,7 @@ import java.util.List;
  * 게시판 DB 접근을 담당하는 DAO (Data Access Object)
  */
 @Repository
-public class PostDAO {
+public class PostDAOImpl {
 
     // Spring이 생성해둔 SqlSession(DB 연결부)을 주입받아 사용합니다.
     private final SqlSession sqlSession;
@@ -21,7 +21,7 @@ public class PostDAO {
     private static final String NAMESPACE = "com.provit.mapper.PostMapper";
 
     @Autowired
-    public PostDAO(SqlSession sqlSession) {
+    public PostDAOImpl(SqlSession sqlSession) {
         this.sqlSession = sqlSession;
     }
 
