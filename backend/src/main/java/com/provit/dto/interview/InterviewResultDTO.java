@@ -17,11 +17,6 @@ public class InterviewResultDTO {
     private double logicScore;
     private double deliveryScore;
     private double totalScore;
-    private String strengths;
-    private String weaknesses;
-    private String comparison;
-    private String improvements;
-    private String overallFeedback;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private Date interviewDate;

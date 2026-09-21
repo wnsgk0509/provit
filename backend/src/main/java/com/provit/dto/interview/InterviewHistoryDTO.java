@@ -21,6 +21,10 @@ public class InterviewHistoryDTO {
     private String answer4;
     private String question5;
     private String answer5;
+    private String strength;
+    private String weakness;
+    private String previousComparison;
+    private String improvementPoint;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private Date interviewDate;

@@ -1,7 +1,5 @@
 package com.provit.dto.interview;
 
-import java.math.BigDecimal;
-
 import lombok.Data;
 
 @Data
@@ -17,5 +15,4 @@ public class LlmEvaluationResponseDTO {
     private String weaknesses;
     private String comparison;
     private String improvements;
-    private String overallFeedback;
 }

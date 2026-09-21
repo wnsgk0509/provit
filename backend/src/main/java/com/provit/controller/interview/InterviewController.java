@@ -5,6 +5,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,7 +13,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.provit.common.ResponseCode;
 import com.provit.dto.interview.InterviewDocumentResponseDTO;
+import com.provit.dto.interview.InterviewAnswerRequestDTO;
+import com.provit.dto.interview.InterviewAnswerResponseDTO;
 import com.provit.dto.interview.InterviewStartRequestDTO;
+import com.provit.dto.interview.InterviewStartResponseDTO;
 import com.provit.dto.interview.LlmInterviewContextDTO;
 import com.provit.dto.response.ApiResponse;
 import com.provit.service.interview.InterviewService;
@@ -72,5 +76,45 @@ public class InterviewController {
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest().build();
         }
+    }
+
+    @PostMapping("/start")
+    public ResponseEntity<ApiResponse<InterviewStartResponseDTO>> startInterview(
+            HttpServletRequest request, @RequestBody InterviewStartRequestDTO startRequest) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null), HttpStatus.UNAUTHORIZED);
+        }
+        InterviewStartResponseDTO response = interviewService.startInterview(
+                Math.toIntExact(userNum), startRequest);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{historyNum}/answers")
+    public ResponseEntity<ApiResponse<InterviewAnswerResponseDTO>> submitAnswer(
+            HttpServletRequest request,
+            @PathVariable int historyNum,
+            @RequestBody InterviewAnswerRequestDTO answerRequest) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null), HttpStatus.UNAUTHORIZED);
+        }
+        InterviewAnswerResponseDTO response = interviewService.submitAnswer(
+                Math.toIntExact(userNum), historyNum, answerRequest);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    private Long getAuthenticatedUserNum(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+        String token = authHeader.substring(7).trim();
+        if (!jwtProvider.validateToken(token)) {
+            return null;
+        }
+        return jwtProvider.getUserNum(token);
     }
 }

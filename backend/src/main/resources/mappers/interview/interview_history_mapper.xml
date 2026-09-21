@@ -25,6 +25,10 @@
             ANSWER4,
             QUESTION5,
             ANSWER5,
+            STRENGTH,
+            WEAKNESS,
+            PREVIOUS_COMPARISON,
+            IMPROVEMENT_POINT,
             INTERVIEW_DATE
         ) VALUES (
             #{historyNum},
@@ -39,6 +43,10 @@
             #{answer4},
             #{question5},
             #{answer5},
+            #{strength},
+            #{weakness},
+            #{previousComparison},
+            #{improvementPoint},
             NVL(#{interviewDate, jdbcType=DATE}, SYSDATE)
         )
     </insert>
@@ -59,6 +67,10 @@
             ANSWER4,
             QUESTION5,
             ANSWER5,
+            STRENGTH,
+            WEAKNESS,
+            PREVIOUS_COMPARISON,
+            IMPROVEMENT_POINT,
             INTERVIEW_DATE
         FROM T_INTERVIEW_HISTORY
         WHERE HISTORY_NUM = #{number}

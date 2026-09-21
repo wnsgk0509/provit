@@ -11,14 +11,22 @@ const DIFFICULTY_NAMES = {
     EASY: '일반면접',
 };
 
-function InterviewResult({ result, onRestart }) {
+const SCORE_ITEMS = [
+    { key: 'confidenceScore', category: 'CONFIDENCE', label: '자신감' },
+    { key: 'persistenceScore', category: 'PERSISTENCE', label: '끈기/열정' },
+    { key: 'expertiseScore', category: 'EXPERTISE', label: '전문성' },
+    { key: 'logicScore', category: 'LOGIC', label: '논리력' },
+    { key: 'deliveryScore', category: 'DELIVERY', label: '전달력' },
+];
+
+function InterviewResult({ result, settings, onRestart }) {
     return (
         <section className="interview-result">
             <div className="interview-result-heading">
                 <div>
                     <span>INTERVIEW COMPLETE</span>
                     <h2>면접 결과</h2>
-                    <p>{STYLE_NAMES[result.interviewStyle]} · {DIFFICULTY_NAMES[result.difficulty]}</p>
+                    <p>{STYLE_NAMES[settings.interviewStyle]} · {DIFFICULTY_NAMES[settings.difficulty]}</p>
                 </div>
                 <div className="interview-total-score">
                     <strong>{result.totalScore}</strong>
@@ -27,14 +35,14 @@ function InterviewResult({ result, onRestart }) {
             </div>
 
             <div className="interview-score-list">
-                {result.scores.map((scoreItem) => (
+                {SCORE_ITEMS.map((scoreItem) => (
                     <div className="interview-score-item" key={scoreItem.category}>
                         <div>
                             <span>{scoreItem.label}</span>
-                            <strong>{scoreItem.score}점</strong>
+                            <strong>{result[scoreItem.key]}점</strong>
                         </div>
                         <div className="interview-score-bar">
-                            <span style={{ width: `${scoreItem.score}%` }} />
+                            <span style={{ width: `${result[scoreItem.key]}%` }} />
                         </div>
                     </div>
                 ))}
@@ -43,19 +51,19 @@ function InterviewResult({ result, onRestart }) {
             <div className="interview-feedback-grid">
                 <article>
                     <span className="interview-feedback-label strength">잘한 점</span>
-                    <p>{result.feedback.strengths}</p>
+                    <p>{result.strengths}</p>
                 </article>
                 <article>
                     <span className="interview-feedback-label weakness">아쉬운 점</span>
-                    <p>{result.feedback.weaknesses}</p>
+                    <p>{result.weaknesses}</p>
                 </article>
                 <article>
                     <span className="interview-feedback-label comparison">이전 기록 비교</span>
-                    <p>{result.feedback.comparison}</p>
+                    <p>{result.comparison}</p>
                 </article>
                 <article>
                     <span className="interview-feedback-label improvement">개선할 점</span>
-                    <p>{result.feedback.improvements}</p>
+                    <p>{result.improvements}</p>
                 </article>
             </div>
 

@@ -3,8 +3,12 @@ package com.provit.service.interview;
 import java.util.List;
 
 import com.provit.dto.interview.InterviewDocumentResponseDTO;
+import com.provit.dto.interview.InterviewAnswerRequestDTO;
+import com.provit.dto.interview.InterviewAnswerResponseDTO;
 import com.provit.dto.interview.InterviewHistoryDTO;
 import com.provit.dto.interview.InterviewResultDTO;
+import com.provit.dto.interview.InterviewStartRequestDTO;
+import com.provit.dto.interview.InterviewStartResponseDTO;
 import com.provit.dto.interview.LlmInterviewContextDTO;
 import com.provit.dto.user.ResumeDetailDTO;
 
@@ -19,6 +23,10 @@ public interface InterviewService {
             int resumeNum,
             boolean usePortfolio,
             boolean useCoverLetter);
+
+    InterviewStartResponseDTO startInterview(int userNum, InterviewStartRequestDTO request);
+
+    InterviewAnswerResponseDTO submitAnswer(int userNum, int historyNum, InterviewAnswerRequestDTO request);
 
     int issueHistoryNum();
 

@@ -28,7 +28,7 @@ const STEP_ORDER = {
 function Interview() {
     const [step, setStep] = useState(INTERVIEW_STEP.CUSTOM);
     const [settings, setSettings] = useState(INITIAL_SETTINGS);
-    const [interviewId, setInterviewId] = useState(null);
+    const [historyNum, setHistoryNum] = useState(null);
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState([]);
@@ -66,7 +66,7 @@ function Interview() {
         try {
             const interviewSession = await createInterview(settings);
 
-            setInterviewId(interviewSession.interviewId);
+            setHistoryNum(interviewSession.historyNum);
             setQuestions(interviewSession.questions);
             setAnswerTimeLimitSeconds(interviewSession.answerTimeLimitSeconds);
             setCurrentQuestionIndex(0);
@@ -86,8 +86,8 @@ function Interview() {
         setErrorMessage('');
 
         try {
-            const response = await submitInterviewAnswer(interviewId, {
-                questionId: currentQuestion.questionId,
+            const response = await submitInterviewAnswer(historyNum, {
+                questionOrder: currentQuestion.questionOrder,
                 answer,
                 timedOut,
             });
@@ -95,7 +95,7 @@ function Interview() {
             setAnswers((previousAnswers) => [
                 ...previousAnswers,
                 {
-                    questionId: currentQuestion.questionId,
+                    questionOrder: currentQuestion.questionOrder,
                     answer,
                     timedOut,
                 },
@@ -110,7 +110,7 @@ function Interview() {
             if (response.nextQuestion) {
                 setQuestions((previousQuestions) => {
                     const questionExists = previousQuestions.some(
-                        (question) => question.questionId === response.nextQuestion.questionId,
+                        (question) => question.questionOrder === response.nextQuestion.questionOrder,
                     );
 
                     return questionExists
@@ -130,7 +130,7 @@ function Interview() {
     const handleRestart = () => {
         setStep(INTERVIEW_STEP.CUSTOM);
         setSettings(INITIAL_SETTINGS);
-        setInterviewId(null);
+        setHistoryNum(null);
         setQuestions([]);
         setCurrentQuestionIndex(0);
         setAnswers([]);
@@ -195,7 +195,7 @@ function Interview() {
 
                     {step === INTERVIEW_STEP.QUESTION && questions[currentQuestionIndex] && (
                         <InterviewQuestion
-                            key={questions[currentQuestionIndex].questionId}
+                            key={questions[currentQuestionIndex].questionOrder}
                             question={questions[currentQuestionIndex]}
                             currentQuestionIndex={currentQuestionIndex}
                             totalQuestions={5}
@@ -208,7 +208,7 @@ function Interview() {
                     )}
 
                     {step === INTERVIEW_STEP.RESULT && result && (
-                        <InterviewResult result={result} onRestart={handleRestart} />
+                        <InterviewResult result={result} settings={settings} onRestart={handleRestart} />
                     )}
                 </div>
             </div>

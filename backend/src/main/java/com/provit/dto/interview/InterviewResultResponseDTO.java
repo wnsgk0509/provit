@@ -17,5 +17,4 @@ public class InterviewResultResponseDTO {
     private String weaknesses;
     private String comparison;
     private String improvements;
-    private String overallFeedback;
 }
