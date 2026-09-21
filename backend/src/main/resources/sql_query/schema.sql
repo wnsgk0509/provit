@@ -40,7 +40,7 @@ CREATE TABLE T_JOB (
 CREATE TABLE T_USER (
     USER_NUM             NUMBER(9)           DEFAULT SEQ_T_USER.NEXTVAL PRIMARY KEY,
     USER_NAME            VARCHAR2(100)       NOT NULL,
-    USER_NICKNAME        VARCHAR2(100)       NOT NULL UNIQUE,
+    USER_NICKNAME        VARCHAR2(100)       NOT NULL,
     USER_BIRTH_DATE      DATE,
     USER_EMAIL           VARCHAR2(200)       NOT NULL UNIQUE,
     USER_PW              VARCHAR2(255)       NOT NULL,
@@ -51,6 +51,10 @@ CREATE TABLE T_USER (
     USER_IS_DELETED      NUMBER(1)           DEFAULT 0 NOT NULL,
     USER_TOKEN_VERSION   NUMBER(9)           DEFAULT 0 NOT NULL
 );
+
+-- 탈퇴 회원의 닉네임은 재사용할 수 있고, 활성 회원끼리만 중복을 막는다.
+CREATE UNIQUE INDEX UQ_T_USER_ACTIVE_NICKNAME
+ON T_USER (CASE WHEN USER_IS_DELETED = 0 THEN USER_NICKNAME END);
 
 
 -- ================================================================================
