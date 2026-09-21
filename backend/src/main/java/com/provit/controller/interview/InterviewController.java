@@ -36,42 +36,29 @@ public class InterviewController {
 
     @GetMapping("/documents")
     public ResponseEntity<ApiResponse<InterviewDocumentResponseDTO>> getDocuments(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return new ResponseEntity<>(new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null), HttpStatus.UNAUTHORIZED);
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return unauthorizedResponse();
         }
 
-        String token = authHeader.substring(7).trim();
-        if (!jwtProvider.validateToken(token)) {
-            ResponseCode code = jwtProvider.isTokenExpired(token)
-                    ? ResponseCode.AUTH_TOKEN_EXPIRED : ResponseCode.AUTH_TOKEN_INVALID;
-            return new ResponseEntity<>(new ApiResponse<>(code, null), HttpStatus.UNAUTHORIZED);
-        }
-
-        int userNum = Math.toIntExact(jwtProvider.getUserNum(token));
-        return ResponseEntity.ok(ApiResponse.success(interviewService.getInterviewDocuments(userNum)));
+        return ResponseEntity.ok(ApiResponse.success(
+                interviewService.getInterviewDocuments(Math.toIntExact(userNum))));
     }
 
     @PostMapping("/context")
     public ResponseEntity<ApiResponse<LlmInterviewContextDTO>> getContext(
             HttpServletRequest request, @RequestBody InterviewStartRequestDTO selection) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return new ResponseEntity<>(new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null), HttpStatus.UNAUTHORIZED);
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return unauthorizedResponse();
         }
-        String token = authHeader.substring(7).trim();
-        if (!jwtProvider.validateToken(token)) {
-            ResponseCode code = jwtProvider.isTokenExpired(token)
-                    ? ResponseCode.AUTH_TOKEN_EXPIRED : ResponseCode.AUTH_TOKEN_INVALID;
-            return new ResponseEntity<>(new ApiResponse<>(code, null), HttpStatus.UNAUTHORIZED);
-        }
-        int userNum = Math.toIntExact(jwtProvider.getUserNum(token));
         if (selection.getResumeNum() <= 0) {
             return ResponseEntity.badRequest().build();
         }
         try {
             LlmInterviewContextDTO context = interviewService.getLlmInterviewContext(
-                    userNum, selection.getResumeNum(), selection.getPortfolioNum(), selection.getLetterNum());
+                    Math.toIntExact(userNum), selection.getResumeNum(),
+                    selection.getPortfolioNum(), selection.getLetterNum());
             return ResponseEntity.ok(ApiResponse.success(context));
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest().build();
@@ -83,8 +70,7 @@ public class InterviewController {
             HttpServletRequest request, @RequestBody InterviewStartRequestDTO startRequest) {
         Long userNum = getAuthenticatedUserNum(request);
         if (userNum == null) {
-            return new ResponseEntity<>(
-                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null), HttpStatus.UNAUTHORIZED);
+            return unauthorizedResponse();
         }
         InterviewStartResponseDTO response = interviewService.startInterview(
                 Math.toIntExact(userNum), startRequest);
@@ -98,8 +84,7 @@ public class InterviewController {
             @RequestBody InterviewAnswerRequestDTO answerRequest) {
         Long userNum = getAuthenticatedUserNum(request);
         if (userNum == null) {
-            return new ResponseEntity<>(
-                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null), HttpStatus.UNAUTHORIZED);
+            return unauthorizedResponse();
         }
         InterviewAnswerResponseDTO response = interviewService.submitAnswer(
                 Math.toIntExact(userNum), historyNum, answerRequest);
@@ -116,5 +101,10 @@ public class InterviewController {
             return null;
         }
         return jwtProvider.getUserNum(token);
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>> unauthorizedResponse() {
+        return new ResponseEntity<>(
+                new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null), HttpStatus.UNAUTHORIZED);
     }
 }
