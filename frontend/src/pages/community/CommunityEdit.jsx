@@ -7,7 +7,6 @@ const CATEGORIES = [
     { id: 1, name: '질문' },
     { id: 2, name: '정보' },
     { id: 3, name: '후기' },
-    { id: 4, name: '스터디' },
 ];
 
 function CommunityEdit() {
