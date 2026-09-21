@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Home from './pages/home/Home';
 import JobList from './pages/jobs/JobList';
@@ -14,6 +15,14 @@ import MyPage from './pages/mypage/MyPage';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import BootstrapTemplate from './pages/bootstrap';
+
+function RequireAuth({ children }) {
+  const { isLoading, isLoggedIn } = useAuth();
+
+  if (isLoading) return null;
+
+  return isLoggedIn ? children : <Navigate to="/login" replace />;
+}
 
 function App() {
   return (
@@ -32,7 +41,7 @@ function App() {
             <Route path="/community/:postNum" element={<CommunityDetail />} />
             <Route path="/community/edit/:postNum" element={<CommunityEdit />} />
             {/* <Route path="/study" element={<Study />} /> 기존 개별 스터디 라우트는 커뮤니티로 통합 */}
-            <Route path="/mypage" element={<MyPage />} />
+            <Route path="/mypage" element={<RequireAuth><MyPage /></RequireAuth>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             {/* 팀원 참고용 부트스트랩 템플릿 화면 */}
