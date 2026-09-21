@@ -10,6 +10,7 @@ import lombok.Data;
 public class CoverLetterDTO {
 
     private int userNum;
+    private String coverLetterTitle;
     private String growthProcess;
     private String personalityStrengthsWeaknesses;
     private String problemSolvingExperience;

@@ -1,13 +1,3 @@
-const PORTFOLIOS = [
-    { documentId: 'portfolio-1', title: '웹 서비스 프로젝트 포트폴리오' },
-    { documentId: 'portfolio-2', title: '백엔드 개발 포트폴리오' },
-];
-
-const COVER_LETTERS = [
-    { documentId: 'cover-letter-1', title: '신입 개발자 자기소개서' },
-    { documentId: 'cover-letter-2', title: '프로젝트 중심 자기소개서' },
-];
-
 const INTERVIEW_STYLES = [
     { value: 'RANDOM', label: '랜덤면접' },
     { value: 'ONE_TO_ONE', label: '일대일면접' },
@@ -21,7 +11,7 @@ const DIFFICULTIES = [
     { value: 'EASY', label: '일반면접' },
 ];
 
-function InterviewCustom({ settings, isLoading, onSettingChange, onStart }) {
+function InterviewCustom({ settings, documents, isLoading, onSettingChange, onStart }) {
     const handleSubmit = (event) => {
         event.preventDefault();
         onStart();
@@ -37,33 +27,39 @@ function InterviewCustom({ settings, isLoading, onSettingChange, onStart }) {
 
             <form onSubmit={handleSubmit}>
                 <div className="interview-form-group">
-                    <label htmlFor="interview-portfolio">포트폴리오</label>
+                    <label htmlFor="interview-resume">이력서</label>
                     <select
-                        id="interview-portfolio"
-                        value={settings.portfolioDocumentId}
-                        onChange={(event) => onSettingChange('portfolioDocumentId', event.target.value)}
+                        id="interview-resume"
+                        value={settings.resumeNum}
+                        onChange={(event) => onSettingChange('resumeNum', event.target.value)}
                         required
                     >
-                        <option value="">포트폴리오를 선택해 주세요</option>
-                        {PORTFOLIOS.map((portfolio) => (
-                            <option key={portfolio.documentId} value={portfolio.documentId}>{portfolio.title}</option>
+                        <option value="">이력서를 선택해 주세요</option>
+                        {(documents?.resumeList ?? []).map((resume) => (
+                            <option key={resume.resumeNum} value={resume.resumeNum}>
+                                {resume.resumeTitle || `이력서 #${resume.resumeNum}`}
+                            </option>
                         ))}
                     </select>
+                    {documents && !documents.resumeList?.length && <p>저장된 이력서가 없습니다.</p>}
                 </div>
 
                 <div className="interview-form-group">
-                    <label htmlFor="interview-cover-letter">자기소개서</label>
-                    <select
-                        id="interview-cover-letter"
-                        value={settings.coverLetterDocumentId}
-                        onChange={(event) => onSettingChange('coverLetterDocumentId', event.target.value)}
-                        required
-                    >
-                        <option value="">자기소개서를 선택해 주세요</option>
-                        {COVER_LETTERS.map((coverLetter) => (
-                            <option key={coverLetter.documentId} value={coverLetter.documentId}>{coverLetter.title}</option>
-                        ))}
-                    </select>
+                    <label htmlFor="interview-cover-letter">
+                        <input id="interview-cover-letter" type="checkbox" checked={settings.useCoverLetter}
+                            disabled={!documents?.coverLetter}
+                            onChange={(event) => onSettingChange('useCoverLetter', event.target.checked)} />
+                        {' '}{documents?.coverLetter?.coverLetterTitle || '자기소개서 없음'}
+                    </label>
+                </div>
+
+                <div className="interview-form-group">
+                    <label htmlFor="interview-portfolio">
+                        <input id="interview-portfolio" type="checkbox" checked={settings.usePortfolio}
+                            disabled={!documents?.portfolio}
+                            onChange={(event) => onSettingChange('usePortfolio', event.target.checked)} />
+                        {' '}{documents?.portfolio?.portfolioTitle || '포트폴리오 없음'}
+                    </label>
                 </div>
 
                 <div className="interview-form-group">
@@ -101,7 +97,7 @@ function InterviewCustom({ settings, isLoading, onSettingChange, onStart }) {
                     </div>
                 </fieldset>
 
-                <button className="btn btn-primary interview-primary-button" type="submit" disabled={isLoading}>
+                <button className="btn btn-primary interview-primary-button" type="submit" disabled={isLoading || !documents?.resumeList?.length}>
                     {isLoading ? '면접 준비 중...' : '면접 시작'}
                 </button>
             </form>

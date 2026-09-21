@@ -10,6 +10,7 @@
             resultType="com.provit.dto.user.PortfolioDTO">
         SELECT
             USER_NUM,
+            PORTFOLIO_TITLE,
             FILE_URL,
             CREATED_AT,
             UPDATED_AT

@@ -10,6 +10,7 @@
             resultType="com.provit.dto.user.CoverLetterDTO">
         SELECT
             USER_NUM,
+            COVER_LETTER_TITLE,
             GROWTH_PROCESS,
             PERSONALITY_STRENGTHS_WEAKNESSES,
             PROBLEM_SOLVING_EXPERIENCE,

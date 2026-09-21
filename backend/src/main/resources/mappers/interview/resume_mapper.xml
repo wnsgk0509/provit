@@ -8,6 +8,7 @@
     <sql id="resumeColumns">
         r.RESUME_NUM,
         r.USER_NUM,
+        r.RESUME_TITLE,
         r.HIGHEST_LEVEL,
         r.EDUCATION_CODE,
         ec.EDUCATION_NAME,

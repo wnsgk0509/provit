@@ -1,3 +1,21 @@
+import client from './client';
+
+export async function getInterviewDocuments() {
+    const response = await client.get('/interview/documents');
+    return response.data.data;
+}
+
+async function getInterviewContext(settings) {
+    const response = await client.post('/interview/context', {
+        resumeNum: Number(settings.resumeNum),
+        usePortfolio: settings.usePortfolio,
+        useCoverLetter: settings.useCoverLetter,
+        interviewStyle: settings.interviewStyle,
+        interviewDifficulty: settings.difficulty,
+    });
+    return response.data.data;
+}
+
 const DOCUMENT_QUESTIONS = [
     {
         questionId: 'document-1',
@@ -64,13 +82,25 @@ const createResult = (session) => ({
 });
 
 export async function createInterview(settings) {
-    await waitForMockResponse();
+    const context = await getInterviewContext(settings);
+    const questions = [...DOCUMENT_QUESTIONS];
+    const motivation = context.resumeDetail?.resume?.motivation;
+    const jobName = context.jobPreference?.jobName;
+    if (motivation) {
+        questions[0] = { ...questions[0], questionText: `이력서에 작성한 지원 동기를 바탕으로, ${jobName || '지원 직무'}에 적합한 경험을 설명해 주세요.` };
+    }
+    if (context.coverLetter?.problemSolvingExperience) {
+        questions[1] = { ...questions[1], questionText: `자기소개서에 작성한 문제 해결 경험에서 본인이 맡은 역할과 판단 근거를 설명해 주세요.` };
+    }
+    if (context.portfolio?.fileUrl) {
+        questions[2] = { ...questions[2], questionText: '선택한 포트폴리오에서 가장 주도적으로 참여한 프로젝트와 성과를 설명해 주세요.' };
+    }
 
     const interviewId = `mock-interview-${Date.now()}`;
     const session = {
         interviewId,
         settings: { ...settings },
-        questions: [...DOCUMENT_QUESTIONS],
+        questions,
         answers: [],
     };
 

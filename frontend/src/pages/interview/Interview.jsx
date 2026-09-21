@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { createInterview, submitInterviewAnswer } from '../../api/interviewApi';
+import { useEffect, useState } from 'react';
+import { createInterview, getInterviewDocuments, submitInterviewAnswer } from '../../api/interviewApi';
 import InterviewCustom from './components/InterviewCustom';
 import InterviewQuestion from './components/InterviewQuestion';
 import InterviewResult from './components/InterviewResult';
@@ -12,8 +12,9 @@ const INTERVIEW_STEP = {
 };
 
 const INITIAL_SETTINGS = {
-    portfolioDocumentId: '',
-    coverLetterDocumentId: '',
+    resumeNum: '',
+    usePortfolio: false,
+    useCoverLetter: false,
     interviewStyle: '',
     difficulty: '',
 };
@@ -35,6 +36,17 @@ function Interview() {
     const [result, setResult] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [documents, setDocuments] = useState(null);
+    const [documentsLoading, setDocumentsLoading] = useState(true);
+
+    useEffect(() => {
+        let active = true;
+        getInterviewDocuments()
+            .then((data) => { if (active) setDocuments(data); })
+            .catch(() => { if (active) setErrorMessage('저장된 서류를 불러오지 못했습니다. 로그인 상태를 확인해 주세요.'); })
+            .finally(() => { if (active) setDocumentsLoading(false); });
+        return () => { active = false; };
+    }, []);
 
     const handleSettingChange = (name, value) => {
         setSettings((previousSettings) => ({
@@ -44,6 +56,10 @@ function Interview() {
     };
 
     const handleStart = async () => {
+        if (!documents?.resumeList?.some((resume) => String(resume.resumeNum) === settings.resumeNum)) {
+            setErrorMessage('면접에 사용할 이력서를 선택해 주세요.');
+            return;
+        }
         setIsLoading(true);
         setErrorMessage('');
 
@@ -170,7 +186,8 @@ function Interview() {
                     {step === INTERVIEW_STEP.CUSTOM && (
                         <InterviewCustom
                             settings={settings}
-                            isLoading={isLoading}
+                            documents={documents}
+                            isLoading={isLoading || documentsLoading}
                             onSettingChange={handleSettingChange}
                             onStart={handleStart}
                         />
