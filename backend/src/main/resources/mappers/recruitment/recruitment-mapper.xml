@@ -13,4 +13,15 @@
         ORDER BY TO_NUMBER(OCCUPATION_CODE)
     </select>
 
+    <!-- 특정 직군(occupationCode)에 속한 소분류 직무 목록 조회 (직무명 가나다순 정렬) -->
+    <select id="selectJobListByOccupation" parameterType="string" resultType="com.provit.dto.recruitment.JobDTO">
+        SELECT 
+            JOB_CODE AS jobCode,
+            OCCUPATION_CODE AS occupationCode,
+            JOB_NAME AS jobName
+        FROM T_JOB
+        WHERE OCCUPATION_CODE = #{occupationCode}
+        ORDER BY JOB_NAME ASC
+    </select>
+
 </mapper>
