@@ -111,10 +111,7 @@ function CommunityDetail() {
                 </div>
             </div>
 
-            {/* 댓글 영역 컴포넌트 마운트 */}
-            <CommentSection postNum={postNum} />
-
-            <div className="d-flex justify-content-between mt-4">
+            <div className="d-flex justify-content-between mt-4 mb-4">
                 <Link to="/community" className="btn btn-secondary">
                     목록으로
                 </Link>
@@ -130,6 +127,10 @@ function CommunityDetail() {
                     </div>
                 )}
             </div>
+
+            {/* 댓글 영역 컴포넌트 마운트 */}
+            <CommentSection postNum={postNum} />
+
         </div>
     );
 }
