@@ -111,6 +111,37 @@ function CommunityList() {
         <div className="container py-4">
             <h2 className="mb-4 fw-bold">취업 커뮤니티</h2>
 
+            {/* 검색 및 글쓰기 버튼 영역 (스터디 모집 탭이 아닐 때만 노출) */}
+            {params.categoryNum !== 'study' && (
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <form className="d-flex gap-2" onSubmit={handleSearch}>
+                        <select
+                            className="form-select w-auto"
+                            value={searchInput.searchType}
+                            onChange={(e) => setSearchInput({ ...searchInput, searchType: e.target.value })}
+                        >
+                            <option value="TITLE">제목</option>
+                            <option value="CONTENT">내용</option>
+                            <option value="WRITER">작성자</option>
+                        </select>
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="게시글, 기업, 직무를 검색하세요"
+                            value={searchInput.keyword}
+                            onChange={(e) => setSearchInput({ ...searchInput, keyword: e.target.value })}
+                            style={{ width: '300px' }}
+                        />
+                        <button className="btn btn-primary" type="submit">검색</button>
+                    </form>
+                    
+                    {/* 글쓰기 버튼 */}
+                    <Link to="/community/write" className="btn btn-primary px-4">
+                        글쓰기
+                    </Link>
+                </div>
+            )}
+
             {/* 카테고리 탭 */}
             <ul className="nav nav-tabs mb-4">
                 {CATEGORIES.map((cat) => (
@@ -132,34 +163,7 @@ function CommunityList() {
             ) : (
                 /* 일반 게시판 영역 */
                 <>
-                    {/* 검색 및 글쓰기 버튼 영역 */}
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                        <form className="d-flex gap-2" onSubmit={handleSearch}>
-                            <select
-                                className="form-select w-auto"
-                                value={searchInput.searchType}
-                                onChange={(e) => setSearchInput({ ...searchInput, searchType: e.target.value })}
-                            >
-                                <option value="TITLE">제목</option>
-                                <option value="CONTENT">내용</option>
-                                <option value="WRITER">작성자</option>
-                            </select>
-                            <input
-                                type="text"
-                                className="form-control"
-                                placeholder="검색어를 입력하세요"
-                                value={searchInput.keyword}
-                                onChange={(e) => setSearchInput({ ...searchInput, keyword: e.target.value })}
-                                style={{ width: '250px' }}
-                            />
-                            <button className="btn btn-outline-primary" type="submit">검색</button>
-                        </form>
-                        
-                        {/* 글쓰기 버튼 */}
-                        <Link to="/community/write" className="btn btn-primary">
-                            글쓰기
-                        </Link>
-                    </div>
+
 
                     {/* 게시글 목록 테이블 */}
                     <div className="table-responsive">
