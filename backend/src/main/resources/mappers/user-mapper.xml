@@ -17,6 +17,7 @@
         <result property="jobCode" column="JOB_CODE" />
         <result property="occupationCode" column="OCCUPATION_CODE" />
         <result property="userIsDeleted" column="USER_IS_DELETED" />
+        <result property="userTokenVersion" column="USER_TOKEN_VERSION" />
     </resultMap>
 
     <!-- 1. 이메일로 회원 단건 조회 -->
@@ -32,7 +33,8 @@
             USER_TYPE,
             JOB_CODE,
             OCCUPATION_CODE,
-            USER_IS_DELETED
+            USER_IS_DELETED,
+            USER_TOKEN_VERSION
         FROM T_USER
         WHERE USER_EMAIL = #{userEmail}
     </select>
@@ -50,9 +52,11 @@
             USER_TYPE,
             JOB_CODE,
             OCCUPATION_CODE,
-            USER_IS_DELETED
+            USER_IS_DELETED,
+            USER_TOKEN_VERSION
         FROM T_USER
         WHERE USER_NICKNAME = #{userNickname}
+          AND USER_IS_DELETED = 0
     </select>
 
     <!-- 3. 회원 식별 번호로 단건 조회 -->
@@ -68,7 +72,8 @@
             USER_TYPE,
             JOB_CODE,
             OCCUPATION_CODE,
-            USER_IS_DELETED
+            USER_IS_DELETED,
+            USER_TOKEN_VERSION
         FROM T_USER
         WHERE USER_NUM = #{userNum}
     </select>
@@ -85,6 +90,7 @@
         SELECT COUNT(*)
         FROM T_USER
         WHERE USER_NICKNAME = #{userNickname}
+          AND USER_IS_DELETED = 0
     </select>
 
     <!-- 6. 신규 회원가입 INSERT -->
@@ -118,5 +124,33 @@
             0
         )
     </insert>
+
+    <!-- 7. 본인 닉네임/비밀번호 수정 (null 필드는 변경하지 않음) -->
+    <update id="updateMyProfile" parameterType="com.provit.dto.auth.UserDTO">
+        UPDATE T_USER
+        <set>
+            <if test="userNickname != null">USER_NICKNAME = #{userNickname},</if>
+            <if test="userPw != null">USER_PW = #{userPw},</if>
+        </set>
+        WHERE USER_NUM = #{userNum}
+          AND USER_IS_DELETED = 0
+    </update>
+
+    <!-- 8. 회원 데이터는 유지한 채 탈퇴 상태로만 변경 -->
+    <!-- 비밀번호 변경 후 기존 JWT를 무효화하기 위한 사용자 토큰 버전 증가 -->
+    <update id="incrementTokenVersion" parameterType="long">
+        UPDATE T_USER
+        SET USER_TOKEN_VERSION = USER_TOKEN_VERSION + 1
+        WHERE USER_NUM = #{userNum}
+          AND USER_IS_DELETED = 0
+    </update>
+
+    <update id="withdrawMyAccount" parameterType="long">
+        UPDATE T_USER
+        SET USER_IS_DELETED = 1,
+            USER_TOKEN_VERSION = USER_TOKEN_VERSION + 1
+        WHERE USER_NUM = #{userNum}
+          AND USER_IS_DELETED = 0
+    </update>
 
 </mapper>

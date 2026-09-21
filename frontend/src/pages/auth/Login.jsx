@@ -8,15 +8,20 @@ function Login() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [emailError, setEmailError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
     const { login } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrorMessage("");
+        setEmailError("");
+        setPasswordError("");
 
         if (!email.trim() || !password) {
-            setErrorMessage("이메일과 비밀번호를 모두 입력해 주세요.");
+            if (!email.trim()) setEmailError("이메일을 입력해 주세요.");
+            if (!password) setPasswordError("비밀번호를 입력해 주세요.");
             return;
         }
 
@@ -37,10 +42,17 @@ function Login() {
             }
         } catch (error) {
             const resData = error.response?.data;
-            if (resData?.responseCode?.message) {
-                setErrorMessage(resData.responseCode.message);
-            } else if (resData?.data) {
-                setErrorMessage(typeof resData.data === "string" ? resData.data : "로그인에 실패했습니다.");
+            // ApiResponse의 data에 담긴 필드별 로그인 실패 사유를 우선 사용한다.
+            const message = typeof resData?.data === "string"
+                ? resData.data
+                : resData?.responseCode?.message;
+
+            if (message === "이메일이 일치하지 않습니다.") {
+                setEmailError(message);
+            } else if (message === "비밀번호가 일치하지 않습니다.") {
+                setPasswordError(message);
+            } else if (message) {
+                setErrorMessage(message);
             } else {
                 setErrorMessage("서버와 통신할 수 없습니다. 잠시 후 다시 시도해 주세요.");
             }
@@ -75,15 +87,19 @@ function Login() {
                                     </label>
                                     <input
                                         type="email"
-                                        className="form-control form-control-lg fs-6 py-2"
+                                        className={`form-control form-control-lg fs-6 py-2 ${emailError ? "is-invalid" : ""}`}
                                         id="loginEmail"
                                         placeholder="name@example.com"
                                         value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        onChange={(e) => {
+                                            setEmail(e.target.value);
+                                            setEmailError("");
+                                        }}
                                         disabled={loading}
                                         required
                                         autoComplete="email"
                                     />
+                                    {emailError && <div className="invalid-feedback d-block">{emailError}</div>}
                                 </div>
 
                                 <div className="mb-4">
@@ -92,15 +108,19 @@ function Login() {
                                     </label>
                                     <input
                                         type="password"
-                                        className="form-control form-control-lg fs-6 py-2"
+                                        className={`form-control form-control-lg fs-6 py-2 ${passwordError ? "is-invalid" : ""}`}
                                         id="loginPassword"
                                         placeholder="비밀번호를 입력하세요"
                                         value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
+                                        onChange={(e) => {
+                                            setPassword(e.target.value);
+                                            setPasswordError("");
+                                        }}
                                         disabled={loading}
                                         required
                                         autoComplete="current-password"
                                     />
+                                    {passwordError && <div className="invalid-feedback d-block">{passwordError}</div>}
                                 </div>
 
                                 <button

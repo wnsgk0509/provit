@@ -1,39 +1,408 @@
-.mypage-page { max-width: 820px; margin: 0 auto; padding: 16px 0 40px; color: #1f2937; }
-.mypage-intro { margin-bottom: 28px; }
-.mypage-intro > span, .mypage-section-title > span, .mypage-edit-heading span { display: block; margin-bottom: 5px; color: #4263c7; font-size: 12px; font-weight: 800; letter-spacing: .1em; }
-.mypage-intro h1, .mypage-section-title h2, .mypage-edit-heading h2 { margin: 0; font-weight: 750; }
-.mypage-intro h1 { font-size: clamp(29px, 4vw, 36px); }
-.mypage-intro p, .mypage-section-title p { margin: 9px 0 0; color: #6b7280; }
-.mypage-cover-letter, .mypage-edit-form { border: 1px solid #e4e7ec; border-radius: 18px; background: #fff; box-shadow: 0 9px 25px rgba(31, 41, 55, .05); }
-.mypage-cover-letter, .mypage-edit-form { padding: 28px; }
-.mypage-cover-letter-placeholder { display: grid; min-height: 300px; place-items: center; margin-top: 24px; border: 1px dashed #cfd6e6; border-radius: 12px; color: #8a94a6; background: #fafbff; }
-.mypage-cover-letter-placeholder p { margin: 0; font-size: 14px; }
-.mypage-edit-form { margin-top: 20px; }
-.mypage-edit-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-.mypage-edit-heading h2 { font-size: 20px; }
-.mypage-icon { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border-radius: 12px; color: #4964bc; background: #eef2ff; }
-.mypage-info-list { margin: 0; border-top: 1px solid #edf0f3; }
-.mypage-info-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); align-items: center; gap: 20px; min-height: 72px; border-bottom: 1px solid #edf0f3; }
-.mypage-info-row dt { color: #525b6b; font-size: 14px; font-weight: 700; }
-.mypage-info-row dd { margin: 0; min-width: 0; }
-.mypage-info-row input, .mypage-field input { width: 100%; height: 42px; box-sizing: border-box; border: 1px solid #d9dee7; border-radius: 9px; padding: 0 12px; color: #1f2937; background: #fff; font-size: 14px; }
-.mypage-info-row input:focus, .mypage-field input:focus { outline: 3px solid rgba(70, 100, 198, .15); border-color: #5570ca; }
-.mypage-info-row input:disabled { color: #6b7280; background: #f6f7f9; cursor: default; }
-.mypage-info-row input:disabled:focus { outline: none; border-color: #d9dee7; }
-.mypage-info-row .mypage-editable-trigger { color: #303846; background: #fff; cursor: text; }
-.mypage-info-row .mypage-editable-trigger:hover { border-color: #9eafe8; }
-.mypage-password-editor { margin-top: -1px; padding: 22px; border: 1px solid #dbe2f6; border-radius: 0 0 12px 12px; background: #f9faff; }
-.mypage-password-title { display: flex; align-items: center; gap: 7px; color: #4059b5; }
-.mypage-password-title h3 { margin: 0; font-size: 14px; font-weight: 800; }
-.mypage-field { margin-top: 16px; }
-.mypage-field label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
-.mypage-error { margin: 7px 0 0; color: #d14343; font-size: 13px; }
-.mypage-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 28px; }
-.mypage-save, .mypage-cancel { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; border-radius: 10px; padding: 0 17px; font-size: 14px; font-weight: 700; cursor: pointer; }
-.mypage-cancel { border: 1px solid #d7dce5; color: #596273; background: #fff; }
-.mypage-save { border: 1px solid #4d67be; color: #fff; background: #4d67be; }
-.mypage-save:disabled { border-color: #b9c1d9; background: #b9c1d9; cursor: not-allowed; }
-.mypage-withdrawal { display: flex; justify-content: flex-end; margin-top: 36px; padding-top: 18px; border-top: 1px solid #f0f1f4; }
-.mypage-withdrawal button { border: 0; padding: 0; color: #a5abb5; background: transparent; font-size: 12px; text-decoration: underline; cursor: pointer; }
-.mypage-withdrawal button:hover { color: #737b89; }
-@media (max-width: 600px) { .mypage-cover-letter, .mypage-edit-form { padding: 22px; } .mypage-cover-letter-placeholder { min-height: 220px; } .mypage-info-row { grid-template-columns: 1fr; gap: 7px; padding: 16px 0; } .mypage-password-editor { padding: 18px; } .mypage-actions { flex-direction: column-reverse; } .mypage-save, .mypage-cancel { width: 100%; } }
+.mypage-page {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 16px 0 40px;
+    color: #1f2937;
+}
+
+.mypage-intro {
+    margin-bottom: 28px;
+}
+
+.mypage-intro>span,
+.mypage-section-title>span,
+.mypage-edit-heading span {
+    display: block;
+    margin-bottom: 5px;
+    color: #4263c7;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .1em;
+}
+
+.mypage-intro h1,
+.mypage-section-title h2,
+.mypage-edit-heading h2 {
+    margin: 0;
+    font-weight: 750;
+}
+
+.mypage-intro h1 {
+    font-size: clamp(29px, 4vw, 36px);
+}
+
+.mypage-intro p,
+.mypage-section-title p {
+    margin: 9px 0 0;
+    color: #6b7280;
+}
+
+.mypage-cover-letter,
+.mypage-edit-form {
+    border: 1px solid #e4e7ec;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 9px 25px rgba(31, 41, 55, .05);
+}
+
+.mypage-cover-letter,
+.mypage-edit-form {
+    padding: 28px;
+}
+
+.mypage-cover-letter-placeholder {
+    display: grid;
+    min-height: 300px;
+    place-items: center;
+    margin-top: 24px;
+    border: 1px dashed #cfd6e6;
+    border-radius: 12px;
+    color: #8a94a6;
+    background: #fafbff;
+}
+
+.mypage-cover-letter-placeholder p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.mypage-edit-form {
+    margin-top: 20px;
+}
+
+.mypage-edit-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.mypage-edit-heading h2 {
+    font-size: 20px;
+}
+
+.mypage-icon {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 12px;
+    color: #4964bc;
+    background: #eef2ff;
+}
+
+.mypage-info-list {
+    margin: 0;
+    border-top: 1px solid #edf0f3;
+}
+
+.mypage-info-row {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    align-items: center;
+    gap: 20px;
+    min-height: 72px;
+    border-bottom: 1px solid #edf0f3;
+}
+
+.mypage-info-row dt {
+    color: #525b6b;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.mypage-info-row dd {
+    margin: 0;
+    min-width: 0;
+}
+
+.mypage-info-row input,
+.mypage-field input {
+    width: 100%;
+    height: 42px;
+    box-sizing: border-box;
+    border: 1px solid #d9dee7;
+    border-radius: 9px;
+    padding: 0 12px;
+    color: #1f2937;
+    background: #fff;
+    font-size: 14px;
+}
+
+.mypage-info-row input:focus,
+.mypage-field input:focus {
+    outline: 3px solid rgba(70, 100, 198, .15);
+    border-color: #5570ca;
+}
+
+.mypage-info-row input:disabled {
+    color: #6b7280;
+    background: #f6f7f9;
+    cursor: default;
+}
+
+.mypage-info-row input:disabled:focus {
+    outline: none;
+    border-color: #d9dee7;
+}
+
+.mypage-info-row .mypage-editable-trigger {
+    color: #303846;
+    background: #fff;
+    cursor: text;
+}
+
+.mypage-info-row .mypage-editable-trigger:hover {
+    border-color: #9eafe8;
+}
+
+.mypage-password-editor {
+    margin-top: -1px;
+    padding: 22px;
+    border: 1px solid #dbe2f6;
+    border-radius: 0 0 12px 12px;
+    background: #f9faff;
+}
+
+.mypage-password-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #4059b5;
+}
+
+.mypage-password-title h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.mypage-field {
+    margin-top: 16px;
+}
+
+.mypage-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.mypage-error {
+    margin: 7px 0 0;
+    color: #d14343;
+    font-size: 13px;
+}
+
+.mypage-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 28px;
+}
+
+.mypage-save,
+.mypage-cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    border-radius: 10px;
+    padding: 0 17px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.mypage-cancel {
+    border: 1px solid #d7dce5;
+    color: #596273;
+    background: #fff;
+}
+
+.mypage-save {
+    border: 1px solid #4d67be;
+    color: #fff;
+    background: #4d67be;
+}
+
+.mypage-save:disabled {
+    border-color: #b9c1d9;
+    background: #b9c1d9;
+    cursor: not-allowed;
+}
+
+.mypage-save-message {
+    margin: 14px 0 0;
+    color: #4964bc;
+    font-size: 13px;
+    text-align: right;
+}
+
+.mypage-withdrawal {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 36px;
+    padding-top: 18px;
+    border-top: 1px solid #f0f1f4;
+}
+
+.mypage-withdrawal button {
+    border: 0;
+    padding: 0;
+    color: #a5abb5;
+    background: transparent;
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.mypage-withdrawal button:hover {
+    color: #737b89;
+}
+
+.mypage-field-message {
+    margin: 7px 0 0;
+    font-size: 13px;
+}
+
+.mypage-field-message.is-valid {
+    color: #258045;
+}
+
+.mypage-field-message.is-error {
+    color: #d14343;
+}
+
+.mypage-password-input {
+    position: relative;
+}
+
+.mypage-password-input input {
+    padding-right: 46px;
+}
+
+.mypage-password-input button {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 6px;
+    color: #6b7280;
+    background: transparent;
+    cursor: pointer;
+}
+
+.mypage-password-input button:hover {
+    color: #4059b5;
+    background: #eef2ff;
+}
+
+.mypage-withdrawal-panel {
+    margin-top: 16px;
+    padding: 20px;
+    border: 1px solid #f0cccc;
+    border-radius: 12px;
+    background: #fff9f9;
+}
+
+.mypage-withdrawal-panel h3 {
+    margin: 0;
+    color: #b53b3b;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.mypage-withdrawal-panel > p {
+    margin: 8px 0 16px;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.mypage-withdrawal-panel label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.mypage-withdrawal-panel input {
+    width: 100%;
+    height: 42px;
+    box-sizing: border-box;
+    border: 1px solid #d9dee7;
+    border-radius: 9px;
+    padding: 0 12px;
+    font-size: 14px;
+}
+
+.mypage-withdrawal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.mypage-withdraw-confirm {
+    min-height: 42px;
+    border: 1px solid #c84a4a;
+    border-radius: 10px;
+    padding: 0 17px;
+    color: #fff;
+    background: #c84a4a;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.mypage-withdraw-confirm:disabled {
+    border-color: #dda2a2;
+    background: #dda2a2;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+
+    .mypage-cover-letter,
+    .mypage-edit-form {
+        padding: 22px;
+    }
+
+    .mypage-cover-letter-placeholder {
+        min-height: 220px;
+    }
+
+    .mypage-info-row {
+        grid-template-columns: 1fr;
+        gap: 7px;
+        padding: 16px 0;
+    }
+
+    .mypage-password-editor {
+        padding: 18px;
+    }
+
+    .mypage-actions {
+        flex-direction: column-reverse;
+    }
+
+    .mypage-save,
+    .mypage-cancel {
+        width: 100%;
+    }
+
+    .mypage-withdrawal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .mypage-withdraw-confirm {
+        width: 100%;
+    }
+}

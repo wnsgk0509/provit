@@ -28,4 +28,5 @@ public class UserDTO {
     private String jobCode;
     private String occupationCode;
     private Integer userIsDeleted;
+    private Integer userTokenVersion;
 }
