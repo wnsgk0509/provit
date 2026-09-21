@@ -48,38 +48,38 @@ function InterviewCustom({ settings, documents, isLoading, onSettingChange, onSt
                     <label htmlFor="interview-cover-letter">자기소개서</label>
                     <select
                         id="interview-cover-letter"
-                        value={settings.useCoverLetter ? String(documents?.coverLetter?.userNum ?? '') : ''}
-                        onChange={(event) => onSettingChange('useCoverLetter', event.target.value !== '')}
-                        disabled={!documents?.coverLetter}
+                        value={settings.letterNum}
+                        onChange={(event) => onSettingChange('letterNum', event.target.value)}
+                        disabled={!documents?.coverLetterList?.length}
                         required
                     >
                         <option value="">자기소개서를 선택해 주세요</option>
-                        {documents?.coverLetter && (
-                            <option value={documents.coverLetter.userNum}>
-                                {documents.coverLetter.coverLetterTitle || '저장된 자기소개서'}
+                        {(documents?.coverLetterList ?? []).map((coverLetter) => (
+                            <option key={coverLetter.letterNum} value={coverLetter.letterNum}>
+                                {coverLetter.coverLetterTitle || `자기소개서 #${coverLetter.letterNum}`}
                             </option>
-                        )}
+                        ))}
                     </select>
-                    {documents && !documents.coverLetter && <p>저장된 자기소개서가 없습니다.</p>}
+                    {documents && !documents.coverLetterList?.length && <p>저장된 자기소개서가 없습니다.</p>}
                 </div>
 
                 <div className="interview-form-group">
                     <label htmlFor="interview-portfolio">포트폴리오</label>
                     <select
                         id="interview-portfolio"
-                        value={settings.usePortfolio ? String(documents?.portfolio?.userNum ?? '') : ''}
-                        onChange={(event) => onSettingChange('usePortfolio', event.target.value !== '')}
-                        disabled={!documents?.portfolio}
+                        value={settings.portfolioNum}
+                        onChange={(event) => onSettingChange('portfolioNum', event.target.value)}
+                        disabled={!documents?.portfolioList?.length}
                         required
                     >
                         <option value="">포트폴리오를 선택해 주세요</option>
-                        {documents?.portfolio && (
-                            <option value={documents.portfolio.userNum}>
-                                {documents.portfolio.portfolioTitle || '저장된 포트폴리오'}
+                        {(documents?.portfolioList ?? []).map((portfolio) => (
+                            <option key={portfolio.portfolioNum} value={portfolio.portfolioNum}>
+                                {portfolio.portfolioTitle || `포트폴리오 #${portfolio.portfolioNum}`}
                             </option>
-                        )}
+                        ))}
                     </select>
-                    {documents && !documents.portfolio && <p>저장된 포트폴리오가 없습니다.</p>}
+                    {documents && !documents.portfolioList?.length && <p>저장된 포트폴리오가 없습니다.</p>}
                 </div>
 
                 <div className="interview-form-group">

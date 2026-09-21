@@ -14,9 +14,13 @@ import com.provit.dto.user.UserJobPreferenceDTO;
 
 public interface InterviewDAO {
 
-    PortfolioDTO selectPortfolioByUserNum(int userNum);
+    List<PortfolioDTO> selectPortfolioListByUserNum(int userNum);
 
-    CoverLetterDTO selectCoverLetterByUserNum(int userNum);
+    PortfolioDTO selectPortfolioByPortfolioNumAndUserNum(int portfolioNum, int userNum);
+
+    List<CoverLetterDTO> selectCoverLetterListByUserNum(int userNum);
+
+    CoverLetterDTO selectCoverLetterByLetterNumAndUserNum(int letterNum, int userNum);
 
     List<ResumeDTO> selectResumeListByUserNum(int userNum);
 

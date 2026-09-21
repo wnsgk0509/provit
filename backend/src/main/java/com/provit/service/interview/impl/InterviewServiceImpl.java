@@ -52,8 +52,8 @@ public class InterviewServiceImpl implements InterviewService {
     @Override
     public InterviewDocumentResponseDTO getInterviewDocuments(int userNum) {
         InterviewDocumentResponseDTO response = new InterviewDocumentResponseDTO();
-        response.setPortfolio(interviewDAO.selectPortfolioByUserNum(userNum));
-        response.setCoverLetter(interviewDAO.selectCoverLetterByUserNum(userNum));
+        response.setPortfolioList(interviewDAO.selectPortfolioListByUserNum(userNum));
+        response.setCoverLetterList(interviewDAO.selectCoverLetterListByUserNum(userNum));
         response.setResumeList(interviewDAO.selectResumeListByUserNum(userNum));
         response.setJobPreference(interviewDAO.selectUserJobPreferenceByUserNum(userNum));
         return response;
@@ -78,17 +78,17 @@ public class InterviewServiceImpl implements InterviewService {
     public LlmInterviewContextDTO getLlmInterviewContext(
             int userNum,
             int resumeNum,
-            boolean usePortfolio,
-            boolean useCoverLetter) {
+            int portfolioNum,
+            int letterNum) {
         LlmInterviewContextDTO context = new LlmInterviewContextDTO();
         context.setJobPreference(interviewDAO.selectUserJobPreferenceByUserNum(userNum));
         context.setResumeDetail(getResumeDetail(userNum, resumeNum));
 
-        if (usePortfolio) {
-            context.setPortfolio(interviewDAO.selectPortfolioByUserNum(userNum));
+        if (portfolioNum > 0) {
+            context.setPortfolio(interviewDAO.selectPortfolioByPortfolioNumAndUserNum(portfolioNum, userNum));
         }
-        if (useCoverLetter) {
-            context.setCoverLetter(interviewDAO.selectCoverLetterByUserNum(userNum));
+        if (letterNum > 0) {
+            context.setCoverLetter(interviewDAO.selectCoverLetterByLetterNumAndUserNum(letterNum, userNum));
         }
 
         return context;
@@ -98,7 +98,7 @@ public class InterviewServiceImpl implements InterviewService {
     public InterviewStartResponseDTO startInterview(int userNum, InterviewStartRequestDTO request) {
         validateStartRequest(request);
         LlmInterviewContextDTO context = getLlmInterviewContext(
-                userNum, request.getResumeNum(), request.isUsePortfolio(), request.isUseCoverLetter());
+                userNum, request.getResumeNum(), request.getPortfolioNum(), request.getLetterNum());
         validateSelectedDocuments(request, context);
 
         LlmQuestionRequestDTO questionRequest = new LlmQuestionRequestDTO();
@@ -145,7 +145,7 @@ public class InterviewServiceImpl implements InterviewService {
             }
 
             LlmEvaluationResponseDTO evaluation = evaluate(session, userNum);
-            InterviewHistoryDTO history = createHistory(historyNum, userNum, session, evaluation);
+            InterviewHistoryDTO history = createHistory(historyNum, userNum, session);
             InterviewResultDTO result = createResult(historyNum, userNum, evaluation);
             saveInterview(history, result);
             sessions.remove(historyNum);
@@ -236,18 +236,13 @@ public class InterviewServiceImpl implements InterviewService {
     private InterviewHistoryDTO createHistory(
             int historyNum,
             int userNum,
-            InterviewSession session,
-            LlmEvaluationResponseDTO evaluation) {
+            InterviewSession session) {
         InterviewHistoryDTO history = new InterviewHistoryDTO();
         history.setHistoryNum(historyNum);
         history.setUserNum(userNum);
         for (InterviewQuestionAnswerDTO item : session.questionAnswers) {
             setHistoryQuestionAnswer(history, item);
         }
-        history.setStrength(evaluation.getStrengths());
-        history.setWeakness(evaluation.getWeaknesses());
-        history.setPreviousComparison(evaluation.getComparison());
-        history.setImprovementPoint(evaluation.getImprovements());
         return history;
     }
 
@@ -273,6 +268,10 @@ public class InterviewServiceImpl implements InterviewService {
         result.setLogicScore(evaluation.getLogicScore());
         result.setDeliveryScore(evaluation.getDeliveryScore());
         result.setTotalScore(evaluation.getTotalScore());
+        result.setStrengths(evaluation.getStrengths());
+        result.setWeaknesses(evaluation.getWeaknesses());
+        result.setComparison(evaluation.getComparison());
+        result.setImprovements(evaluation.getImprovements());
         return result;
     }
 
@@ -305,10 +304,10 @@ public class InterviewServiceImpl implements InterviewService {
 
     private void validateSelectedDocuments(
             InterviewStartRequestDTO request, LlmInterviewContextDTO context) {
-        if (request.isUsePortfolio() && context.getPortfolio() == null) {
+        if (request.getPortfolioNum() > 0 && context.getPortfolio() == null) {
             throw new IllegalArgumentException("선택한 포트폴리오를 찾을 수 없습니다.");
         }
-        if (request.isUseCoverLetter() && context.getCoverLetter() == null) {
+        if (request.getLetterNum() > 0 && context.getCoverLetter() == null) {
             throw new IllegalArgumentException("선택한 자기소개서를 찾을 수 없습니다.");
         }
     }

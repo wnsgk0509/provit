@@ -14,8 +14,28 @@
         LOGIC_SCORE,
         DELIVERY_SCORE,
         TOTAL_SCORE,
+        STRENGTH,
+        WEAKNESS,
+        PREVIOUS_COMPARISON,
+        IMPROVEMENT_POINT,
         INTERVIEW_DATE
     </sql>
+
+    <resultMap id="interviewResultMap" type="com.provit.dto.interview.InterviewResultDTO">
+        <id property="historyNum" column="HISTORY_NUM" />
+        <id property="userNum" column="USER_NUM" />
+        <result property="confidenceScore" column="CONFIDENCE_SCORE" />
+        <result property="persistenceScore" column="PERSISTENCE_SCORE" />
+        <result property="expertiseScore" column="EXPERTISE_SCORE" />
+        <result property="logicScore" column="LOGIC_SCORE" />
+        <result property="deliveryScore" column="DELIVERY_SCORE" />
+        <result property="totalScore" column="TOTAL_SCORE" />
+        <result property="strengths" column="STRENGTH" />
+        <result property="weaknesses" column="WEAKNESS" />
+        <result property="comparison" column="PREVIOUS_COMPARISON" />
+        <result property="improvements" column="IMPROVEMENT_POINT" />
+        <result property="interviewDate" column="INTERVIEW_DATE" />
+    </resultMap>
 
     <insert id="insertInterviewResult"
             parameterType="com.provit.dto.interview.InterviewResultDTO">
@@ -30,13 +50,17 @@
             #{logicScore},
             #{deliveryScore},
             #{totalScore},
+            #{strengths},
+            #{weaknesses},
+            #{comparison},
+            #{improvements},
             NVL(#{interviewDate, jdbcType=DATE}, SYSDATE)
         )
     </insert>
 
     <select id="selectInterviewResultListByUserNum"
             parameterType="int"
-            resultType="com.provit.dto.interview.InterviewResultDTO">
+            resultMap="interviewResultMap">
         SELECT
             <include refid="interviewResultColumns" />
         FROM T_INTERVIEW_RESULT
@@ -46,7 +70,7 @@
 
     <select id="selectInterviewResult"
             parameterType="map"
-            resultType="com.provit.dto.interview.InterviewResultDTO">
+            resultMap="interviewResultMap">
         SELECT
             <include refid="interviewResultColumns" />
         FROM T_INTERVIEW_RESULT
@@ -56,7 +80,7 @@
 
     <select id="selectLatestInterviewResultByUserNum"
             parameterType="int"
-            resultType="com.provit.dto.interview.InterviewResultDTO">
+            resultMap="interviewResultMap">
         SELECT
             <include refid="interviewResultColumns" />
         FROM T_INTERVIEW_RESULT

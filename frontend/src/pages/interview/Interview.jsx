@@ -13,8 +13,8 @@ const INTERVIEW_STEP = {
 
 const INITIAL_SETTINGS = {
     resumeNum: '',
-    usePortfolio: false,
-    useCoverLetter: false,
+    portfolioNum: '',
+    letterNum: '',
     interviewStyle: '',
     difficulty: '',
 };

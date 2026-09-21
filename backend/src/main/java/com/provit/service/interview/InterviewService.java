@@ -21,8 +21,8 @@ public interface InterviewService {
     LlmInterviewContextDTO getLlmInterviewContext(
             int userNum,
             int resumeNum,
-            boolean usePortfolio,
-            boolean useCoverLetter);
+            int portfolioNum,
+            int letterNum);
 
     InterviewStartResponseDTO startInterview(int userNum, InterviewStartRequestDTO request);
 

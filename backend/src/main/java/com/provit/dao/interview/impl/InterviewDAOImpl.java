@@ -40,13 +40,27 @@ public class InterviewDAOImpl implements InterviewDAO {
     }
 
     @Override
-    public PortfolioDTO selectPortfolioByUserNum(int userNum) {
-        return sqlSession.selectOne(PORTFOLIO_NAMESPACE + ".selectPortfolioByUserNum", userNum);
+    public List<PortfolioDTO> selectPortfolioListByUserNum(int userNum) {
+        return sqlSession.selectList(PORTFOLIO_NAMESPACE + ".selectPortfolioListByUserNum", userNum);
     }
 
     @Override
-    public CoverLetterDTO selectCoverLetterByUserNum(int userNum) {
-        return sqlSession.selectOne(COVER_LETTER_NAMESPACE + ".selectCoverLetterByUserNum", userNum);
+    public PortfolioDTO selectPortfolioByPortfolioNumAndUserNum(int portfolioNum, int userNum) {
+        return sqlSession.selectOne(
+                PORTFOLIO_NAMESPACE + ".selectPortfolioByPortfolioNumAndUserNum",
+                createInterviewKeyMap(portfolioNum, userNum));
+    }
+
+    @Override
+    public List<CoverLetterDTO> selectCoverLetterListByUserNum(int userNum) {
+        return sqlSession.selectList(COVER_LETTER_NAMESPACE + ".selectCoverLetterListByUserNum", userNum);
+    }
+
+    @Override
+    public CoverLetterDTO selectCoverLetterByLetterNumAndUserNum(int letterNum, int userNum) {
+        return sqlSession.selectOne(
+                COVER_LETTER_NAMESPACE + ".selectCoverLetterByLetterNumAndUserNum",
+                createInterviewKeyMap(letterNum, userNum));
     }
 
     @Override

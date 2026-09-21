@@ -12,8 +12,8 @@ import lombok.Data;
 @Data
 public class InterviewDocumentResponseDTO {
 
-    private PortfolioDTO portfolio;
-    private CoverLetterDTO coverLetter;
+    private List<PortfolioDTO> portfolioList;
+    private List<CoverLetterDTO> coverLetterList;
     private List<ResumeDTO> resumeList;
     private UserJobPreferenceDTO jobPreference;
 }

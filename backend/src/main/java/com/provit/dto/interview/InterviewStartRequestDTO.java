@@ -6,8 +6,8 @@ import lombok.Data;
 public class InterviewStartRequestDTO {
 
     private int resumeNum;
-    private boolean usePortfolio;
-    private boolean useCoverLetter;
+    private int portfolioNum;
+    private int letterNum;
     private String interviewStyle;
     private String interviewDifficulty;
 }

@@ -9,6 +9,7 @@ import lombok.Data;
 @Data
 public class PortfolioDTO {
 
+    private int portfolioNum;
     private int userNum;
     private String portfolioTitle;
     private String fileUrl;

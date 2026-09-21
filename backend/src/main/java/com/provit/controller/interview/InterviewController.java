@@ -71,7 +71,7 @@ public class InterviewController {
         }
         try {
             LlmInterviewContextDTO context = interviewService.getLlmInterviewContext(
-                    userNum, selection.getResumeNum(), selection.isUsePortfolio(), selection.isUseCoverLetter());
+                    userNum, selection.getResumeNum(), selection.getPortfolioNum(), selection.getLetterNum());
             return ResponseEntity.ok(ApiResponse.success(context));
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest().build();

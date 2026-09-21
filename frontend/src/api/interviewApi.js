@@ -8,8 +8,8 @@ export async function getInterviewDocuments() {
 export async function createInterview(settings) {
     const response = await client.post('/interview/start', {
         resumeNum: Number(settings.resumeNum),
-        usePortfolio: settings.usePortfolio,
-        useCoverLetter: settings.useCoverLetter,
+        portfolioNum: Number(settings.portfolioNum || 0),
+        letterNum: Number(settings.letterNum || 0),
         interviewStyle: settings.interviewStyle,
         interviewDifficulty: settings.difficulty,
     });
