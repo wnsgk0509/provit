@@ -40,7 +40,7 @@ function App() {
             <Route path="/community/write" element={<CommunityWrite />} />
             <Route path="/community/:postNum" element={<CommunityDetail />} />
             <Route path="/community/edit/:postNum" element={<CommunityEdit />} />
-            {/* <Route path="/study" element={<Study />} /> 기존 개별 스터디 라우트는 커뮤니티로 통합 */}
+            <Route path="/study" element={<Study />} />
             <Route path="/mypage" element={<RequireAuth><MyPage /></RequireAuth>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.dao.study.StudyDAO">
+
+    <!-- 1. 스터디 목록 조회 (개설자 닉네임, 참여자 수 포함) -->
+    <!-- 로그인한 경우 userNum을 파라미터로 받아 현재 로그인 유저의 참여 여부(isJoined)도 함께 계산 -->
+    <select id="selectStudyList" resultType="com.provit.dto.study.StudyDTO" parameterType="Long">
+        SELECT 
+            S.STUDY_NUM AS studyNum,
+            S.USER_NUM AS userNum,
+            U.USER_NICKNAME AS userNickname,
+            S.STUDY_NAME AS studyName,
+            S.STUDY_EXPLAIN AS studyExplain,
+            TO_CHAR(S.STUDY_CREATE_DATE, 'YYYY-MM-DD HH24:MI:SS') AS studyCreateDate,
+            (SELECT COUNT(*) FROM T_STUDY_MEMBER M WHERE M.STUDY_NUM = S.STUDY_NUM) AS memberCount,
+            <if test="userNum != null">
+                CASE WHEN EXISTS (
+                    SELECT 1 FROM T_STUDY_MEMBER M2 
+                    WHERE M2.STUDY_NUM = S.STUDY_NUM AND M2.USER_NUM = #{userNum}
+                ) THEN 1 ELSE 0 END AS isJoined
+            </if>
+            <if test="userNum == null">
+                0 AS isJoined
+            </if>
+        FROM 
+            T_STUDY S
+        JOIN 
+            T_USER U ON S.USER_NUM = U.USER_NUM
+        ORDER BY 
+            S.STUDY_NUM DESC
+    </select>
+
+    <!-- 2. 단일 스터디 상세 조회 -->
+    <select id="selectStudyDetail" resultType="com.provit.dto.study.StudyDTO" parameterType="Long">
+        SELECT 
+            S.STUDY_NUM AS studyNum,
+            S.USER_NUM AS userNum,
+            U.USER_NICKNAME AS userNickname,
+            S.STUDY_NAME AS studyName,
+            S.STUDY_EXPLAIN AS studyExplain,
+            TO_CHAR(S.STUDY_CREATE_DATE, 'YYYY-MM-DD HH24:MI:SS') AS studyCreateDate,
+            (SELECT COUNT(*) FROM T_STUDY_MEMBER M WHERE M.STUDY_NUM = S.STUDY_NUM) AS memberCount
+        FROM 
+            T_STUDY S
+        JOIN 
+            T_USER U ON S.USER_NUM = U.USER_NUM
+        WHERE 
+            S.STUDY_NUM = #{studyNum}
+    </select>
+
+    <!-- 3. 스터디 개설 (생성) -->
+    <insert id="insertStudy" parameterType="com.provit.dto.study.StudyDTO">
+        <selectKey keyProperty="studyNum" resultType="Long" order="BEFORE">
+            SELECT SEQ_T_STUDY.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_STUDY (
+            STUDY_NUM,
+            USER_NUM,
+            STUDY_NAME,
+            STUDY_EXPLAIN
+        ) VALUES (
+            #{studyNum},
+            #{userNum},
+            #{studyName},
+            #{studyExplain}
+        )
+    </insert>
+
+    <!-- 4. 스터디 삭제 (방장만 가능) -->
+    <delete id="deleteStudy" parameterType="Long">
+        DELETE FROM T_STUDY
+        WHERE STUDY_NUM = #{studyNum}
+    </delete>
+
+    <!-- ============================================== -->
+    <!-- 스터디 멤버(참여자) 관리 쿼리 -->
+    <!-- ============================================== -->
+
+    <!-- 5. 스터디 참여 -->
+    <insert id="insertStudyMember" parameterType="map">
+        INSERT INTO T_STUDY_MEMBER (
+            STUDY_NUM,
+            USER_NUM
+        ) VALUES (
+            #{studyNum},
+            #{userNum}
+        )
+    </insert>
+
+    <!-- 6. 스터디 탈퇴 -->
+    <delete id="deleteStudyMember" parameterType="map">
+        DELETE FROM T_STUDY_MEMBER
+        WHERE STUDY_NUM = #{studyNum} AND USER_NUM = #{userNum}
+    </delete>
+
+    <!-- 7. 참여 여부 확인 (참여중이면 1 이상 반환) -->
+    <select id="checkStudyMember" resultType="int" parameterType="map">
+        SELECT COUNT(*) 
+        FROM T_STUDY_MEMBER
+        WHERE STUDY_NUM = #{studyNum} AND USER_NUM = #{userNum}
+    </select>
+
+</mapper>
