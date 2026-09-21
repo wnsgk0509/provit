@@ -49,7 +49,7 @@ export const createPost = async (postDto) => {
  */
 export const updatePost = async (postDto) => {
     try {
-        const response = await client.put('/community/posts', postDto);
+        const response = await client.put(`/community/posts/${postDto.postNum}`, postDto);
         return response.data;
     } catch (error) {
         console.error('게시글 수정 실패:', error);

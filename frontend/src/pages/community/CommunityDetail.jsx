@@ -117,10 +117,9 @@ function CommunityDetail() {
                 
                 {isAuthor && (
                     <div className="gap-2 d-flex">
-                        {/* 수정 기능은 추후 구현 */}
-                        <button className="btn btn-outline-primary" onClick={() => alert('수정 기능은 준비중입니다.')}>
+                        <Link to={`/community/edit/${postNum}`} className="btn btn-outline-primary">
                             수정
-                        </button>
+                        </Link>
                         <button className="btn btn-outline-danger" onClick={handleDelete}>
                             삭제
                         </button>

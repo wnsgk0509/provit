@@ -9,6 +9,7 @@ import Study from './pages/study/Study';
 import CommunityList from './pages/community/CommunityList';
 import CommunityWrite from './pages/community/CommunityWrite';
 import CommunityDetail from './pages/community/CommunityDetail';
+import CommunityEdit from './pages/community/CommunityEdit';
 import MyPage from './pages/mypage/MyPage';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
@@ -29,6 +30,7 @@ function App() {
             <Route path="/community" element={<CommunityList />} />
             <Route path="/community/write" element={<CommunityWrite />} />
             <Route path="/community/:postNum" element={<CommunityDetail />} />
+            <Route path="/community/edit/:postNum" element={<CommunityEdit />} />
             {/* <Route path="/study" element={<Study />} /> 기존 개별 스터디 라우트는 커뮤니티로 통합 */}
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/login" element={<Login />} />
