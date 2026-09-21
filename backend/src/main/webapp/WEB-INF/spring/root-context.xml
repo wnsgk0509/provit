@@ -3,10 +3,12 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:task="http://www.springframework.org/schema/task"
        xsi:schemaLocation="
            http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
            http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
-           http://www.springframework.org/schema/tx https://www.springframework.org/schema/tx/spring-tx.xsd">
+           http://www.springframework.org/schema/tx https://www.springframework.org/schema/tx/spring-tx.xsd
+           http://www.springframework.org/schema/task https://www.springframework.org/schema/task/spring-task.xsd">
 
     <!-- 1. 외부 프로퍼티 파일 로드 (DB 및 외부 API 키 설정) -->
     <!-- ignore-resource-not-found="true"로 설정하여 파일이 아직 없거나 로컬 설정 전이어도 context 로딩 에러 방지 -->
@@ -74,5 +76,9 @@
             </props>
         </property>
     </bean>
+
+    <!-- 8. Spring Task / Scheduler 설정 (@Scheduled 활성화) -->
+    <task:annotation-driven scheduler="taskScheduler" />
+    <task:scheduler id="taskScheduler" pool-size="2" />
 
 </beans>

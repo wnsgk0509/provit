@@ -1,0 +1,47 @@
+package com.provit.scheduler;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import com.provit.service.recruitment.RecruitmentService;
+
+/**
+ * 사람인 채용공고 일일 정기 수집 스케줄러
+ * 매일 새벽 03:00에 사람인 실시간 인기 상위 1,000개 공고를 자동 크롤링하여 DB에 적재
+ */
+@Component
+public class RecruitmentScheduler {
+
+    private static final Logger log = LoggerFactory.getLogger(RecruitmentScheduler.class);
+
+    private final RecruitmentService recruitmentService;
+
+    @Autowired
+    public RecruitmentScheduler(RecruitmentService recruitmentService) {
+        this.recruitmentService = recruitmentService;
+    }
+
+    /**
+     * 매일 새벽 03:00:00 실행 (초 분 시 일 월 요일)
+     */
+    @Scheduled(cron = "0 0 3 * * ?")
+    public void scheduleDailyRecruitmentSync() {
+        log.info("===============================================================");
+        log.info(">> [Scheduler] 매일 새벽 채용공고 자동 동기화 배치 시작 (03:00)");
+        log.info("===============================================================");
+
+        try {
+            int syncCount = recruitmentService.syncSaraminRecruitments(1000);
+            log.info(">> [Scheduler] 정기 동기화 성공: 총 {}건 적재 완료", syncCount);
+        } catch (Exception e) {
+            log.error(">> [Scheduler] 정기 동기화 중 에러 발생: {}", e.getMessage(), e);
+        }
+
+        log.info("===============================================================");
+        log.info(">> [Scheduler] 매일 새벽 채용공고 자동 동기화 배치 종료");
+        log.info("===============================================================");
+    }
+}
