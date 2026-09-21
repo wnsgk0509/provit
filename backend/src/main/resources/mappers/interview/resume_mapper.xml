@@ -21,12 +21,11 @@
 
     <select id="selectResumeListByUserNum"
             parameterType="int"
-            resultType="com.provit.dto.user.ResumeDTO">
+            resultType="com.provit.dto.interview.InterviewDocumentOptionDTO">
         SELECT
-            <include refid="resumeColumns" />
+            r.RESUME_NUM AS DOCUMENT_NUM,
+            r.RESUME_TITLE AS DOCUMENT_TITLE
         FROM T_RESUME r
-        JOIN T_EDUCODE ec
-          ON r.EDUCATION_CODE = ec.EDUCATION_CODE
         WHERE r.USER_NUM = #{userNum}
         ORDER BY r.UPDATED_AT DESC, r.RESUME_NUM DESC
     </select>

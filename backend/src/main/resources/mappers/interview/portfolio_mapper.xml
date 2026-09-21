@@ -16,9 +16,10 @@
 
     <select id="selectPortfolioListByUserNum"
             parameterType="int"
-            resultType="com.provit.dto.user.PortfolioDTO">
+            resultType="com.provit.dto.interview.InterviewDocumentOptionDTO">
         SELECT
-            <include refid="portfolioColumns" />
+            PORTFOLIO_NUM AS DOCUMENT_NUM,
+            PORTFOLIO_TITLE AS DOCUMENT_TITLE
         FROM T_PORTFOLIO
         WHERE USER_NUM = #{userNum}
         ORDER BY UPDATED_AT DESC, PORTFOLIO_NUM DESC

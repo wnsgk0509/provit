@@ -56,7 +56,7 @@ function Interview() {
     };
 
     const handleStart = async () => {
-        if (!documents?.resumeList?.some((resume) => String(resume.resumeNum) === settings.resumeNum)) {
+        if (!documents?.resumeList?.some((resume) => String(resume.documentNum) === settings.resumeNum)) {
             setErrorMessage('면접에 사용할 이력서를 선택해 주세요.');
             return;
         }

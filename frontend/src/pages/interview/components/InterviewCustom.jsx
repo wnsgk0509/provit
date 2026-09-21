@@ -36,8 +36,8 @@ function InterviewCustom({ settings, documents, isLoading, onSettingChange, onSt
                     >
                         <option value="">이력서를 선택해 주세요</option>
                         {(documents?.resumeList ?? []).map((resume) => (
-                            <option key={resume.resumeNum} value={resume.resumeNum}>
-                                {resume.resumeTitle || `이력서 #${resume.resumeNum}`}
+                            <option key={resume.documentNum} value={resume.documentNum}>
+                                {resume.documentTitle || `이력서 #${resume.documentNum}`}
                             </option>
                         ))}
                     </select>
@@ -55,8 +55,8 @@ function InterviewCustom({ settings, documents, isLoading, onSettingChange, onSt
                     >
                         <option value="">자기소개서를 선택해 주세요</option>
                         {(documents?.coverLetterList ?? []).map((coverLetter) => (
-                            <option key={coverLetter.letterNum} value={coverLetter.letterNum}>
-                                {coverLetter.coverLetterTitle || `자기소개서 #${coverLetter.letterNum}`}
+                            <option key={coverLetter.documentNum} value={coverLetter.documentNum}>
+                                {coverLetter.documentTitle || `자기소개서 #${coverLetter.documentNum}`}
                             </option>
                         ))}
                     </select>
@@ -74,8 +74,8 @@ function InterviewCustom({ settings, documents, isLoading, onSettingChange, onSt
                     >
                         <option value="">포트폴리오를 선택해 주세요</option>
                         {(documents?.portfolioList ?? []).map((portfolio) => (
-                            <option key={portfolio.portfolioNum} value={portfolio.portfolioNum}>
-                                {portfolio.portfolioTitle || `포트폴리오 #${portfolio.portfolioNum}`}
+                            <option key={portfolio.documentNum} value={portfolio.documentNum}>
+                                {portfolio.documentTitle || `포트폴리오 #${portfolio.documentNum}`}
                             </option>
                         ))}
                     </select>

@@ -19,9 +19,10 @@
 
     <select id="selectCoverLetterListByUserNum"
             parameterType="int"
-            resultType="com.provit.dto.user.CoverLetterDTO">
+            resultType="com.provit.dto.interview.InterviewDocumentOptionDTO">
         SELECT
-            <include refid="coverLetterColumns" />
+            LETTER_NUM AS DOCUMENT_NUM,
+            COVER_LETTER_TITLE AS DOCUMENT_TITLE
         FROM T_COVER_LETTER
         WHERE USER_NUM = #{userNum}
         ORDER BY UPDATED_AT DESC, LETTER_NUM DESC

@@ -55,7 +55,6 @@ public class InterviewServiceImpl implements InterviewService {
         response.setPortfolioList(interviewDAO.selectPortfolioListByUserNum(userNum));
         response.setCoverLetterList(interviewDAO.selectCoverLetterListByUserNum(userNum));
         response.setResumeList(interviewDAO.selectResumeListByUserNum(userNum));
-        response.setJobPreference(interviewDAO.selectUserJobPreferenceByUserNum(userNum));
         return response;
     }
 

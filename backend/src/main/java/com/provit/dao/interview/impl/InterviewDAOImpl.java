@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import com.provit.dao.interview.InterviewDAO;
 import com.provit.dto.interview.InterviewHistoryDTO;
+import com.provit.dto.interview.InterviewDocumentOptionDTO;
 import com.provit.dto.interview.InterviewResultDTO;
 import com.provit.dto.user.CareerDTO;
 import com.provit.dto.user.CertificationDTO;
@@ -40,7 +41,7 @@ public class InterviewDAOImpl implements InterviewDAO {
     }
 
     @Override
-    public List<PortfolioDTO> selectPortfolioListByUserNum(int userNum) {
+    public List<InterviewDocumentOptionDTO> selectPortfolioListByUserNum(int userNum) {
         return sqlSession.selectList(PORTFOLIO_NAMESPACE + ".selectPortfolioListByUserNum", userNum);
     }
 
@@ -52,7 +53,7 @@ public class InterviewDAOImpl implements InterviewDAO {
     }
 
     @Override
-    public List<CoverLetterDTO> selectCoverLetterListByUserNum(int userNum) {
+    public List<InterviewDocumentOptionDTO> selectCoverLetterListByUserNum(int userNum) {
         return sqlSession.selectList(COVER_LETTER_NAMESPACE + ".selectCoverLetterListByUserNum", userNum);
     }
 
@@ -64,7 +65,7 @@ public class InterviewDAOImpl implements InterviewDAO {
     }
 
     @Override
-    public List<ResumeDTO> selectResumeListByUserNum(int userNum) {
+    public List<InterviewDocumentOptionDTO> selectResumeListByUserNum(int userNum) {
         return sqlSession.selectList(RESUME_NAMESPACE + ".selectResumeListByUserNum", userNum);
     }
 
