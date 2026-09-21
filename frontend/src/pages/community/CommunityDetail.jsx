@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { fetchPostDetail, deletePost } from '../../api/communityApi';
 import { useAuth } from '../../context/AuthContext';
+import CommentSection from '../../components/community/CommentSection';
 
 function CommunityDetail() {
     const { postNum } = useParams();
@@ -109,6 +110,9 @@ function CommunityDetail() {
                     </button>
                 </div>
             </div>
+
+            {/* 댓글 영역 컴포넌트 마운트 */}
+            <CommentSection postNum={postNum} />
 
             <div className="d-flex justify-content-between mt-4">
                 <Link to="/community" className="btn btn-secondary">
