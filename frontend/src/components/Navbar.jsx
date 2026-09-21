@@ -44,11 +44,6 @@ function Navbar() {
                                 커뮤니티
                             </Link>
                         </li>
-                        <li className="nav-item">
-                            <Link className={`nav-link py-1 ${isActive("/study")}`} to="/study">
-                                스터디 모집
-                            </Link>
-                        </li>
 
                         {/* 로그인되어 있을 때만 마이페이지 노출 */}
                         {isLoggedIn && (

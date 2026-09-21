@@ -6,7 +6,6 @@ import Home from './pages/home/Home';
 import JobList from './pages/jobs/JobList';
 import Fortune from './pages/fortune/Fortune';
 import Interview from './pages/interview/Interview';
-import Study from './pages/study/Study';
 import CommunityList from './pages/community/CommunityList';
 import CommunityWrite from './pages/community/CommunityWrite';
 import CommunityDetail from './pages/community/CommunityDetail';
@@ -40,7 +39,7 @@ function App() {
             <Route path="/community/write" element={<CommunityWrite />} />
             <Route path="/community/:postNum" element={<CommunityDetail />} />
             <Route path="/community/edit/:postNum" element={<CommunityEdit />} />
-            <Route path="/study" element={<Study />} />
+            <Route path="/study" element={<Navigate to="/community?tab=study" replace />} />
             <Route path="/mypage" element={<RequireAuth><MyPage /></RequireAuth>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
