@@ -319,8 +319,8 @@ public class InterviewServiceImpl implements InterviewService {
         if (!request.isTimedOut() && (answer == null || answer.isBlank())) {
             throw new IllegalArgumentException("답변을 입력해 주세요.");
         }
-        if (answer != null && answer.length() > 3000) {
-            throw new IllegalArgumentException("답변은 3000자 이하로 입력해 주세요.");
+        if (answer != null && answer.length() > 1000) {
+            throw new IllegalArgumentException("답변은 1000자 이하로 입력해 주세요.");
         }
     }
 
