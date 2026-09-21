@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.provit.dao.recruitment.RecruitmentDAO;
+import com.provit.dto.recruitment.JobDTO;
 import com.provit.dto.recruitment.OccupationDTO;
 
 @Repository
@@ -25,5 +26,10 @@ public class RecruitmentDAOImpl implements RecruitmentDAO {
 	@Override
 	public List<OccupationDTO> selectOccupationList() {
 		return sqlSessionTemplate.selectList("recruitment_mapper.selectOccupationList");
+	}
+
+	@Override
+	public List<JobDTO> selectJobListByOccupation(String occupationCode) {
+		return sqlSessionTemplate.selectList("recruitment_mapper.selectJobListByOccupation", occupationCode);
 	}
 }
