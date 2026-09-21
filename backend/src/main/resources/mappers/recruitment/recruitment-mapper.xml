@@ -24,4 +24,135 @@
         ORDER BY JOB_NAME ASC
     </select>
 
+    <!-- ============================================================== -->
+    <!-- 사람인 채용공고 (T_RECRUITMENT) 쿼리 영역                     -->
+    <!-- ============================================================== -->
+
+    <!-- 1. 사람인 공고 Upsert (고유 SARAMIN_JOB_ID 기준 중복 방지 저장/갱신) -->
+    <insert id="mergeRecruitment" parameterType="com.provit.dto.recruitment.RecruitmentDTO">
+        MERGE INTO T_RECRUITMENT TARGET
+        USING (
+            SELECT 
+                #{saraminJobId} AS SARAMIN_JOB_ID,
+                #{companyName} AS COMPANY_NAME,
+                #{title} AS TITLE,
+                #{jobUrl} AS JOB_URL,
+                #{locationName, jdbcType=VARCHAR} AS LOCATION_NAME,
+                #{jobName, jdbcType=VARCHAR} AS JOB_NAME,
+                #{experienceLevel, jdbcType=VARCHAR} AS EXPERIENCE_LEVEL,
+                #{expirationDate, jdbcType=TIMESTAMP} AS EXPIRATION_DATE,
+                #{closeType, jdbcType=VARCHAR} AS CLOSE_TYPE,
+                NVL(#{isActive, jdbcType=NUMERIC}, 1) AS IS_ACTIVE
+            FROM DUAL
+        ) SOURCE
+        ON (TARGET.SARAMIN_JOB_ID = SOURCE.SARAMIN_JOB_ID)
+        WHEN MATCHED THEN
+            UPDATE SET 
+                TARGET.COMPANY_NAME = SOURCE.COMPANY_NAME,
+                TARGET.TITLE = SOURCE.TITLE,
+                TARGET.JOB_URL = SOURCE.JOB_URL,
+                TARGET.LOCATION_NAME = SOURCE.LOCATION_NAME,
+                TARGET.JOB_NAME = SOURCE.JOB_NAME,
+                TARGET.EXPERIENCE_LEVEL = SOURCE.EXPERIENCE_LEVEL,
+                TARGET.EXPIRATION_DATE = SOURCE.EXPIRATION_DATE,
+                TARGET.CLOSE_TYPE = SOURCE.CLOSE_TYPE,
+                TARGET.IS_ACTIVE = SOURCE.IS_ACTIVE
+        WHEN NOT MATCHED THEN
+            INSERT (
+                RECRUITMENT_NUM,
+                SARAMIN_JOB_ID,
+                COMPANY_NAME,
+                TITLE,
+                JOB_URL,
+                LOCATION_NAME,
+                JOB_NAME,
+                EXPERIENCE_LEVEL,
+                EXPIRATION_DATE,
+                CLOSE_TYPE,
+                IS_ACTIVE,
+                CREATED_AT
+            )
+            VALUES (
+                SEQ_T_RECRUITMENT.NEXTVAL,
+                SOURCE.SARAMIN_JOB_ID,
+                SOURCE.COMPANY_NAME,
+                SOURCE.TITLE,
+                SOURCE.JOB_URL,
+                SOURCE.LOCATION_NAME,
+                SOURCE.JOB_NAME,
+                SOURCE.EXPERIENCE_LEVEL,
+                SOURCE.EXPIRATION_DATE,
+                SOURCE.CLOSE_TYPE,
+                SOURCE.IS_ACTIVE,
+                SYSDATE
+            )
+    </insert>
+
+    <!-- 2. 채용 공고 페이징 & 필터링 목록 조회 -->
+    <select id="selectRecruitmentList" parameterType="com.provit.dto.recruitment.RecruitmentSearchDTO" resultType="com.provit.dto.recruitment.RecruitmentDTO">
+        SELECT 
+            RECRUITMENT_NUM AS recruitmentNum,
+            SARAMIN_JOB_ID AS saraminJobId,
+            COMPANY_NAME AS companyName,
+            TITLE AS title,
+            JOB_URL AS jobUrl,
+            LOCATION_NAME AS locationName,
+            JOB_NAME AS jobName,
+            EXPERIENCE_LEVEL AS experienceLevel,
+            EXPIRATION_DATE AS expirationDate,
+            CLOSE_TYPE AS closeType,
+            IS_ACTIVE AS isActive,
+            CREATED_AT AS createdAt
+        FROM T_RECRUITMENT
+        <where>
+            IS_ACTIVE = 1
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    LOWER(TITLE) LIKE '%' || LOWER(#{keyword}) || '%'
+                    OR LOWER(COMPANY_NAME) LIKE '%' || LOWER(#{keyword}) || '%'
+                    OR LOWER(JOB_NAME) LIKE '%' || LOWER(#{keyword}) || '%'
+                )
+            </if>
+            <if test="location != null and location != ''">
+                AND LOCATION_NAME LIKE '%' || #{location} || '%'
+            </if>
+            <if test="experienceLevel != null and experienceLevel != ''">
+                AND EXPERIENCE_LEVEL LIKE '%' || #{experienceLevel} || '%'
+            </if>
+        </where>
+        ORDER BY RECRUITMENT_NUM DESC
+        OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+    </select>
+
+    <!-- 3. 조건에 맞는 채용 공고 총 건수 조회 -->
+    <select id="selectRecruitmentCount" parameterType="com.provit.dto.recruitment.RecruitmentSearchDTO" resultType="long">
+        SELECT COUNT(*)
+        FROM T_RECRUITMENT
+        <where>
+            IS_ACTIVE = 1
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    LOWER(TITLE) LIKE '%' || LOWER(#{keyword}) || '%'
+                    OR LOWER(COMPANY_NAME) LIKE '%' || LOWER(#{keyword}) || '%'
+                    OR LOWER(JOB_NAME) LIKE '%' || LOWER(#{keyword}) || '%'
+                )
+            </if>
+            <if test="location != null and location != ''">
+                AND LOCATION_NAME LIKE '%' || #{location} || '%'
+            </if>
+            <if test="experienceLevel != null and experienceLevel != ''">
+                AND EXPERIENCE_LEVEL LIKE '%' || #{experienceLevel} || '%'
+            </if>
+        </where>
+    </select>
+
+    <!-- 4. 마감일이 지난 공고 노출 비활성화 처리 (배치용) -->
+    <update id="deactivateExpiredRecruitments">
+        UPDATE T_RECRUITMENT
+        SET IS_ACTIVE = 0
+        WHERE IS_ACTIVE = 1
+          AND EXPIRATION_DATE IS NOT NULL
+          AND EXPIRATION_DATE &lt; SYSDATE
+    </update>
+
 </mapper>
