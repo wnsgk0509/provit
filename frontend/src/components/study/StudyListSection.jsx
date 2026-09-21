@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { fetchStudyList, deleteStudy, joinStudy, leaveStudy } from '../../api/studyApi';
 import { useAuth } from '../../context/AuthContext';
 import StudyCreateModal from './StudyCreateModal';
+import StudyEditModal from './StudyEditModal';
 
 function StudyListSection() {
     const { user, isLoggedIn } = useAuth();
     const [studies, setStudies] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
+    const [editModalData, setEditModalData] = useState(null);
 
     useEffect(() => {
         loadStudies();
@@ -135,14 +137,22 @@ function StudyListSection() {
                                             <span className="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill">
                                                 👥 {study.memberCount}명 참여중
                                             </span>
-                                            {/* 방장일 경우 삭제 버튼 표출 */}
+                                            {/* 방장일 경우 수정/삭제 버튼 표출 */}
                                             {user && user.userNum === study.userNum && (
-                                                <button 
-                                                    className="btn btn-sm btn-link text-danger p-0 text-decoration-none"
-                                                    onClick={() => handleDelete(study.studyNum)}
-                                                >
-                                                    삭제
-                                                </button>
+                                                <div>
+                                                    <button 
+                                                        className="btn btn-sm btn-link text-secondary p-0 text-decoration-none me-2"
+                                                        onClick={() => setEditModalData(study)}
+                                                    >
+                                                        수정
+                                                    </button>
+                                                    <button 
+                                                        className="btn btn-sm btn-link text-danger p-0 text-decoration-none"
+                                                        onClick={() => handleDelete(study.studyNum)}
+                                                    >
+                                                        삭제
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                         
@@ -185,6 +195,17 @@ function StudyListSection() {
                 show={showModal} 
                 onClose={() => setShowModal(false)} 
                 onSuccess={loadStudies}
+            />
+
+            {/* 수정 모달 */}
+            <StudyEditModal
+                show={editModalData !== null}
+                onClose={() => setEditModalData(null)}
+                onSuccess={() => {
+                    setEditModalData(null);
+                    loadStudies();
+                }}
+                initialData={editModalData}
             />
         </div>
     );

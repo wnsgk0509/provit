@@ -21,6 +21,16 @@ export const createStudy = async (studyDto) => {
     }
 };
 
+export const updateStudy = async (studyNum, studyDto) => {
+    try {
+        const response = await client.put(`/studies/${studyNum}`, studyDto);
+        return response.data;
+    } catch (error) {
+        console.error('스터디 수정 실패:', error);
+        throw error;
+    }
+};
+
 export const deleteStudy = async (studyNum) => {
     try {
         const response = await client.delete(`/studies/${studyNum}`);

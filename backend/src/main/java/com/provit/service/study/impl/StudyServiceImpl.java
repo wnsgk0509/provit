@@ -49,6 +49,12 @@ public class StudyServiceImpl implements StudyService {
 
     @Override
     @Transactional
+    public void updateStudy(StudyDTO studyDto) {
+        studyDao.updateStudy(studyDto);
+    }
+
+    @Override
+    @Transactional
     public void deleteStudy(Long studyNum) {
         // DB 테이블에 ON DELETE CASCADE가 걸려 있으므로, 
         // 방을 지우면 참여자 명단도 자동으로 지워짐

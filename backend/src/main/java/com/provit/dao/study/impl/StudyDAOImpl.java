@@ -36,6 +36,11 @@ public class StudyDAOImpl implements StudyDAO {
     }
 
     @Override
+    public int updateStudy(StudyDTO studyDto) {
+        return sqlSession.update(NAMESPACE + "updateStudy", studyDto);
+    }
+
+    @Override
     public int deleteStudy(Long studyNum) {
         return sqlSession.delete(NAMESPACE + "deleteStudy", studyNum);
     }

@@ -75,6 +75,16 @@
         WHERE STUDY_NUM = #{studyNum}
     </delete>
 
+    <!-- 4-1. 스터디 수정 (방장만 가능) -->
+    <update id="updateStudy" parameterType="com.provit.dto.study.StudyDTO">
+        UPDATE T_STUDY
+        SET 
+            STUDY_NAME = #{studyName},
+            STUDY_EXPLAIN = #{studyExplain}
+        WHERE 
+            STUDY_NUM = #{studyNum} AND USER_NUM = #{userNum}
+    </update>
+
     <!-- ============================================== -->
     <!-- 스터디 멤버(참여자) 관리 쿼리 -->
     <!-- ============================================== -->

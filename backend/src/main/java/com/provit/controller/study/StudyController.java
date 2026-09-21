@@ -50,6 +50,18 @@ public class StudyController {
     }
 
     /**
+     * 3-1. 스터디 수정 (방장 전용)
+     */
+    @PutMapping("/{studyNum}")
+    public ApiResponse<Void> updateStudy(
+            @PathVariable Long studyNum,
+            @RequestBody StudyDTO studyDto) {
+        studyDto.setStudyNum(studyNum);
+        studyService.updateStudy(studyDto);
+        return ApiResponse.success();
+    }
+
+    /**
      * 4. 스터디 참여하기
      */
     @PostMapping("/{studyNum}/join")

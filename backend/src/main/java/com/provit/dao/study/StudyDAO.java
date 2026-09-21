@@ -8,6 +8,7 @@ public interface StudyDAO {
     List<StudyDTO> selectStudyList(Long userNum);
     StudyDTO selectStudyDetail(Long studyNum);
     int insertStudy(StudyDTO studyDto);
+    int updateStudy(StudyDTO studyDto);
     int deleteStudy(Long studyNum);
     
     // Member
