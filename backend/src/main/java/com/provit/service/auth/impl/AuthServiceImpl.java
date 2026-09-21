@@ -314,7 +314,8 @@ public class AuthServiceImpl implements AuthService {
 
         // 3. 탈퇴 계정 여부 확인
         if (user.getUserIsDeleted() != null && user.getUserIsDeleted() == 1) {
-            throw new IllegalArgumentException("탈퇴 처리된 계정입니다. 고객센터에 문의해 주세요.");
+            // 탈퇴 여부로 이메일 존재 여부가 노출되지 않도록 일반 인증 실패 메시지를 사용한다.
+            throw new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다.");
         }
 
         // 4. BCrypt 비밀번호 일치 검증
@@ -420,9 +421,11 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalStateException("회원 정보 수정에 실패했습니다.");
         }
 
-        // DB 저장 뒤에만 기존 JWT를 무효화해 실패한 요청으로 로그아웃되는 일을 막는다.
+        // DB 저장 뒤 토큰 버전을 증가시켜 비밀번호 변경 전 JWT를 영구적으로 무효화한다.
         if (passwordChanged) {
-            jwtProvider.invalidateTokensForUser(userNum);
+            if (userDAO.incrementTokenVersion(userNum) != 1) {
+                throw new IllegalStateException("기존 로그인 정보를 만료하지 못했습니다.");
+            }
         }
 
         return getUserProfile(userNum);
@@ -450,7 +453,5 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalStateException("회원 탈퇴 처리에 실패했습니다.");
         }
 
-        // 탈퇴 직후에도 기존 JWT로 접근할 수 없도록 현재 서버의 토큰을 무효화한다.
-        jwtProvider.invalidateTokensForUser(userNum);
     }
 }

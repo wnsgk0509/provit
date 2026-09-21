@@ -57,6 +57,11 @@ public class UserDAOImpl implements UserDAO {
     }
 
     @Override
+    public int incrementTokenVersion(Long userNum) {
+        return sqlSession.update(NAMESPACE + ".incrementTokenVersion", userNum);
+    }
+
+    @Override
     public int withdrawMyAccount(Long userNum) {
         return sqlSession.update(NAMESPACE + ".withdrawMyAccount", userNum);
     }

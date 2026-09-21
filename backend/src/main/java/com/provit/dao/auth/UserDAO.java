@@ -21,5 +21,7 @@ public interface UserDAO {
 
     int updateMyProfile(UserDTO userDTO);
 
+    int incrementTokenVersion(Long userNum);
+
     int withdrawMyAccount(Long userNum);
 }
