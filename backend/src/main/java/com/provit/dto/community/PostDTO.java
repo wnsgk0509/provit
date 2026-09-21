@@ -32,4 +32,7 @@ public class PostDTO {
     // 2. JOIN 쿼리를 통해 가져올 추가 정보 (화면 표시용)
     private String categoryName;   // 소속 카테고리 이름 (T_CATEGORY)
     private String userNickname;   // 작성자 닉네임 (T_USER)
+    
+    // 3. 서브쿼리를 통해 가져올 통계 정보
+    private Integer commentCount;  // 게시글에 달린 댓글 수
 }

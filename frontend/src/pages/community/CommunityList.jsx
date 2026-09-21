@@ -201,6 +201,9 @@ function CommunityList() {
                                                 <Link to={`/community/${post.postNum}`} className="text-decoration-none text-dark fw-semibold">
                                                     {post.postTitle}
                                                 </Link>
+                                                {post.commentCount > 0 && (
+                                                    <span className="text-danger small ms-2 fw-bold">[{post.commentCount}]</span>
+                                                )}
                                             </td>
                                             <td>{post.userNickname || '익명'}</td>
                                             <td className="text-muted small">{formatDate(post.postDate)}</td>
