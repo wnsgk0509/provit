@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { Award, BriefcaseBusiness, GraduationCap, Plus, Trash2 } from 'lucide-react';
+import { createResume } from '../../../api/documentApi';
 
+const emptyResume = {
+    resumeTitle: '', highestLevel: '', educationCode: '', motivation: '',
+    desiredLocation: '', desiredWorkType: '',
+};
 const emptyEducation = {
     schoolName: '', admissionDate: '', graduationDate: '', major: '', educationStatus: '',
 };
@@ -8,13 +13,12 @@ const emptyCareer = { companyName: '', joinDate: '', resignDate: '', mainDuty: '
 const emptyCertification = { certName: '', certGrade: '', issueDate: '' };
 
 function ResumeWrite() {
-    const [resume, setResume] = useState({
-        resumeTitle: '', highestLevel: '', educationCode: '', motivation: '',
-        desiredLocation: '', desiredWorkType: '',
-    });
+    const [resume, setResume] = useState({ ...emptyResume });
     const [educations, setEducations] = useState([{ ...emptyEducation }]);
     const [careers, setCareers] = useState([]);
     const [certifications, setCertifications] = useState([]);
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
 
     const handleResumeChange = (event) => {
         const { name, value } = event.target;
@@ -31,8 +35,63 @@ function ResumeWrite() {
         setter((items) => items.filter((_, itemIndex) => itemIndex !== index));
     };
 
+    const emptyDateToNull = (item, dateFields) => {
+        const normalizedItem = { ...item };
+        dateFields.forEach((field) => {
+            normalizedItem[field] = normalizedItem[field] || null;
+        });
+        return normalizedItem;
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        setIsSaving(true);
+        setSaveMessage({ type: '', text: '' });
+
+        const payload = {
+            resume: {
+                ...resume,
+                educationCode: Number(resume.educationCode),
+            },
+            educationList: educations.map((education) => (
+                emptyDateToNull(education, ['admissionDate', 'graduationDate'])
+            )),
+            careerList: careers.map((career) => (
+                emptyDateToNull(career, ['joinDate', 'resignDate'])
+            )),
+            certificationList: certifications.map((certification) => (
+                emptyDateToNull(certification, ['issueDate'])
+            )),
+        };
+
+        try {
+            const savedResume = await createResume(payload);
+            const resumeNum = savedResume?.resume?.resumeNum;
+            setResume({ ...emptyResume });
+            setEducations([{ ...emptyEducation }]);
+            setCareers([]);
+            setCertifications([]);
+            setSaveMessage({
+                type: 'success',
+                text: resumeNum
+                    ? `이력서가 저장되었습니다. (이력서 번호: ${resumeNum})`
+                    : '이력서가 저장되었습니다.',
+            });
+        } catch (error) {
+            const responseData = error.response?.data;
+            setSaveMessage({
+                type: 'error',
+                text: responseData?.data
+                    || responseData?.responseCode?.message
+                    || '이력서를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
-        <form className="document-form" onSubmit={(event) => event.preventDefault()}>
+        <form className="document-form" onSubmit={handleSubmit}>
             <div className="document-form-heading">
                 <span>RESUME</span>
                 <h2>이력서 작성</h2>
@@ -191,8 +250,15 @@ function ResumeWrite() {
             </RepeatSection>
 
             <div className="document-form-actions">
-                <button type="submit" className="document-primary-button">이력서 저장</button>
+                <button type="submit" className="document-primary-button" disabled={isSaving}>
+                    {isSaving ? '저장 중...' : '이력서 저장'}
+                </button>
             </div>
+            {saveMessage.text && (
+                <p className={`document-save-message is-${saveMessage.type}`} role="status">
+                    {saveMessage.text}
+                </p>
+            )}
         </form>
     );
 }

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.mapper.document.ResumeWriteMapper">
+
+    <select id="countEducationCode" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM T_EDUCODE
+        WHERE EDUCATION_CODE = #{educationCode}
+    </select>
+
+    <insert id="insertResume" parameterType="com.provit.dto.user.ResumeDTO">
+        <selectKey keyProperty="resumeNum" resultType="int" order="BEFORE">
+            SELECT SEQ_T_RESUME.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_RESUME (
+            RESUME_NUM,
+            USER_NUM,
+            RESUME_TITLE,
+            HIGHEST_LEVEL,
+            EDUCATION_CODE,
+            MOTIVATION,
+            DESIRED_LOCATION,
+            DESIRED_WORK_TYPE,
+            CREATED_AT,
+            UPDATED_AT
+        ) VALUES (
+            #{resumeNum},
+            #{userNum},
+            #{resumeTitle},
+            #{highestLevel},
+            #{educationCode},
+            #{motivation, jdbcType=CLOB},
+            #{desiredLocation, jdbcType=VARCHAR},
+            #{desiredWorkType, jdbcType=VARCHAR},
+            SYSDATE,
+            SYSDATE
+        )
+    </insert>
+
+    <insert id="insertEducation" parameterType="com.provit.dto.user.EducationDTO">
+        <selectKey keyProperty="eduNum" resultType="int" order="BEFORE">
+            SELECT SEQ_T_EDUCATION.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_EDUCATION (
+            EDU_NUM,
+            RESUME_NUM,
+            SCHOOL_NAME,
+            ADMISSION_DATE,
+            GRADUATION_DATE,
+            MAJOR,
+            EDUCATION_STATUS
+        ) VALUES (
+            #{eduNum},
+            #{resumeNum},
+            #{schoolName},
+            #{admissionDate, jdbcType=DATE},
+            #{graduationDate, jdbcType=DATE},
+            #{major, jdbcType=VARCHAR},
+            #{educationStatus}
+        )
+    </insert>
+
+    <insert id="insertCareer" parameterType="com.provit.dto.user.CareerDTO">
+        <selectKey keyProperty="careerNum" resultType="int" order="BEFORE">
+            SELECT SEQ_T_CAREER.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_CAREER (
+            CAREER_NUM,
+            RESUME_NUM,
+            COMPANY_NAME,
+            JOIN_DATE,
+            RESIGN_DATE,
+            MAIN_DUTY
+        ) VALUES (
+            #{careerNum},
+            #{resumeNum},
+            #{companyName},
+            #{joinDate, jdbcType=DATE},
+            #{resignDate, jdbcType=DATE},
+            #{mainDuty, jdbcType=VARCHAR}
+        )
+    </insert>
+
+    <insert id="insertCertification" parameterType="com.provit.dto.user.CertificationDTO">
+        <selectKey keyProperty="certNum" resultType="int" order="BEFORE">
+            SELECT SEQ_T_CERTIFICATION.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_CERTIFICATION (
+            CERT_NUM,
+            RESUME_NUM,
+            CERT_NAME,
+            CERT_GRADE,
+            ISSUE_DATE
+        ) VALUES (
+            #{certNum},
+            #{resumeNum},
+            #{certName},
+            #{certGrade, jdbcType=VARCHAR},
+            #{issueDate, jdbcType=DATE}
+        )
+    </insert>
+
+</mapper>

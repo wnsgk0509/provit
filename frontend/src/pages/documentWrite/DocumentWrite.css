@@ -339,6 +339,26 @@
     background: #4059a9;
 }
 
+.document-primary-button:disabled {
+    border-color: #aeb7d4;
+    background: #aeb7d4;
+    cursor: not-allowed;
+}
+
+.document-save-message {
+    margin: 14px 0 0;
+    font-size: 13px;
+    text-align: right;
+}
+
+.document-save-message.is-success {
+    color: #258045;
+}
+
+.document-save-message.is-error {
+    color: #d14343;
+}
+
 @media (max-width: 640px) {
     .document-type-card,
     .document-form {
