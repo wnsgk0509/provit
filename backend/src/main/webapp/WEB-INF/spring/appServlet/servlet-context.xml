@@ -11,10 +11,13 @@
     <!-- 1. Spring MVC 애노테이션 활성화 (Jackson JSON 변환 등 자동 처리) -->
     <annotation-driven />
 
+    <!-- 외부 프로퍼티 로드 (업로드 스토리지 경로 등) -->
+    <context:property-placeholder location="classpath:api.properties" ignore-resource-not-found="true" />
+
     <!-- 2. 정적 리소스 핸들링 -->
     <resources mapping="/resources/**" location="/resources/" />
-    <!-- 업로드 파일 외부 스토리지 정적 리소스 매핑 (브라우저 접근 URL: /uploads/**) -->
-    <resources mapping="/uploads/**" location="file:D:/fileStorage_Provit/" />
+    <!-- 업로드 파일 외부 스토리지 정적 리소스 매핑 (OS/서버 환경별 외부 프로퍼티 기반 동적 매핑) -->
+    <resources mapping="/uploads/**" location="file:${file.upload.base-dir:D:/fileStorage_Provit}/" />
 
     <!-- 멀티파트 파일 업로드 리졸버 (Servlet 3.0+ StandardServletMultipartResolver) -->
     <beans:bean id="multipartResolver" class="org.springframework.web.multipart.support.StandardServletMultipartResolver" />

@@ -72,9 +72,10 @@ public class AuthController {
      * 3. 이메일 인증번호 발송
      */
     @PostMapping("/send-code")
-    public ResponseEntity<ApiResponse<String>> sendVerificationCode(@RequestBody EmailSendRequestDTO requestDTO) {
-        authService.sendVerificationEmail(requestDTO.getEmail());
-        ApiResponse<String> response = new ApiResponse<>(ResponseCode.AUTH_CODE_SENT, "인증번호가 이메일로 발송되었습니다.");
+    public ResponseEntity<ApiResponse<Map<String, Long>>> sendVerificationCode(@RequestBody EmailSendRequestDTO requestDTO) {
+        long expiresAt = authService.sendVerificationEmail(requestDTO.getEmail());
+        // 서버에서 계산한 만료 시각을 내려줘 클라이언트 타이머 오차를 줄인다.
+        ApiResponse<Map<String, Long>> response = new ApiResponse<>(ResponseCode.AUTH_CODE_SENT, Collections.singletonMap("expiresAt", expiresAt));
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
