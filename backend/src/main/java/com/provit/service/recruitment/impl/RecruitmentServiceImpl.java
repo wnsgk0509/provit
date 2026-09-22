@@ -76,4 +76,13 @@ public class RecruitmentServiceImpl implements RecruitmentService {
 
         return PageResponse.of(list, searchDTO.getPage(), searchDTO.getSize(), totalCount);
     }
+
+    @Override
+    @Transactional
+    public int deactivateExpiredRecruitments() {
+        log.info(">> [Service] 마감일 경과 채용 공고 일괄 비활성화(IS_ACTIVE=0) 시작");
+        int deactivatedCount = recruitmentDAO.deactivateExpiredRecruitments();
+        log.info(">> [Service] 마감일 경과 채용 공고 일괄 비활성화 완료: 총 {}건 비활성화 처리", deactivatedCount);
+        return deactivatedCount;
+    }
 }

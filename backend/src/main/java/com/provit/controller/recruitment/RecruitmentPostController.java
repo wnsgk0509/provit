@@ -53,4 +53,16 @@ public class RecruitmentPostController {
         int syncedCount = recruitmentService.syncSaraminRecruitments(limit);
         return ApiResponse.success("사람인 실시간 인기 공고 총 " + syncedCount + "건이 성공적으로 수집/동기화되었습니다.");
     }
+
+    /**
+     * 마감일이 지난 공고 수동 비활성화(IS_ACTIVE=0) 트리거 API (관리자 및 배치 테스트용)
+     * 예: POST /api/recruitment/expire
+     */
+    @PostMapping("/expire")
+    public ApiResponse<String> deactivateExpiredRecruitments() {
+        log.info(">> [/api/recruitment/expire] 마감 공고 수동 비활성화 요청 수신");
+
+        int count = recruitmentService.deactivateExpiredRecruitments();
+        return ApiResponse.success("마감일이 지난 공고 총 " + count + "건이 비활성화 처리되었습니다.");
+    }
 }

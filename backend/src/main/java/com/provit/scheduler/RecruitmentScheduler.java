@@ -25,12 +25,35 @@ public class RecruitmentScheduler {
     }
 
     /**
-     * 매일 새벽 03:00:00 실행 (초 분 시 일 월 요일)
+     * [배치 1] 매일 자정 00:00:00 실행 (초 분 시 일 월 요일)
+     * 마감일(EXPIRATION_DATE)이 경과한 채용 공고를 자동으로 비활성화(IS_ACTIVE = 0) 처리합니다.
+     */
+    @Scheduled(cron = "0 0 0 * * ?")
+    public void scheduleDailyExpiredRecruitmentDeactivation() {
+        log.info("===============================================================");
+        log.info(">> [Scheduler] 매일 자정 마감 공고 비활성화 배치 시작 (00:00:00)");
+        log.info("===============================================================");
+
+        try {
+            int count = recruitmentService.deactivateExpiredRecruitments();
+            log.info(">> [Scheduler] 마감 공고 정리 성공: 총 {}건 비활성화 완료", count);
+        } catch (Exception e) {
+            log.error(">> [Scheduler] 마감 공고 정리 중 에러 발생: {}", e.getMessage(), e);
+        }
+
+        log.info("===============================================================");
+        log.info(">> [Scheduler] 매일 자정 마감 공고 비활성화 배치 종료");
+        log.info("===============================================================");
+    }
+
+    /**
+     * [배치 2] 매일 새벽 03:00:00 실행 (초 분 시 일 월 요일)
+     * 사람인 실시간 인기 상위 1,000개 공고를 자동 크롤링하여 DB에 최신 상태로 동기화합니다.
      */
     @Scheduled(cron = "0 0 3 * * ?")
     public void scheduleDailyRecruitmentSync() {
         log.info("===============================================================");
-        log.info(">> [Scheduler] 매일 새벽 채용공고 자동 동기화 배치 시작 (03:00)");
+        log.info(">> [Scheduler] 매일 새벽 채용공고 자동 동기화 배치 시작 (03:00:00)");
         log.info("===============================================================");
 
         try {
