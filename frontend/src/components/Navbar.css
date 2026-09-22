@@ -1,0 +1,200 @@
+body {
+    padding-top: 68px;
+}
+
+.provit-navbar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 1030;
+    min-height: 68px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e9ecef;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    transition: background-color 180ms ease, box-shadow 180ms ease, backdrop-filter 180ms ease;
+}
+
+.provit-navbar.is-scrolled {
+    background-color: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 2px 14px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(10px);
+}
+
+.provit-navbar-container {
+    display: flex;
+    align-items: center;
+    min-height: 68px;
+}
+
+.provit-navbar-brand {
+    color: #0d6efd;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    text-decoration: none;
+}
+
+.provit-navbar-menu {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    margin-left: 3rem;
+}
+
+.provit-navbar-links,
+.provit-navbar-auth {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.provit-navbar-links a,
+.provit-navbar-auth a,
+.provit-navbar-auth button {
+    color: #495057;
+    font-size: 0.94rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 160ms ease, background-color 160ms ease;
+}
+
+.provit-navbar-links a:hover,
+.provit-navbar-links a.is-active,
+.provit-navbar-mypage:hover,
+.provit-navbar-login:hover {
+    color: #0d6efd;
+}
+
+.provit-navbar-links a.is-active {
+    font-weight: 800;
+}
+
+.provit-navbar-mypage,
+.provit-navbar-login,
+.provit-navbar-logout {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 0.34rem 0.68rem;
+    font-size: 0.84rem !important;
+    white-space: nowrap;
+}
+
+.provit-navbar-login,
+.provit-navbar-logout {
+    border: 1px solid transparent;
+    border-radius: 0.4rem;
+}
+
+.provit-navbar-logout {
+    color: #6c757d !important;
+    background: transparent;
+    border-color: transparent;
+    cursor: pointer;
+}
+
+.provit-navbar-logout:hover {
+    color: #0d6efd !important;
+    background-color: transparent;
+    border-color: transparent;
+}
+
+.provit-navbar-toggle {
+    display: none;
+    margin-left: auto;
+    padding: 0.35rem;
+    color: #212529;
+    background: transparent;
+    border: 0;
+    border-radius: 0.35rem;
+}
+
+.provit-navbar-toggle:focus-visible,
+.provit-navbar-links a:focus-visible,
+.provit-navbar-auth a:focus-visible,
+.provit-navbar-auth button:focus-visible {
+    outline: 3px solid rgba(13, 110, 253, 0.32);
+    outline-offset: 3px;
+}
+
+@media (max-width: 991.98px) {
+    body {
+        padding-top: 62px;
+    }
+
+    .provit-navbar,
+    .provit-navbar-container {
+        min-height: 62px;
+    }
+
+    .provit-navbar-container {
+        flex-wrap: wrap;
+    }
+
+    .provit-navbar-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .provit-navbar-menu {
+        display: none;
+        flex-basis: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        margin: 0;
+        padding: 0.5rem 0 1rem;
+    }
+
+    .provit-navbar-menu.is-open {
+        display: flex;
+    }
+
+    .provit-navbar-links,
+    .provit-navbar-auth {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+    }
+
+    .provit-navbar-links {
+        padding-bottom: 0.6rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .provit-navbar-links a,
+    .provit-navbar-auth a,
+    .provit-navbar-auth button {
+        display: block;
+        width: 100%;
+        padding: 0.72rem 0;
+        text-align: left;
+    }
+
+    .provit-navbar-auth {
+        padding-top: 0.6rem;
+    }
+
+    .provit-navbar-logout {
+        padding: 0.72rem !important;
+        text-align: center !important;
+    }
+
+    .provit-navbar-auth .provit-navbar-logout {
+        align-self: flex-start;
+        width: auto;
+        padding: 0.42rem 0.7rem !important;
+    }
+
+    .provit-navbar-login,
+    .provit-navbar-mypage {
+        padding-left: 0.72rem !important;
+    }
+}
