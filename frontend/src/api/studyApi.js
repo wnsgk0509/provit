@@ -60,3 +60,13 @@ export const leaveStudy = async (studyNum, userNum) => {
         throw error;
     }
 };
+
+export const fetchStudyMembers = async (studyNum) => {
+    try {
+        const response = await client.get(`/studies/${studyNum}/members`);
+        return response.data;
+    } catch (error) {
+        console.error('스터디 참여자 조회 실패:', error);
+        throw error;
+    }
+};
