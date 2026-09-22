@@ -26,7 +26,7 @@ function Signup() {
     const [isEmailSent, setIsEmailSent] = useState(false);
     const [isEmailVerified, setIsEmailVerified] = useState(false);
     const [verificationToken, setVerificationToken] = useState("");
-    const [timer, setTimer] = useState(0); // 초 단위 (300초 = 5분)
+    const [timer, setTimer] = useState(0); // 초 단위 (180초 = 3분)
     const [isEmailChecked, setIsEmailChecked] = useState(false);
     const [isEmailAvailable, setIsEmailAvailable] = useState(false);
     const [emailMsg, setEmailMsg] = useState("");
@@ -201,7 +201,7 @@ function Signup() {
                 { timeout: 30000 }
             );
             setIsEmailSent(true);
-            setTimer(300); // 5분 (300초)
+            setTimer(180); // 3분 (180초)
             setAlertMsg({ type: "success", text: "인증번호가 발송되었습니다. 메일함을 확인해 주세요." });
         } catch (error) {
             const resData = error.response?.data;

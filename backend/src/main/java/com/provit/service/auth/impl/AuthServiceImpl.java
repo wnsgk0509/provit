@@ -45,7 +45,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtProvider jwtProvider;
     private final MailService mailService;
 
-    // 이메일 인증코드 캐시 (이메일 -> 인증코드 정보, 유효시간 5분)
+    // 이메일 인증코드 캐시 (이메일 -> 인증코드 정보, 유효시간 3분)
     private final Map<String, VerificationCodeInfo> emailCodeMap = new ConcurrentHashMap<>();
     // 이메일 인증 완료 티켓 캐시 (토큰 -> 이메일 정보, 유효시간 30분)
     private final Map<String, VerificationTokenInfo> verifiedTokenMap = new ConcurrentHashMap<>();
@@ -187,7 +187,7 @@ public class AuthServiceImpl implements AuthService {
 
         if (info.isExpired()) {
             emailCodeMap.remove(trimmedEmail);
-            throw new IllegalArgumentException("인증번호 유효시간(5분)이 만료되었습니다. 다시 발송해 주세요.");
+            throw new IllegalArgumentException("인증번호 유효시간(3분)이 만료되었습니다. 다시 발송해 주세요.");
         }
 
         if (!info.code.equals(trimmedCode)) {
