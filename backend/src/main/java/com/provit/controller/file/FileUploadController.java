@@ -47,7 +47,8 @@ public class FileUploadController {
 
     /**
      * 카테고리별 단일 파일 업로드 API
-     * DB 테이블의 고유 NUM 값을 전달받아 파일명(예: {targetId}_{원본파일명})으로 명명합니다.
+     * DB 테이블의 고유 NUM 값을 전달받아 파일명(예: {targetId}_{난수}_{원본파일명})으로 명명합니다.
+     * JWT 인증 및 리소스 소유권을 철저히 검증합니다.
      */
     @PostMapping("/{category}")
     public ResponseEntity<ApiResponse<FileUploadResponseDTO>> uploadFile(
@@ -56,68 +57,79 @@ public class FileUploadController {
             @RequestParam(value = "targetId", required = false) Long targetId,
             @RequestParam("file") MultipartFile file) {
 
-        log.info(">> [/api/upload/{}] 파일 업로드 요청 수신: targetId={}, 파일명={}, 크기={} bytes",
-                categoryName, targetId, file != null ? file.getOriginalFilename() : "null", file != null ? file.getSize() : 0);
+        // 1. JWT 인증 검증 (비로그인 사용자 차단)
+        String token = extractToken(request);
+        if (token == null) {
+            log.warn(">> [/api/upload/{}] 인증되지 않은 사용자의 업로드 시도 차단", categoryName);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error(ResponseCode.AUTH_UNAUTHORIZED));
+        }
+        Long authUserNum = jwtProvider.getUserNum(token);
+        String authRole = jwtProvider.getUserRole(token);
+
+        log.info(">> [/api/upload/{}] 파일 업로드 요청 수신: authUserNum={}, role={}, targetId={}, 파일명={}, 크기={} bytes",
+                categoryName, authUserNum, authRole, targetId, file != null ? file.getOriginalFilename() : "null", file != null ? file.getSize() : 0);
 
         try {
-            // 1. 카테고리 Enum 변환
+            // 2. 카테고리 Enum 변환
             FileCategory category = FileCategory.fromString(categoryName);
 
-            // 2. targetId 누락 시 프로필의 경우 로그인 JWT 토큰에서 자동 추출 시도
-            if (targetId == null || targetId <= 0) {
-                if (category == FileCategory.PROFILE) {
-                    Long authUserNum = getAuthenticatedUserNum(request);
-                    if (authUserNum != null && authUserNum > 0) {
-                        targetId = authUserNum;
-                    }
-                }
+            // 3. targetId 처리
+            // PROFILE: 타인 프로필 변조 방지를 위해 무조건 로그인 사용자의 userNum으로 강제 고정
+            if (category == FileCategory.PROFILE) {
+                targetId = authUserNum;
+            } else if (targetId == null || targetId <= 0) {
+                // 신규 등록 전(포트폴리오, 게시글) 임시 선업로드의 경우 로그인 회원의 userNum을 targetId로 기본 매핑
+                targetId = authUserNum;
             }
 
-            if (targetId == null || targetId <= 0) {
-                throw new IllegalArgumentException("파일과 연계할 DB 테이블의 고유 번호(targetId)를 전달해 주세요. (예: portfolioNum, postNum, userNum)");
-            }
-
-            // 3. 파일 검증 및 DB 고유 NUM 기반 저장 수행
-            FileUploadResponseDTO responseDTO = fileUploadService.uploadFile(file, category, targetId);
+            // 4. 리소스 소유권 검증 및 파일 저장 (고유 NUM + 난수 결합 명명)
+            FileUploadResponseDTO responseDTO = fileUploadService.uploadFile(
+                    file, category, targetId, authUserNum, authRole);
 
             return ResponseEntity.ok(ApiResponse.success(responseDTO));
 
         } catch (IllegalArgumentException e) {
-            log.warn(">> [/api/upload/{}] 파일 검증 실패: {}", categoryName, e.getMessage());
+            log.warn(">> [/api/upload/{}] 파일 유효성 검증 실패: {}", categoryName, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse<>(ResponseCode.BAD_REQUEST, null));
+        } catch (SecurityException e) {
+            log.warn(">> [/api/upload/{}] 리소스 소유권 검증 실패 (BOLA/IDOR 차단): {}", categoryName, e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null));
         } catch (Exception e) {
-            log.error(">> [/api/upload/{}] 서버 오류 발생: {}", categoryName, e.getMessage(), e);
+            log.error(">> [/api/upload/{}] 파일 업로드 서버 오류 발생: {}", categoryName, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ApiResponse<>(ResponseCode.INTERNAL_SERVER_ERROR, null));
+                    .body(ApiResponse.error(ResponseCode.INTERNAL_SERVER_ERROR));
         }
-    }
-
-    private Long getAuthenticatedUserNum(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
-        String token = authHeader.substring(7).trim();
-        if (!jwtProvider.validateToken(token)) {
-            return null;
-        }
-        return jwtProvider.getUserNum(token);
     }
 
     /**
      * 카테고리별 저장된 파일 삭제 API
+     * JWT 인증 및 본인 파일(또는 관리자) 소유권 검증을 통과해야만 물리 파일이 삭제됩니다.
      */
     @DeleteMapping("/{category}/{savedFileName}")
     public ResponseEntity<ApiResponse<String>> deleteFile(
+            HttpServletRequest request,
             @PathVariable("category") String categoryName,
             @PathVariable("savedFileName") String savedFileName) {
 
-        log.info(">> [/api/upload/{}/{}] 파일 삭제 요청 수신", categoryName, savedFileName);
+        // 1. JWT 인증 검증 (비로그인 사용자 차단)
+        String token = extractToken(request);
+        if (token == null) {
+            log.warn(">> [/api/upload/{}/{}] 비인증 사용자의 파일 삭제 시도 차단", categoryName, savedFileName);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error(ResponseCode.AUTH_UNAUTHORIZED));
+        }
+        Long authUserNum = jwtProvider.getUserNum(token);
+        String authRole = jwtProvider.getUserRole(token);
+
+        log.info(">> [/api/upload/{}/{}] 파일 삭제 요청 수신: authUserNum={}, role={}",
+                categoryName, savedFileName, authUserNum, authRole);
 
         try {
             FileCategory category = FileCategory.fromString(categoryName);
-            boolean deleted = fileUploadService.deleteFile(category, savedFileName);
+            boolean deleted = fileUploadService.deleteFile(category, savedFileName, authUserNum, authRole);
 
             if (deleted) {
                 return ResponseEntity.ok(ApiResponse.success("파일이 성공적으로 삭제되었습니다."));
@@ -128,6 +140,26 @@ public class FileUploadController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse<>(ResponseCode.BAD_REQUEST, e.getMessage()));
+        } catch (SecurityException e) {
+            log.warn(">> [/api/upload/{}/{}] 파일 삭제 권한 없음: {}", categoryName, savedFileName, e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, e.getMessage()));
+        } catch (Exception e) {
+            log.error(">> [/api/upload/{}/{}] 파일 삭제 처리 중 서버 오류: {}", categoryName, savedFileName, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(ResponseCode.INTERNAL_SERVER_ERROR));
         }
+    }
+
+    /**
+     * 요청 헤더의 Authorization 토큰을 추출하고 유효성을 검증합니다.
+     */
+    private String extractToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+        String token = authHeader.substring(7).trim();
+        return jwtProvider.validateToken(token) ? token : null;
     }
 }
