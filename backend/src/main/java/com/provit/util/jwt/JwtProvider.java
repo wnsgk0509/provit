@@ -150,6 +150,14 @@ public class JwtProvider {
         return claims.get("email", String.class);
     }
 
+    /**
+     * 토큰에서 회원 권한(USER_TYPE: USER, ADMIN) 추출
+     */
+    public String getUserRole(String token) {
+        Claims claims = getClaims(token);
+        return claims.get("role", String.class);
+    }
+
     public long getExpirationTime() {
         return expirationTime;
     }
