@@ -5,9 +5,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.provit.dao.interview.InterviewDAO;
 import com.provit.dto.interview.InterviewAnswerRequestDTO;
@@ -33,6 +37,10 @@ import com.provit.service.interview.generator.InterviewGenerator;
 
 @Service
 public class InterviewServiceImpl implements InterviewService {
+
+    private static final Logger log = LoggerFactory.getLogger(InterviewServiceImpl.class);
+    private static final int ANSWER_TIME_LIMIT_SECONDS = 120;
+    private static final long SESSION_TIMEOUT_MILLIS = TimeUnit.MINUTES.toMillis(30);
 
     private final InterviewDAO interviewDAO;
     private final InterviewGenerator interviewGenerator;
@@ -79,16 +87,14 @@ public class InterviewServiceImpl implements InterviewService {
             int resumeNum,
             int portfolioNum,
             int letterNum) {
+        validateDocumentNumbers(resumeNum, portfolioNum, letterNum);
+
         LlmInterviewContextDTO context = new LlmInterviewContextDTO();
         context.setJobPreference(interviewDAO.selectUserJobPreferenceByUserNum(userNum));
         context.setResumeDetail(getResumeDetail(userNum, resumeNum));
-
-        if (portfolioNum > 0) {
-            context.setPortfolio(interviewDAO.selectPortfolioByPortfolioNumAndUserNum(portfolioNum, userNum));
-        }
-        if (letterNum > 0) {
-            context.setCoverLetter(interviewDAO.selectCoverLetterByLetterNumAndUserNum(letterNum, userNum));
-        }
+        context.setPortfolio(interviewDAO.selectPortfolioByPortfolioNumAndUserNum(portfolioNum, userNum));
+        context.setCoverLetter(interviewDAO.selectCoverLetterByLetterNumAndUserNum(letterNum, userNum));
+        validateSelectedDocuments(context);
 
         return context;
     }
@@ -98,7 +104,6 @@ public class InterviewServiceImpl implements InterviewService {
         validateStartRequest(request);
         LlmInterviewContextDTO context = getLlmInterviewContext(
                 userNum, request.getResumeNum(), request.getPortfolioNum(), request.getLetterNum());
-        validateSelectedDocuments(request, context);
 
         LlmQuestionRequestDTO questionRequest = new LlmQuestionRequestDTO();
         questionRequest.setContext(context);
@@ -115,7 +120,7 @@ public class InterviewServiceImpl implements InterviewService {
         InterviewStartResponseDTO response = new InterviewStartResponseDTO();
         response.setHistoryNum(historyNum);
         response.setQuestions(List.of(firstQuestion));
-        response.setAnswerTimeLimitSeconds(120);
+        response.setAnswerTimeLimitSeconds(ANSWER_TIME_LIMIT_SECONDS);
         return response;
     }
 
@@ -128,7 +133,16 @@ public class InterviewServiceImpl implements InterviewService {
         }
 
         synchronized (session) {
+            if (session.isInactive(System.currentTimeMillis())) {
+                sessions.remove(historyNum, session);
+                throw new IllegalArgumentException("진행 중인 면접이 만료되었습니다. 새 면접을 시작해 주세요.");
+            }
+            session.touch();
+
             int expectedOrder = session.questionAnswers.size() + 1;
+            if (request != null) {
+                request.setTimedOut(session.hasAnswerExpired());
+            }
             validateAnswerRequest(request, expectedOrder);
 
             InterviewQuestionDTO currentQuestion = session.questions.get(expectedOrder - 1);
@@ -138,6 +152,7 @@ public class InterviewServiceImpl implements InterviewService {
             if (expectedOrder < 5) {
                 InterviewQuestionDTO nextQuestion = generateNextQuestion(session, expectedOrder + 1);
                 session.questions.add(nextQuestion);
+                session.restartAnswerTimer();
                 response.setCompleted(false);
                 response.setNextQuestion(nextQuestion);
                 return response;
@@ -183,6 +198,25 @@ public class InterviewServiceImpl implements InterviewService {
     @Override
     public InterviewResultDTO getLatestInterviewResult(int userNum) {
         return interviewDAO.selectLatestInterviewResultByUserNum(userNum);
+    }
+
+    @Scheduled(fixedDelay = 300000)
+    public void removeInactiveSessions() {
+        long now = System.currentTimeMillis();
+        int removedCount = 0;
+
+        for (Map.Entry<Integer, InterviewSession> entry : sessions.entrySet()) {
+            InterviewSession session = entry.getValue();
+            synchronized (session) {
+                if (session.isInactive(now) && sessions.remove(entry.getKey(), session)) {
+                    removedCount++;
+                }
+            }
+        }
+
+        if (removedCount > 0) {
+            log.info("30분 이상 미응답인 면접 세션 {}건을 정리했습니다.", removedCount);
+        }
     }
 
     private InterviewQuestionDTO generateNextQuestion(InterviewSession session, int questionOrder) {
@@ -292,21 +326,34 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     private void validateStartRequest(InterviewStartRequestDTO request) {
-        if (request == null || request.getResumeNum() <= 0) {
-            throw new IllegalArgumentException("이력서를 선택해 주세요.");
+        if (request == null) {
+            throw new IllegalArgumentException("면접 시작 정보를 입력해 주세요.");
         }
+        validateDocumentNumbers(
+                request.getResumeNum(), request.getPortfolioNum(), request.getLetterNum());
         if (request.getInterviewStyle() == null || request.getInterviewStyle().isBlank()
                 || request.getInterviewDifficulty() == null || request.getInterviewDifficulty().isBlank()) {
             throw new IllegalArgumentException("면접 방식과 난이도를 선택해 주세요.");
         }
     }
 
-    private void validateSelectedDocuments(
-            InterviewStartRequestDTO request, LlmInterviewContextDTO context) {
-        if (request.getPortfolioNum() > 0 && context.getPortfolio() == null) {
+    private void validateDocumentNumbers(int resumeNum, int portfolioNum, int letterNum) {
+        if (resumeNum <= 0) {
+            throw new IllegalArgumentException("이력서를 선택해 주세요.");
+        }
+        if (letterNum <= 0) {
+            throw new IllegalArgumentException("자기소개서를 선택해 주세요.");
+        }
+        if (portfolioNum <= 0) {
+            throw new IllegalArgumentException("포트폴리오를 선택해 주세요.");
+        }
+    }
+
+    private void validateSelectedDocuments(LlmInterviewContextDTO context) {
+        if (context.getPortfolio() == null) {
             throw new IllegalArgumentException("선택한 포트폴리오를 찾을 수 없습니다.");
         }
-        if (request.getLetterNum() > 0 && context.getCoverLetter() == null) {
+        if (context.getCoverLetter() == null) {
             throw new IllegalArgumentException("선택한 자기소개서를 찾을 수 없습니다.");
         }
     }
@@ -357,12 +404,33 @@ public class InterviewServiceImpl implements InterviewService {
         private final LlmInterviewContextDTO context;
         private final List<InterviewQuestionDTO> questions = new ArrayList<>();
         private final List<InterviewQuestionAnswerDTO> questionAnswers = new ArrayList<>();
+        private volatile long lastActivityAtMillis;
+        private long questionStartedAtNanos;
 
         private InterviewSession(
                 int userNum, InterviewStartRequestDTO settings, LlmInterviewContextDTO context) {
             this.userNum = userNum;
             this.settings = settings;
             this.context = context;
+            this.lastActivityAtMillis = System.currentTimeMillis();
+            this.questionStartedAtNanos = System.nanoTime();
+        }
+
+        private void touch() {
+            lastActivityAtMillis = System.currentTimeMillis();
+        }
+
+        private boolean isInactive(long now) {
+            return now - lastActivityAtMillis >= SESSION_TIMEOUT_MILLIS;
+        }
+
+        private boolean hasAnswerExpired() {
+            return System.nanoTime() - questionStartedAtNanos
+                    >= TimeUnit.SECONDS.toNanos(ANSWER_TIME_LIMIT_SECONDS);
+        }
+
+        private void restartAnswerTimer() {
+            questionStartedAtNanos = System.nanoTime();
         }
     }
 
