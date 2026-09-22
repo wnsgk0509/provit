@@ -155,7 +155,8 @@ public class JwtProvider {
      */
     public String getUserRole(String token) {
         Claims claims = getClaims(token);
-        return claims.get("role", String.class);
+        String role = claims.get("role", String.class);
+        return role != null ? role : "USER";
     }
 
     public long getExpirationTime() {
