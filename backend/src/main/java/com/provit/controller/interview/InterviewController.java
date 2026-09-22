@@ -1,9 +1,5 @@
 package com.provit.controller.interview;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpStatus;
@@ -32,7 +28,6 @@ public class InterviewController {
 
     private final InterviewService interviewService;
     private final JwtProvider jwtProvider;
-    private final Map<Integer, AnswerTimer> answerTimers = new ConcurrentHashMap<>();
 
     public InterviewController(InterviewService interviewService, JwtProvider jwtProvider) {
         this.interviewService = interviewService;
@@ -79,9 +74,6 @@ public class InterviewController {
         }
         InterviewStartResponseDTO response = interviewService.startInterview(
                 Math.toIntExact(userNum), startRequest);
-        answerTimers.put(
-                response.getHistoryNum(),
-                AnswerTimer.start(response.getAnswerTimeLimitSeconds()));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -95,38 +87,9 @@ public class InterviewController {
             return unauthorizedResponse();
         }
 
-        AnswerTimer answerTimer = answerTimers.get(historyNum);
-        if (answerTimer == null) {
-            throw new IllegalArgumentException("진행 중인 면접의 답변 시간을 확인할 수 없습니다.");
-        }
-        if (answerRequest != null) {
-            answerRequest.setTimedOut(answerTimer.hasExpired());
-        }
-
         InterviewAnswerResponseDTO response = interviewService.submitAnswer(
                 Math.toIntExact(userNum), historyNum, answerRequest);
-        if (response.isCompleted()) {
-            answerTimers.remove(historyNum);
-        } else {
-            answerTimers.put(historyNum, answerTimer.restart());
-        }
         return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    private record AnswerTimer(long startedAtNanos, long timeLimitNanos) {
-
-        private static AnswerTimer start(int timeLimitSeconds) {
-            return new AnswerTimer(
-                    System.nanoTime(), TimeUnit.SECONDS.toNanos(timeLimitSeconds));
-        }
-
-        private boolean hasExpired() {
-            return System.nanoTime() - startedAtNanos >= timeLimitNanos;
-        }
-
-        private AnswerTimer restart() {
-            return new AnswerTimer(System.nanoTime(), timeLimitNanos);
-        }
     }
 
     private Long getAuthenticatedUserNum(HttpServletRequest request) {

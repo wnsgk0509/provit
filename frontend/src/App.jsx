@@ -9,6 +9,7 @@ import Fortune from './pages/fortune/Fortune';
 import Interview from './pages/interview/Interview';
 import CommunityList from './pages/community/CommunityList';
 import MyPage from './pages/mypage/MyPage';
+import DocumentWrite from './pages/documentWrite/DocumentWrite';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import BootstrapTemplate from './pages/bootstrap';
@@ -55,6 +56,7 @@ function App() {
             <Route path="/community" element={<CommunityList />} />
             {/* <Route path="/study" element={<Study />} /> 기존 개별 스터디 라우트는 커뮤니티로 통합 */}
             <Route path="/mypage" element={<RequireAuth><MyPage /></RequireAuth>} />
+            <Route path="/documents/write" element={<RequireAuth><DocumentWrite /></RequireAuth>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             {/* 팀원 참고용 부트스트랩 템플릿 화면 */}
