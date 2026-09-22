@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import com.provit.dao.document.DocumentDAO;
 import com.provit.dto.user.CareerDTO;
 import com.provit.dto.user.CertificationDTO;
+import com.provit.dto.user.CoverLetterDTO;
 import com.provit.dto.user.EducationDTO;
 import com.provit.dto.user.PortfolioDTO;
 import com.provit.dto.user.ResumeDTO;
@@ -16,6 +17,7 @@ public class DocumentDAOImpl implements DocumentDAO {
 
     private static final String RESUME_NAMESPACE = "com.provit.mapper.document.ResumeWriteMapper";
     private static final String PORTFOLIO_NAMESPACE = "com.provit.mapper.document.PortfolioWriteMapper";
+    private static final String COVER_LETTER_NAMESPACE = "com.provit.mapper.document.CoverLetterWriteMapper";
 
     private final SqlSession sqlSession;
 
@@ -62,5 +64,10 @@ public class DocumentDAOImpl implements DocumentDAO {
     @Override
     public int insertPortfolio(PortfolioDTO portfolio) {
         return sqlSession.insert(PORTFOLIO_NAMESPACE + ".insertPortfolio", portfolio);
+    }
+
+    @Override
+    public int insertCoverLetter(CoverLetterDTO coverLetter) {
+        return sqlSession.insert(COVER_LETTER_NAMESPACE + ".insertCoverLetter", coverLetter);
     }
 }

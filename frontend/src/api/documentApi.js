@@ -5,6 +5,11 @@ export async function createResume(resumeDetail) {
     return response.data.data;
 }
 
+export async function createCoverLetter(coverLetter) {
+    const response = await client.post('/documents/cover-letters', coverLetter);
+    return response.data.data;
+}
+
 export async function createPortfolio(portfolioTitle, file) {
     const formData = new FormData();
     formData.append('portfolioTitle', portfolioTitle.trim());

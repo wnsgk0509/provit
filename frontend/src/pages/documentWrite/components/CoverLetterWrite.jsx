@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createCoverLetter } from '../../../api/documentApi';
 
 const coverLetterFields = [
     { name: 'growthProcess', label: '성장 과정', placeholder: '성장 과정에서 형성된 가치관과 직무에 영향을 준 경험을 작성해 주세요.' },
@@ -7,22 +8,54 @@ const coverLetterFields = [
     { name: 'postJoiningAspiration', label: '입사 후 포부', placeholder: '입사 후 이루고 싶은 목표와 성장 계획을 작성해 주세요.' },
 ];
 
+const emptyCoverLetter = {
+    coverLetterTitle: '',
+    growthProcess: '',
+    personalityStrengthsWeaknesses: '',
+    problemSolvingExperience: '',
+    postJoiningAspiration: '',
+};
+
 function CoverLetterWrite() {
-    const [coverLetter, setCoverLetter] = useState({
-        coverLetterTitle: '',
-        growthProcess: '',
-        personalityStrengthsWeaknesses: '',
-        problemSolvingExperience: '',
-        postJoiningAspiration: '',
-    });
+    const [coverLetter, setCoverLetter] = useState({ ...emptyCoverLetter });
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
 
     const handleChange = (event) => {
         const { name, value } = event.target;
         setCoverLetter((current) => ({ ...current, [name]: value }));
     };
 
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        setIsSaving(true);
+        setSaveMessage({ type: '', text: '' });
+
+        try {
+            const savedCoverLetter = await createCoverLetter(coverLetter);
+            const letterNum = savedCoverLetter?.letterNum;
+            setCoverLetter({ ...emptyCoverLetter });
+            setSaveMessage({
+                type: 'success',
+                text: letterNum
+                    ? `자기소개서가 저장되었습니다. (자기소개서 번호: ${letterNum})`
+                    : '자기소개서가 저장되었습니다.',
+            });
+        } catch (error) {
+            const responseData = error.response?.data;
+            setSaveMessage({
+                type: 'error',
+                text: responseData?.data
+                    || responseData?.responseCode?.message
+                    || '자기소개서를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
-        <form className="document-form" onSubmit={(event) => event.preventDefault()}>
+        <form className="document-form" onSubmit={handleSubmit}>
             <div className="document-form-heading">
                 <span>COVER LETTER</span>
                 <h2>자기소개서 작성</h2>
@@ -52,8 +85,15 @@ function CoverLetterWrite() {
             </section>
 
             <div className="document-form-actions">
-                <button type="submit" className="document-primary-button">자기소개서 저장</button>
+                <button type="submit" className="document-primary-button" disabled={isSaving}>
+                    {isSaving ? '저장 중...' : '자기소개서 저장'}
+                </button>
             </div>
+            {saveMessage.text && (
+                <p className={`document-save-message is-${saveMessage.type}`} role="status">
+                    {saveMessage.text}
+                </p>
+            )}
         </form>
     );
 }

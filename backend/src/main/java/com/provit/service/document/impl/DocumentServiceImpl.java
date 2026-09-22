@@ -17,6 +17,7 @@ import com.provit.dao.document.DocumentDAO;
 import com.provit.dto.document.PortfolioCreateRequestDTO;
 import com.provit.dto.user.CareerDTO;
 import com.provit.dto.user.CertificationDTO;
+import com.provit.dto.user.CoverLetterDTO;
 import com.provit.dto.user.EducationDTO;
 import com.provit.dto.user.PortfolioDTO;
 import com.provit.dto.user.ResumeDTO;
@@ -104,6 +105,43 @@ public class DocumentServiceImpl implements DocumentService {
         portfolio.setFileUrl(fileUrl);
         requireSingleInsert(documentDAO.insertPortfolio(portfolio), "포트폴리오");
         return portfolio;
+    }
+
+    @Override
+    @Transactional
+    public CoverLetterDTO createCoverLetter(int userNum, CoverLetterDTO coverLetter) {
+        validateCoverLetter(coverLetter);
+
+        coverLetter.setLetterNum(0);
+        coverLetter.setUserNum(userNum);
+        coverLetter.setCoverLetterTitle(trimRequired(coverLetter.getCoverLetterTitle()));
+        coverLetter.setGrowthProcess(trimOptional(coverLetter.getGrowthProcess()));
+        coverLetter.setPersonalityStrengthsWeaknesses(
+                trimOptional(coverLetter.getPersonalityStrengthsWeaknesses()));
+        coverLetter.setProblemSolvingExperience(
+                trimOptional(coverLetter.getProblemSolvingExperience()));
+        coverLetter.setPostJoiningAspiration(
+                trimOptional(coverLetter.getPostJoiningAspiration()));
+        coverLetter.setCreatedAt(null);
+        coverLetter.setUpdatedAt(null);
+
+        requireSingleInsert(documentDAO.insertCoverLetter(coverLetter), "자기소개서");
+        return coverLetter;
+    }
+
+    private void validateCoverLetter(CoverLetterDTO coverLetter) {
+        if (coverLetter == null) {
+            throw new IllegalArgumentException("자기소개서 정보를 입력해 주세요.");
+        }
+
+        validateRequiredText(coverLetter.getCoverLetterTitle(), 200, "자기소개서 제목");
+        validateOptionalText(coverLetter.getGrowthProcess(), 1000, "성장 과정");
+        validateOptionalText(
+                coverLetter.getPersonalityStrengthsWeaknesses(), 1000, "성격의 장단점");
+        validateOptionalText(
+                coverLetter.getProblemSolvingExperience(), 1000, "문제 해결 경험");
+        validateOptionalText(
+                coverLetter.getPostJoiningAspiration(), 1000, "입사 후 포부");
     }
 
     private void validatePortfolioRequest(PortfolioCreateRequestDTO portfolioRequest) {

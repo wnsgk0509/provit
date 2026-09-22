@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.provit.common.ResponseCode;
 import com.provit.dto.document.PortfolioCreateRequestDTO;
 import com.provit.dto.response.ApiResponse;
+import com.provit.dto.user.CoverLetterDTO;
 import com.provit.dto.user.PortfolioDTO;
 import com.provit.dto.user.ResumeDetailDTO;
 import com.provit.service.document.DocumentService;
@@ -66,6 +67,24 @@ public class DocumentController {
                 Math.toIntExact(userNum), portfolioRequest);
         return new ResponseEntity<>(
                 ApiResponse.success(ResponseCode.CREATED, savedPortfolio),
+                HttpStatus.CREATED);
+    }
+
+    @PostMapping("/cover-letters")
+    public ResponseEntity<ApiResponse<CoverLetterDTO>> createCoverLetter(
+            HttpServletRequest request,
+            @RequestBody CoverLetterDTO coverLetter) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null),
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        CoverLetterDTO savedCoverLetter = documentService.createCoverLetter(
+                Math.toIntExact(userNum), coverLetter);
+        return new ResponseEntity<>(
+                ApiResponse.success(ResponseCode.CREATED, savedCoverLetter),
                 HttpStatus.CREATED);
     }
 

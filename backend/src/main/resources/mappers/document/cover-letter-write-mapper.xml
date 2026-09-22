@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.mapper.document.CoverLetterWriteMapper">
+
+    <insert id="insertCoverLetter" parameterType="com.provit.dto.user.CoverLetterDTO">
+        <selectKey keyProperty="letterNum" resultType="int" order="BEFORE">
+            SELECT SEQ_T_COVER_LETTER.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_COVER_LETTER (
+            LETTER_NUM,
+            USER_NUM,
+            COVER_LETTER_TITLE,
+            GROWTH_PROCESS,
+            PERSONALITY_STRENGTHS_WEAKNESSES,
+            PROBLEM_SOLVING_EXPERIENCE,
+            POST_JOINING_ASPIRATION,
+            CREATED_AT,
+            UPDATED_AT
+        ) VALUES (
+            #{letterNum},
+            #{userNum},
+            #{coverLetterTitle},
+            #{growthProcess, jdbcType=VARCHAR},
+            #{personalityStrengthsWeaknesses, jdbcType=VARCHAR},
+            #{problemSolvingExperience, jdbcType=VARCHAR},
+            #{postJoiningAspiration, jdbcType=VARCHAR},
+            SYSDATE,
+            SYSDATE
+        )
+    </insert>
+
+</mapper>
