@@ -83,4 +83,13 @@ public class StudyController {
         studyService.leaveStudy(studyNum, userNum);
         return ApiResponse.success();
     }
+
+    /**
+     * 6. 스터디 참여자 목록 조회
+     */
+    @GetMapping("/{studyNum}/members")
+    public ApiResponse<List<String>> getStudyMembers(@PathVariable Long studyNum) {
+        List<String> members = studyService.getStudyMembers(studyNum);
+        return ApiResponse.success(members);
+    }
 }

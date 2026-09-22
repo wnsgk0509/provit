@@ -59,4 +59,9 @@ public class StudyDAOImpl implements StudyDAO {
     public int checkStudyMember(Map<String, Object> params) {
         return sqlSession.selectOne(NAMESPACE + "checkStudyMember", params);
     }
+
+    @Override
+    public List<String> selectStudyMembers(Long studyNum) {
+        return sqlSession.selectList(NAMESPACE + "selectStudyMembers", studyNum);
+    }
 }

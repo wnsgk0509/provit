@@ -83,4 +83,9 @@ public class StudyServiceImpl implements StudyService {
         
         studyDao.deleteStudyMember(params);
     }
+
+    @Override
+    public List<String> getStudyMembers(Long studyNum) {
+        return studyDao.selectStudyMembers(studyNum);
+    }
 }

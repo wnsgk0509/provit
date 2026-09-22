@@ -15,4 +15,5 @@ public interface StudyDAO {
     int insertStudyMember(Map<String, Object> params);
     int deleteStudyMember(Map<String, Object> params);
     int checkStudyMember(Map<String, Object> params);
+    List<String> selectStudyMembers(Long studyNum);
 }
