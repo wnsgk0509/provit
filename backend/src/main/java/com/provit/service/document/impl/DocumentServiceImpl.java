@@ -1,5 +1,7 @@
 package com.provit.service.document.impl;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -7,23 +9,36 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.provit.dao.document.DocumentDAO;
+import com.provit.dto.document.PortfolioCreateRequestDTO;
 import com.provit.dto.user.CareerDTO;
 import com.provit.dto.user.CertificationDTO;
 import com.provit.dto.user.EducationDTO;
+import com.provit.dto.user.PortfolioDTO;
 import com.provit.dto.user.ResumeDTO;
 import com.provit.dto.user.ResumeDetailDTO;
 import com.provit.service.document.DocumentService;
+import com.provit.service.document.storage.PortfolioFileStorage;
 
 @Service
 public class DocumentServiceImpl implements DocumentService {
 
+    private static final long MAX_PORTFOLIO_FILE_SIZE = 20_000_000L;
+    private static final byte[] PDF_SIGNATURE = { '%', 'P', 'D', 'F', '-' };
+
     private final DocumentDAO documentDAO;
+    private final PortfolioFileStorage portfolioFileStorage;
 
     @Autowired
-    public DocumentServiceImpl(DocumentDAO documentDAO) {
+    public DocumentServiceImpl(
+            DocumentDAO documentDAO,
+            PortfolioFileStorage portfolioFileStorage) {
         this.documentDAO = documentDAO;
+        this.portfolioFileStorage = portfolioFileStorage;
     }
 
     @Override
@@ -71,6 +86,65 @@ public class DocumentServiceImpl implements DocumentService {
         resumeDetail.setCareerList(careerList);
         resumeDetail.setCertificationList(certificationList);
         return resumeDetail;
+    }
+
+    @Override
+    @Transactional
+    public PortfolioDTO createPortfolio(int userNum, PortfolioCreateRequestDTO portfolioRequest) {
+        validatePortfolioRequest(portfolioRequest);
+
+        int portfolioNum = documentDAO.selectNextPortfolioNum();
+        String fileUrl = portfolioFileStorage.store(portfolioNum, portfolioRequest.getFile());
+        registerFileRollback(fileUrl);
+
+        PortfolioDTO portfolio = new PortfolioDTO();
+        portfolio.setPortfolioNum(portfolioNum);
+        portfolio.setUserNum(userNum);
+        portfolio.setPortfolioTitle(portfolioRequest.getPortfolioTitle().trim());
+        portfolio.setFileUrl(fileUrl);
+        requireSingleInsert(documentDAO.insertPortfolio(portfolio), "포트폴리오");
+        return portfolio;
+    }
+
+    private void validatePortfolioRequest(PortfolioCreateRequestDTO portfolioRequest) {
+        if (portfolioRequest == null) {
+            throw new IllegalArgumentException("포트폴리오 정보를 입력해 주세요.");
+        }
+
+        validateRequiredText(portfolioRequest.getPortfolioTitle(), 200, "포트폴리오 제목");
+
+        MultipartFile file = portfolioRequest.getFile();
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("포트폴리오 PDF 파일을 선택해 주세요.");
+        }
+        if (file.getSize() > MAX_PORTFOLIO_FILE_SIZE) {
+            throw new IllegalArgumentException("포트폴리오 파일은 20MB 이하여야 합니다.");
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".pdf")) {
+            throw new IllegalArgumentException("PDF 형식의 파일만 등록할 수 있습니다.");
+        }
+
+        try (InputStream inputStream = file.getInputStream()) {
+            byte[] signature = inputStream.readNBytes(PDF_SIGNATURE.length);
+            if (!java.util.Arrays.equals(signature, PDF_SIGNATURE)) {
+                throw new IllegalArgumentException("올바른 PDF 파일이 아닙니다.");
+            }
+        } catch (IOException exception) {
+            throw new IllegalArgumentException("포트폴리오 파일을 확인하지 못했습니다.", exception);
+        }
+    }
+
+    private void registerFileRollback(String fileUrl) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status != TransactionSynchronization.STATUS_COMMITTED) {
+                    portfolioFileStorage.deleteIfExists(fileUrl);
+                }
+            }
+        });
     }
 
     private void validateResumeDetail(ResumeDetailDTO resumeDetail) {

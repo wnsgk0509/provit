@@ -3,6 +3,7 @@ package com.provit.dao.document;
 import com.provit.dto.user.CareerDTO;
 import com.provit.dto.user.CertificationDTO;
 import com.provit.dto.user.EducationDTO;
+import com.provit.dto.user.PortfolioDTO;
 import com.provit.dto.user.ResumeDTO;
 
 public interface DocumentDAO {
@@ -16,4 +17,8 @@ public interface DocumentDAO {
     int insertCareer(CareerDTO career);
 
     int insertCertification(CertificationDTO certification);
+
+    int selectNextPortfolioNum();
+
+    int insertPortfolio(PortfolioDTO portfolio);
 }

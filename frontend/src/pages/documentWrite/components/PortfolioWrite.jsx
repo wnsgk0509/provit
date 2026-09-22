@@ -1,15 +1,23 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FileUp } from 'lucide-react';
+import { createPortfolio } from '../../../api/documentApi';
+
+const MAX_PORTFOLIO_FILE_SIZE = 20 * 1000 * 1000;
 
 function PortfolioWrite() {
     const [portfolioTitle, setPortfolioTitle] = useState('');
+    const [selectedFile, setSelectedFile] = useState(null);
     const [selectedFileName, setSelectedFileName] = useState('');
     const [fileError, setFileError] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
+    const fileInputRef = useRef(null);
 
     const handleFileChange = (event) => {
         const selectedFile = event.target.files?.[0];
 
         if (!selectedFile) {
+            setSelectedFile(null);
             setSelectedFileName('');
             setFileError('');
             return;
@@ -20,17 +28,68 @@ function PortfolioWrite() {
 
         if (!isPdf) {
             event.target.value = '';
+            setSelectedFile(null);
             setSelectedFileName('');
             setFileError('PDF 형식의 파일만 선택할 수 있습니다.');
             return;
         }
 
+        if (selectedFile.size > MAX_PORTFOLIO_FILE_SIZE) {
+            event.target.value = '';
+            setSelectedFile(null);
+            setSelectedFileName('');
+            setFileError('포트폴리오 파일은 20MB 이하여야 합니다.');
+            return;
+        }
+
+        setSelectedFile(selectedFile);
         setSelectedFileName(selectedFile.name);
         setFileError('');
+        setSaveMessage({ type: '', text: '' });
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+
+        if (!selectedFile) {
+            setFileError('포트폴리오 PDF 파일을 선택해 주세요.');
+            return;
+        }
+
+        setIsSaving(true);
+        setSaveMessage({ type: '', text: '' });
+
+        try {
+            const savedPortfolio = await createPortfolio(portfolioTitle, selectedFile);
+            const portfolioNum = savedPortfolio?.portfolioNum;
+            setPortfolioTitle('');
+            setSelectedFile(null);
+            setSelectedFileName('');
+            setFileError('');
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+            setSaveMessage({
+                type: 'success',
+                text: portfolioNum
+                    ? `포트폴리오가 저장되었습니다. (파일명: ${portfolioNum}.pdf)`
+                    : '포트폴리오가 저장되었습니다.',
+            });
+        } catch (error) {
+            const responseData = error.response?.data;
+            setSaveMessage({
+                type: 'error',
+                text: responseData?.data
+                    || responseData?.responseCode?.message
+                    || '포트폴리오를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+            });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
-        <form className="document-form" onSubmit={(event) => event.preventDefault()}>
+        <form className="document-form" onSubmit={handleSubmit}>
             <div className="document-form-heading">
                 <span>PORTFOLIO</span>
                 <h2>포트폴리오 등록</h2>
@@ -52,17 +111,24 @@ function PortfolioWrite() {
                         <label className="document-file-upload" htmlFor="portfolioFile">
                             <FileUp size={30} aria-hidden="true" />
                             <strong>{selectedFileName || 'PDF 파일을 선택해 주세요.'}</strong>
-                            <span>PDF 형식의 파일만 등록할 수 있습니다.</span>
+                            <span>20MB 이하의 PDF 파일만 등록할 수 있습니다.</span>
                         </label>
-                        <input id="portfolioFile" className="document-file-input" type="file" accept="application/pdf,.pdf" onChange={handleFileChange} required />
+                        <input ref={fileInputRef} id="portfolioFile" className="document-file-input" type="file" accept="application/pdf,.pdf" onChange={handleFileChange} required />
                         {fileError && <p className="document-file-error" role="alert">{fileError}</p>}
                     </div>
                 </div>
             </section>
 
             <div className="document-form-actions">
-                <button type="submit" className="document-primary-button">포트폴리오 저장</button>
+                <button type="submit" className="document-primary-button" disabled={isSaving}>
+                    {isSaving ? '저장 중...' : '포트폴리오 저장'}
+                </button>
             </div>
+            {saveMessage.text && (
+                <p className={`document-save-message is-${saveMessage.type}`} role="status">
+                    {saveMessage.text}
+                </p>
+            )}
         </form>
     );
 }

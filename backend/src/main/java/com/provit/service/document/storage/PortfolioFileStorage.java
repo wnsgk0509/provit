@@ -1,0 +1,10 @@
+package com.provit.service.document.storage;
+
+import org.springframework.web.multipart.MultipartFile;
+
+public interface PortfolioFileStorage {
+
+    String store(int portfolioNum, MultipartFile file);
+
+    void deleteIfExists(String fileUrl);
+}

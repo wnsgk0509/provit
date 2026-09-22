@@ -11,6 +11,9 @@
     <!-- 1. Spring MVC 애노테이션 활성화 (Jackson JSON 변환 등 자동 처리) -->
     <annotation-driven />
 
+    <beans:bean id="multipartResolver"
+                class="org.springframework.web.multipart.support.StandardServletMultipartResolver" />
+
     <!-- 2. 정적 리소스 핸들링 -->
     <resources mapping="/resources/**" location="/resources/" />
 

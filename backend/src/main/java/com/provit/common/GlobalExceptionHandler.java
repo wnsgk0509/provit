@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import com.provit.common.ResponseCode;
 import com.provit.dto.response.ApiResponse;
@@ -38,6 +39,15 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ApiResponse<String>> handleIllegalStateException(IllegalStateException e) {
 		log.warn("상태 오류: {}", e.getMessage());
 		ApiResponse<String> response = new ApiResponse<>(ResponseCode.BAD_REQUEST, e.getMessage());
+		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	public ResponseEntity<ApiResponse<String>> handleMaxUploadSizeExceededException(
+			MaxUploadSizeExceededException e) {
+		log.warn("업로드 파일 크기 제한 초과: {}", e.getMessage());
+		ApiResponse<String> response = new ApiResponse<>(
+				ResponseCode.BAD_REQUEST, "포트폴리오 파일은 20MB 이하여야 합니다.");
 		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 	}
 
