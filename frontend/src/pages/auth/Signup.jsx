@@ -3,6 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import client from "../../api/client";
 
 const PASSWORD_PATTERN = /^(?=\S{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).*$/;
+// 백엔드 회원 정보 검증과 동일한 입력 길이 기준이다.
+const USER_NAME_MAX_LENGTH = 4;
+const NICKNAME_MIN_LENGTH = 2;
+const NICKNAME_MAX_LENGTH = 20;
 
 function Signup() {
     const navigate = useNavigate();
@@ -31,6 +35,14 @@ function Signup() {
     const [isNicknameChecked, setIsNicknameChecked] = useState(false);
     const [nicknameMsg, setNicknameMsg] = useState("");
     const [isNicknameAvailable, setIsNicknameAvailable] = useState(false);
+    const [isNicknameMaxLengthExceeded, setIsNicknameMaxLengthExceeded] = useState(false);
+    const [isNameMaxLengthExceeded, setIsNameMaxLengthExceeded] = useState(false);
+
+    // 입력 중에도 서버 규칙과 같은 길이 오류를 즉시 안내한다.
+    const isNameTooLong = isNameMaxLengthExceeded;
+    const isNicknameLengthInvalid = isNicknameMaxLengthExceeded || (Boolean(formData.userNickname.trim())
+        && (formData.userNickname.trim().length < NICKNAME_MIN_LENGTH
+            || formData.userNickname.trim().length > NICKNAME_MAX_LENGTH));
 
     // 로딩 및 에러/성공 메시지
     const [loadingEmailSend, setLoadingEmailSend] = useState(false);
@@ -76,17 +88,27 @@ function Signup() {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        const isNicknameTooLong = name === "userNickname" && value.length > NICKNAME_MAX_LENGTH;
+        const isNameTooLong = name === "userName" && value.length > USER_NAME_MAX_LENGTH;
+        // 이름·닉네임은 최대 길이까지만 저장하고, 초과 입력은 하단 안내로 알린다.
+        const nextValue = isNicknameTooLong
+            ? value.slice(0, NICKNAME_MAX_LENGTH)
+            : isNameTooLong ? value.slice(0, USER_NAME_MAX_LENGTH) : value;
 
         if (name === "userBirthDate" && value && (value < minBirthDate || value > maxAdultBirthDate)) {
             setAlertMsg({ type: "danger", text: "생년월일은 1900년 이후의 만 19세 이상 날짜만 입력할 수 있습니다." });
             return;
         }
 
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        setFormData((prev) => ({ ...prev, [name]: nextValue }));
 
         if (name === "userNickname") {
             setIsNicknameChecked(false);
+            setIsNicknameMaxLengthExceeded(isNicknameTooLong);
             setNicknameMsg("");
+        }
+        if (name === "userName") {
+            setIsNameMaxLengthExceeded(isNameTooLong);
         }
         if (name === "userEmail") {
             setIsEmailChecked(false);
@@ -127,14 +149,21 @@ function Signup() {
 
     // 1. 닉네임 중복 확인
     const handleCheckNickname = async () => {
-        if (!formData.userNickname.trim()) {
+        const nickname = formData.userNickname.trim();
+        if (!nickname) {
             setAlertMsg({ type: "danger", text: "닉네임을 입력해 주세요." });
+            return;
+        }
+        if (nickname.length < NICKNAME_MIN_LENGTH || nickname.length > NICKNAME_MAX_LENGTH) {
+            setIsNicknameChecked(false);
+            setIsNicknameAvailable(false);
+            setNicknameMsg("닉네임은 2자 이상 20자 이하로 입력해 주세요.");
             return;
         }
 
         try {
             const res = await client.get("/auth/check-nickname", {
-                params: { nickname: formData.userNickname.trim() },
+                params: { nickname },
             });
             const available = res.data?.data?.available;
             setIsNicknameChecked(true);
@@ -229,8 +258,21 @@ function Signup() {
             setAlertMsg({ type: "danger", text: "이름을 입력해 주세요." });
             return;
         }
+        if (isNameMaxLengthExceeded || formData.userName.trim().length > USER_NAME_MAX_LENGTH) {
+            setAlertMsg({ type: "danger", text: "이름은 4자 이하로 입력해 주세요." });
+            return;
+        }
         if (!formData.userNickname.trim()) {
             setAlertMsg({ type: "danger", text: "닉네임을 입력해 주세요." });
+            return;
+        }
+        if (isNicknameMaxLengthExceeded) {
+            setAlertMsg({ type: "danger", text: "닉네임은 2자 이상 20자 이하로 입력해 주세요." });
+            return;
+        }
+        if (formData.userNickname.trim().length < NICKNAME_MIN_LENGTH
+            || formData.userNickname.trim().length > NICKNAME_MAX_LENGTH) {
+            setAlertMsg({ type: "danger", text: "닉네임은 2자 이상 20자 이하로 입력해 주세요." });
             return;
         }
         if (!isNicknameChecked || !isNicknameAvailable) {
@@ -317,6 +359,7 @@ function Signup() {
                                         onChange={handleChange}
                                         required
                                     />
+                                    {isNameTooLong && <div className="small mt-1 text-danger">이름은 4자 이하로 입력해 주세요.</div>}
                                 </div>
 
                                 {/* 2. 닉네임 + 중복확인 버튼 (반응형 배치) */}
@@ -331,9 +374,9 @@ function Signup() {
                                             id="signupNickname"
                                             name="userNickname"
                                             placeholder="활동용 닉네임"
-                                            value={formData.userNickname}
-                                            onChange={handleChange}
-                                            required
+                                        value={formData.userNickname}
+                                        onChange={handleChange}
+                                        required
                                         />
                                         <button
                                             type="button"
@@ -343,7 +386,9 @@ function Signup() {
                                             중복확인
                                         </button>
                                     </div>
-                                    {nicknameMsg && (
+                                    {isNicknameLengthInvalid ? (
+                                        <div className="small mt-1 text-danger">닉네임은 2자 이상 20자 이하로 입력해 주세요.</div>
+                                    ) : nicknameMsg && (
                                         <div className={`small mt-1 ${isNicknameAvailable ? "text-success" : "text-danger"}`}>
                                             {nicknameMsg}
                                         </div>
