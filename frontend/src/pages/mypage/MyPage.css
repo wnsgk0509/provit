@@ -37,6 +37,26 @@
     color: #6b7280;
 }
 
+.mypage-document-write-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    margin-top: 16px;
+    border-radius: 10px;
+    padding: 0 16px;
+    color: #fff;
+    background: #4d67be;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.mypage-document-write-link:hover {
+    color: #fff;
+    background: #4059a9;
+}
+
 .mypage-cover-letter,
 .mypage-edit-form {
     border: 1px solid #e4e7ec;

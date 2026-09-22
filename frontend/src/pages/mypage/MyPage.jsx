@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import client from '../../api/client';
@@ -202,6 +202,9 @@ function MyPage() {
                     <span>COVER LETTER</span>
                     <h2 id="cover-letter-title">자소서 첨삭</h2>
                     <p>작성한 자기소개서와 첨삭 결과가 이곳에 표시됩니다.</p>
+                    <Link className="mypage-document-write-link" to="/documents/write">
+                        문서 작성하기
+                    </Link>
                 </div>
                 <div className="mypage-cover-letter-placeholder" aria-label="자소서 첨삭 내용 영역">
                     <p>자소서 첨삭 영역</p>
