@@ -49,7 +49,7 @@ function InterviewQuestion({
         submittingRef.current = true;
 
         try {
-            await onSubmit(trimmedAnswer, timedOut);
+            await onSubmit(answer, timedOut);
         } catch {
             submittingRef.current = false;
         }
