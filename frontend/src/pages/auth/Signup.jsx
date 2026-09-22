@@ -194,14 +194,21 @@ function Signup() {
         setAlertMsg({ type: "", text: "" });
 
         try {
-            await client.post(
+            const response = await client.post(
                 "/auth/send-code",
                 { email: formData.userEmail.trim() },
                 // SMTP 연결·전송은 일반 API보다 오래 걸릴 수 있습니다.
                 { timeout: 30000 }
             );
+            const expiresAt = response.data?.data?.expiresAt;
+            if (typeof expiresAt !== "number") {
+                throw new Error("인증번호 만료 시각을 받지 못했습니다.");
+            }
+
+            // 서버의 만료 시각을 기준으로 계산해 SMTP·네트워크 지연에 따른 타이머 오차를 막는다.
+            const remainingSeconds = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
             setIsEmailSent(true);
-            setTimer(180); // 3분 (180초)
+            setTimer(remainingSeconds);
             setAlertMsg({ type: "success", text: "인증번호가 발송되었습니다. 메일함을 확인해 주세요." });
         } catch (error) {
             const resData = error.response?.data;

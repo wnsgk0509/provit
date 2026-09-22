@@ -136,7 +136,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void sendVerificationEmail(String email) {
+    public long sendVerificationEmail(String email) {
         String trimmedEmail = normalizeEmail(email);
 
         // 1. 이미 등록된 이메일인지 검증
@@ -167,6 +167,9 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalStateException("인증 이메일 발송에 실패했습니다. 이메일 주소를 확인해 주세요.");
         }
         emailSendCooldownMap.put(trimmedEmail, now + SEND_COOLDOWN_MILLIS);
+
+        // 프런트 타이머가 서버와 동일한 만료 시각을 기준으로 동작하도록 반환한다.
+        return expireAt;
     }
 
     @Override

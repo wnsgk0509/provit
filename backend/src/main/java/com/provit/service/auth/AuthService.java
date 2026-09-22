@@ -25,7 +25,7 @@ public interface AuthService {
     /**
      * 이메일 인증번호 생성 및 발송
      */
-    void sendVerificationEmail(String email);
+    long sendVerificationEmail(String email);
 
     /**
      * 이메일 인증번호 검증 (성공 시 가입용 검증 토큰 반환)
