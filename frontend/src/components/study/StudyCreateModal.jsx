@@ -48,10 +48,10 @@ function StudyCreateModal({ show, onClose, onSuccess }) {
                 <div className="modal-dialog modal-dialog-centered">
                     <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '1rem' }}>
                         <div className="modal-header border-bottom-0 pb-0">
-                            <h5 className="modal-title fw-bold">🚀 스터디 개설하기</h5>
+                            <h5 className="modal-title fw-bold">스터디 만들기</h5>
                             <button type="button" className="btn-close" onClick={onClose}></button>
                         </div>
-                        <div className="modal-body">
+                        <div className="modal-body p-4">
                             <form id="studyForm" onSubmit={handleSubmit}>
                                 <div className="mb-3">
                                     <label className="form-label fw-semibold text-secondary small">스터디 이름</label>
@@ -64,22 +64,21 @@ function StudyCreateModal({ show, onClose, onSuccess }) {
                                         maxLength={100}
                                     />
                                 </div>
-                                <div className="mb-3">
-                                    <label className="form-label fw-semibold text-secondary small">스터디 소개 및 목표</label>
+                                <div className="mb-4">
+                                    <label className="form-label fw-bold small">운영 방식</label>
                                     <textarea 
                                         className="form-control" 
-                                        rows="4" 
-                                        placeholder="스터디 진행 방식, 목표, 우대 사항 등을 적어주세요."
+                                        rows="5" 
+                                        placeholder="예) 매주 수요일 20:00 · 온라인 음성 · 최대 6명&#13;&#10;&#13;&#10;스터디 소개..."
                                         value={studyExplain}
                                         onChange={(e) => setStudyExplain(e.target.value)}
                                         style={{ resize: 'none' }}
                                     ></textarea>
                                 </div>
+                                <button type="submit" className="btn btn-primary w-100 py-3 fw-bold rounded-3">
+                                    스터디 개설
+                                </button>
                             </form>
-                        </div>
-                        <div className="modal-footer border-top-0 pt-0 justify-content-between">
-                            <button type="button" className="btn btn-light rounded-pill px-4" onClick={onClose}>취소</button>
-                            <button type="submit" form="studyForm" className="btn btn-primary rounded-pill px-4">개설 완료</button>
                         </div>
                     </div>
                 </div>
