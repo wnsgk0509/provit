@@ -17,7 +17,7 @@
     <!-- 3. 개발 환경 CORS 전역 설정 (프론트엔드 localhost:5173 통신 허용) -->
     <cors>
         <mapping path="/api/**"
-                 allowed-origins="http://localhost:5173, http://127.0.0.1:5173"
+                 allowed-origins="http://localhost:5173, http://192.168.0.121:5173"
                  allowed-methods="GET, POST, PUT, DELETE, PATCH, OPTIONS"
                  allowed-headers="*"
                  allow-credentials="true"

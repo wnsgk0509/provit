@@ -69,10 +69,16 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user');
   };
 
+  const updateUser = (userData) => {
+    // 마이페이지 수정 후 Navbar와 새로고침 뒤의 사용자 정보를 함께 갱신한다.
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
   const isLoggedIn = !!token && !!user;
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, token, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, token, isLoading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

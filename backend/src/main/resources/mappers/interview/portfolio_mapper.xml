@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.mapper.interview.PortfolioMapper">
+
+    <sql id="portfolioColumns">
+        PORTFOLIO_NUM,
+        USER_NUM,
+        PORTFOLIO_TITLE,
+        FILE_URL,
+        CREATED_AT,
+        UPDATED_AT
+    </sql>
+
+    <select id="selectPortfolioListByUserNum"
+            parameterType="int"
+            resultType="com.provit.dto.interview.InterviewDocumentOptionDTO">
+        SELECT
+            PORTFOLIO_NUM AS DOCUMENT_NUM,
+            PORTFOLIO_TITLE AS DOCUMENT_TITLE
+        FROM T_PORTFOLIO
+        WHERE USER_NUM = #{userNum}
+        ORDER BY UPDATED_AT DESC, PORTFOLIO_NUM DESC
+    </select>
+
+    <select id="selectPortfolioByPortfolioNumAndUserNum"
+            parameterType="map"
+            resultType="com.provit.dto.user.PortfolioDTO">
+        SELECT
+            <include refid="portfolioColumns" />
+        FROM T_PORTFOLIO
+        WHERE PORTFOLIO_NUM = #{number}
+          AND USER_NUM = #{userNum}
+    </select>
+
+</mapper>
