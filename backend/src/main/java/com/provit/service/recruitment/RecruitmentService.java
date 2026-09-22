@@ -17,4 +17,6 @@ public interface RecruitmentService {
 	public int syncSaraminRecruitments(int limit);
 
 	public PageResponse<RecruitmentDTO> getRecruitmentList(RecruitmentSearchDTO searchDTO);
+
+	public int deactivateExpiredRecruitments();
 }

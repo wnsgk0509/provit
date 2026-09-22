@@ -3,8 +3,8 @@
 - **Database Engine:** Oracle Database 19c Enterprise Edition
 - **Character Set:** AL32UTF8
 - **총 테이블 수:** 19개
-- **총 시퀀스 수:** 11개
-- **최종 수정일:** 2026-09-17
+- **총 시퀀스 수:** 13개
+- **최종 수정일:** 2026-09-21
 
 ---
 
@@ -219,43 +219,47 @@
 ### 2.6 T_COVER_LETTER (자기소개서)
 - **테이블 물리명:** `T_COVER_LETTER`
 - **테이블 논리명:** 자기소개서
-- **설명:** 회원의 문항별 자기소개서 텍스트 데이터 (회원과 1:1 관계)
-- **시퀀스:** 없음 (`USER_NUM`을 PK 겸 FK로 사용)
+- **설명:** 회원의 문항별 자기소개서 텍스트 데이터 (회원과 1:N 관계)
+- **시퀀스:** `SEQ_T_COVER_LETTER`
 
 | no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
 |:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
-| 1 | USER_NUM | 회원 번호 | NUMBER | 9 | PK | NOT NULL | | 작성 회원 번호 (식별자 겸 FK) | T_USER(USER_NUM) | ON DELETE CASCADE |
-| 2 | COVER_LETTER_TITLE | 자기소개서 제목 | VARCHAR2 | 200 | | | | 자기소개서 제목 | | 예: '도전하는 백엔드 개발자 자기소개서' |
-| 3 | GROWTH_PROCESS | 성장 과정 | VARCHAR2 | 3000 | | | | 성장 과정 및 배경 기술서 | | 한글 약 1,000자 |
-| 4 | PERSONALITY_STRENGTHS_WEAKNESSES | 성격의 장단점 | VARCHAR2 | 3000 | | | | 성격의 장단점 기술서 | | 한글 약 1,000자 |
-| 5 | PROBLEM_SOLVING_EXPERIENCE | 문제 해결 경험 | VARCHAR2 | 3000 | | | | 위기 극복 및 문제 해결 경험 | | 한글 약 1,000자 |
-| 6 | POST_JOINING_ASPIRATION | 입사 후 포부 | VARCHAR2 | 3000 | | | | 입사 후 포부 및 비전 | | 한글 약 1,000자 |
-| 7 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 자기소개서 최초 등록 일시 | | |
-| 8 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 자기소개서 최종 수정 일시 | | |
+| 1 | LETTER_NUM | 자기소개서 번호 | NUMBER | 18 | PK | NOT NULL | SEQ_T_COVER_LETTER.NEXTVAL | 자기소개서 고유 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | USER_NUM | 회원 번호 | NUMBER | 9 | | NOT NULL | | 작성 회원 번호 | T_USER(USER_NUM) | ON DELETE CASCADE |
+| 3 | COVER_LETTER_TITLE | 자기소개서 제목 | VARCHAR2 | 200 | | NOT NULL | | 자기소개서 제목 | | 예: '도전하는 백엔드 개발자 자기소개서' |
+| 4 | GROWTH_PROCESS | 성장 과정 | VARCHAR2 | 3000 | | | | 성장 과정 및 배경 기술서 | | 한글 약 1,000자 |
+| 5 | PERSONALITY_STRENGTHS_WEAKNESSES | 성격의 장단점 | VARCHAR2 | 3000 | | | | 성격의 장단점 기술서 | | 한글 약 1,000자 |
+| 6 | PROBLEM_SOLVING_EXPERIENCE | 문제 해결 경험 | VARCHAR2 | 3000 | | | | 위기 극복 및 문제 해결 경험 | | 한글 약 1,000자 |
+| 7 | POST_JOINING_ASPIRATION | 입사 후 포부 | VARCHAR2 | 3000 | | | | 입사 후 포부 및 비전 | | 한글 약 1,000자 |
+| 8 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 자기소개서 최초 등록 일시 | | |
+| 9 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 자기소개서 최종 수정 일시 | | |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|
-| 1 | PK_T_COVER_LETTER_IDX | PK | Unique | USER_NUM |
+| 1 | PK_T_COVER_LETTER_IDX | PK | Unique | LETTER_NUM |
+| 2 | IDX_COVER_LETTER_USER_NUM | Normal | Non-Unique | USER_NUM |
 
 ---
 
 ### 2.7 T_PORTFOLIO (포트폴리오)
 - **테이블 물리명:** `T_PORTFOLIO`
 - **테이블 논리명:** 포트폴리오
-- **설명:** 회원의 포트폴리오 파일 업로드 정보 (회원과 1:1 관계)
-- **시퀀스:** 없음 (`USER_NUM`을 PK 겸 FK로 사용)
+- **설명:** 회원의 포트폴리오 파일 업로드 정보 (회원과 1:N 관계)
+- **시퀀스:** `SEQ_T_PORTFOLIO`
 
 | no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
 |:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
-| 1 | USER_NUM | 회원 번호 | NUMBER | 9 | PK | NOT NULL | | 소유 회원 번호 (식별자 겸 FK) | T_USER(USER_NUM) | ON DELETE CASCADE |
-| 2 | PORTFOLIO_TITLE | 포트폴리오 제목 | VARCHAR2 | 200 | | | | 포트폴리오 제목 | | 예: 'Provit 프로젝트 포트폴리오' |
-| 3 | FILE_URL | 파일 URL | VARCHAR2 | 500 | | | | 업로드된 포트폴리오 파일 URL | | PDF/문서 링크 |
-| 4 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 포트폴리오 최초 등록 일시 | | |
-| 5 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 포트폴리오 최종 수정 일시 | | |
+| 1 | PORTFOLIO_NUM | 포트폴리오 번호 | NUMBER | 18 | PK | NOT NULL | SEQ_T_PORTFOLIO.NEXTVAL | 포트폴리오 고유 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | USER_NUM | 회원 번호 | NUMBER | 9 | | NOT NULL | | 소유 회원 번호 | T_USER(USER_NUM) | ON DELETE CASCADE |
+| 3 | PORTFOLIO_TITLE | 포트폴리오 제목 | VARCHAR2 | 200 | | NOT NULL | | 포트폴리오 제목 | | 예: 'Provit 프로젝트 포트폴리오' |
+| 4 | FILE_URL | 파일 URL | VARCHAR2 | 500 | | | | 업로드된 포트폴리오 파일 URL | | PDF/문서 링크 |
+| 5 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 포트폴리오 최초 등록 일시 | | |
+| 6 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 포트폴리오 최종 수정 일시 | | |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|
-| 1 | PK_T_PORTFOLIO_IDX | PK | Unique | USER_NUM |
+| 1 | PK_T_PORTFOLIO_IDX | PK | Unique | PORTFOLIO_NUM |
+| 2 | IDX_PORTFOLIO_USER_NUM | Normal | Non-Unique | USER_NUM |
 
 ---
 
@@ -264,7 +268,7 @@
 ### 3.1 T_INTERVIEW_HISTORY (면접 Q&A 내역)
 - **테이블 물리명:** `T_INTERVIEW_HISTORY`
 - **테이블 논리명:** 면접 질문/답변 내역
-- **설명:** AI 모의 면접 진행 시 오간 5문항의 질문 및 답변 텍스트 기록
+- **설명:** AI 모의 면접 진행 시 오간 5문항의 질문 및 답변 텍스트 기록 (순수 문답 내역)
 - **시퀀스:** `SEQ_T_INTERVIEW_HISTORY`
 
 | no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
@@ -281,11 +285,7 @@
 | 10 | ANSWER4 | 답변 4 | VARCHAR2 | 3000 | | | | 응시자 4번 답변 내용 | | |
 | 11 | QUESTION5 | 질문 5 | VARCHAR2 | 1000 | | | | AI 생성 5번 질문 내용 | | |
 | 12 | ANSWER5 | 답변 5 | VARCHAR2 | 3000 | | | | 응시자 5번 답변 내용 | | |
-| 13 | STRENGTH | 잘한 점 | VARCHAR2 | 500 | | | | 면접 답변 중 우수한 역량 및 강점 피드백 | | LLM 평가 |
-| 14 | WEAKNESS | 아쉬운 점 | VARCHAR2 | 500 | | | | 미흡했던 부분 및 약점 피드백 | | LLM 평가 |
-| 15 | PREVIOUS_COMPARISON | 이전 기록 비교 | VARCHAR2 | 500 | | | | 직전 모의면접 대비 변화 및 성장 추이 | | LLM 분석 |
-| 16 | IMPROVEMENT_POINT | 개선할 점 | VARCHAR2 | 500 | | | | 차기 면접을 위한 구체적 행동 개선 제안 | | LLM 조언 |
-| 17 | INTERVIEW_DATE | 응시일시 | DATE | | | NOT NULL | SYSDATE | 모의 면접 진행 일시 | | |
+| 13 | INTERVIEW_DATE | 응시일시 | DATE | | | NOT NULL | SYSDATE | 모의 면접 진행 일시 | | |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|
@@ -297,7 +297,7 @@
 ### 3.2 T_INTERVIEW_RESULT (면접 평가 결과)
 - **테이블 물리명:** `T_INTERVIEW_RESULT`
 - **테이블 논리명:** 면접 평가 결과
-- **설명:** AI 모의 면접 완료 후 산출된 5대 역량 세부 스코어 및 총점 (복합 기본키)
+- **설명:** AI 모의 면접 완료 후 산출된 5대 역량 세부 스코어, 총점 및 LLM 역량 피드백 (복합 기본키)
 - **시퀀스:** 없음 (`HISTORY_NUM`, `USER_NUM` 복합 PK)
 
 | no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
@@ -310,7 +310,11 @@
 | 6 | LOGIC_SCORE | 논리력 점수 | NUMBER | 5,2 | | | 0.00 | 논리적 사고 및 답변 전개 점수 (100점 만점) | | |
 | 7 | DELIVERY_SCORE | 전달력 점수 | NUMBER | 5,2 | | | 0.00 | 표현력 및 명확한 전달력 점수 (100점 만점) | | |
 | 8 | TOTAL_SCORE | 종합 총점 | NUMBER | 5,2 | | | 0.00 | 5개 지표 가중 종합 평점 (100점 만점) | | |
-| 9 | INTERVIEW_DATE | 평가일시 | DATE | | | NOT NULL | SYSDATE | 면접 평가 분석 완료 일시 | | |
+| 9 | STRENGTH | 잘한 점 | VARCHAR2 | 500 | | | | 면접 답변 중 우수한 역량 및 강점 피드백 | | LLM 평가 |
+| 10 | WEAKNESS | 아쉬운 점 | VARCHAR2 | 500 | | | | 미흡했던 부분 및 약점 피드백 | | LLM 평가 |
+| 11 | PREVIOUS_COMPARISON | 이전 기록 비교 | VARCHAR2 | 500 | | | | 직전 모의면접 대비 변화 및 성장 추이 | | LLM 분석 |
+| 12 | IMPROVEMENT_POINT | 개선할 점 | VARCHAR2 | 500 | | | | 차기 면접을 위한 구체적 행동 개선 제안 | | LLM 조언 |
+| 13 | INTERVIEW_DATE | 평가일시 | DATE | | | NOT NULL | SYSDATE | 면접 평가 분석 완료 일시 | | |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|

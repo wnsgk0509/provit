@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { createInterview, submitInterviewAnswer } from '../../api/interviewApi';
+import { useEffect, useState } from 'react';
+import { createInterview, getInterviewDocuments, submitInterviewAnswer } from '../../api/interviewApi';
 import InterviewCustom from './components/InterviewCustom';
 import InterviewQuestion from './components/InterviewQuestion';
 import InterviewResult from './components/InterviewResult';
@@ -12,8 +12,9 @@ const INTERVIEW_STEP = {
 };
 
 const INITIAL_SETTINGS = {
-    portfolioDocumentId: '',
-    coverLetterDocumentId: '',
+    resumeNum: '',
+    portfolioNum: '',
+    letterNum: '',
     interviewStyle: '',
     difficulty: '',
 };
@@ -27,7 +28,7 @@ const STEP_ORDER = {
 function Interview() {
     const [step, setStep] = useState(INTERVIEW_STEP.CUSTOM);
     const [settings, setSettings] = useState(INITIAL_SETTINGS);
-    const [interviewId, setInterviewId] = useState(null);
+    const [historyNum, setHistoryNum] = useState(null);
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState([]);
@@ -35,6 +36,17 @@ function Interview() {
     const [result, setResult] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [documents, setDocuments] = useState(null);
+    const [documentsLoading, setDocumentsLoading] = useState(true);
+
+    useEffect(() => {
+        let active = true;
+        getInterviewDocuments()
+            .then((data) => { if (active) setDocuments(data); })
+            .catch(() => { if (active) setErrorMessage('저장된 서류를 불러오지 못했습니다. 로그인 상태를 확인해 주세요.'); })
+            .finally(() => { if (active) setDocumentsLoading(false); });
+        return () => { active = false; };
+    }, []);
 
     const handleSettingChange = (name, value) => {
         setSettings((previousSettings) => ({
@@ -44,13 +56,17 @@ function Interview() {
     };
 
     const handleStart = async () => {
+        if (!documents?.resumeList?.some((resume) => String(resume.documentNum) === settings.resumeNum)) {
+            setErrorMessage('면접에 사용할 이력서를 선택해 주세요.');
+            return;
+        }
         setIsLoading(true);
         setErrorMessage('');
 
         try {
             const interviewSession = await createInterview(settings);
 
-            setInterviewId(interviewSession.interviewId);
+            setHistoryNum(interviewSession.historyNum);
             setQuestions(interviewSession.questions);
             setAnswerTimeLimitSeconds(interviewSession.answerTimeLimitSeconds);
             setCurrentQuestionIndex(0);
@@ -70,8 +86,8 @@ function Interview() {
         setErrorMessage('');
 
         try {
-            const response = await submitInterviewAnswer(interviewId, {
-                questionId: currentQuestion.questionId,
+            const response = await submitInterviewAnswer(historyNum, {
+                questionOrder: currentQuestion.questionOrder,
                 answer,
                 timedOut,
             });
@@ -79,7 +95,7 @@ function Interview() {
             setAnswers((previousAnswers) => [
                 ...previousAnswers,
                 {
-                    questionId: currentQuestion.questionId,
+                    questionOrder: currentQuestion.questionOrder,
                     answer,
                     timedOut,
                 },
@@ -94,7 +110,7 @@ function Interview() {
             if (response.nextQuestion) {
                 setQuestions((previousQuestions) => {
                     const questionExists = previousQuestions.some(
-                        (question) => question.questionId === response.nextQuestion.questionId,
+                        (question) => question.questionOrder === response.nextQuestion.questionOrder,
                     );
 
                     return questionExists
@@ -114,7 +130,7 @@ function Interview() {
     const handleRestart = () => {
         setStep(INTERVIEW_STEP.CUSTOM);
         setSettings(INITIAL_SETTINGS);
-        setInterviewId(null);
+        setHistoryNum(null);
         setQuestions([]);
         setCurrentQuestionIndex(0);
         setAnswers([]);
@@ -170,7 +186,8 @@ function Interview() {
                     {step === INTERVIEW_STEP.CUSTOM && (
                         <InterviewCustom
                             settings={settings}
-                            isLoading={isLoading}
+                            documents={documents}
+                            isLoading={isLoading || documentsLoading}
                             onSettingChange={handleSettingChange}
                             onStart={handleStart}
                         />
@@ -178,7 +195,7 @@ function Interview() {
 
                     {step === INTERVIEW_STEP.QUESTION && questions[currentQuestionIndex] && (
                         <InterviewQuestion
-                            key={questions[currentQuestionIndex].questionId}
+                            key={questions[currentQuestionIndex].questionOrder}
                             question={questions[currentQuestionIndex]}
                             currentQuestionIndex={currentQuestionIndex}
                             totalQuestions={5}
@@ -191,7 +208,7 @@ function Interview() {
                     )}
 
                     {step === INTERVIEW_STEP.RESULT && result && (
-                        <InterviewResult result={result} onRestart={handleRestart} />
+                        <InterviewResult result={result} settings={settings} onRestart={handleRestart} />
                     )}
                 </div>
             </div>

@@ -2,8 +2,10 @@ package com.provit.service.auth;
 
 import com.provit.dto.auth.LoginRequestDTO;
 import com.provit.dto.auth.LoginResponseDTO;
+import com.provit.dto.auth.MyPageUpdateRequestDTO;
 import com.provit.dto.auth.SignupRequestDTO;
 import com.provit.dto.auth.UserResponseDTO;
+import com.provit.dto.auth.WithdrawalRequestDTO;
 
 /**
  * 인증 및 회원 관리 비즈니스 로직 인터페이스
@@ -44,4 +46,14 @@ public interface AuthService {
      * 토큰 기반 회원 프로필 조회
      */
     UserResponseDTO getUserProfile(Long userNum);
+
+    /**
+     * 토큰으로 식별한 회원의 닉네임 및 비밀번호를 수정한다.
+     */
+    UserResponseDTO updateMyProfile(Long userNum, MyPageUpdateRequestDTO requestDTO);
+
+    /**
+     * 회원 데이터를 물리 삭제하지 않고 탈퇴 상태로 변경한다.
+     */
+    void withdrawMyAccount(Long userNum, WithdrawalRequestDTO requestDTO);
 }

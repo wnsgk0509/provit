@@ -9,8 +9,10 @@ import javax.crypto.SecretKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.provit.dao.auth.UserDAO;
 import com.provit.dto.auth.UserDTO;
 
 import io.jsonwebtoken.Claims;
@@ -34,6 +36,14 @@ public class JwtProvider {
     private long expirationTime; // 밀리초 (기본 24시간)
 
     private SecretKey secretKey;
+
+    // 비밀번호 변경 뒤 기존 토큰을 즉시 차단하기 위한 사용자별 발급 기준 시각이다.
+    private final UserDAO userDAO;
+
+    @Autowired
+    public JwtProvider(UserDAO userDAO) {
+        this.userDAO = userDAO;
+    }
 
     @PostConstruct
     public void init() {
@@ -59,6 +69,9 @@ public class JwtProvider {
                 .claim("name", user.getUserName())
                 .claim("nickname", user.getUserNickname())
                 .claim("role", user.getUserType() != null ? user.getUserType() : "USER")
+                // DB의 버전과 다르면 비밀번호 변경·탈퇴 전 발급된 토큰으로 판단한다.
+                .claim("tokenVersion", user.getUserTokenVersion() != null ? user.getUserTokenVersion() : 0)
+                // DB의 버전과 다르면 비밀번호 변경·탈퇴 전 발급된 토큰으로 판단한다.
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(secretKey)
@@ -70,11 +83,24 @@ public class JwtProvider {
      */
     public boolean validateToken(String token) {
         try {
-            Jwts.parser()
+            Claims claims = Jwts.parser()
                     .verifyWith(secretKey)
                     .build()
-                    .parseSignedClaims(token);
-            return true;
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            Long userNum = Long.parseLong(claims.getSubject());
+            Object tokenVersionValue = claims.get("tokenVersion");
+            if (!(tokenVersionValue instanceof Number)) {
+                return false;
+            }
+
+            // 서버 재시작 뒤에도 유지되는 DB 버전으로 토큰을 검증한다.
+            UserDTO user = userDAO.selectByUserNum(userNum);
+            return user != null
+                    && (user.getUserIsDeleted() == null || user.getUserIsDeleted() == 0)
+                    && user.getUserTokenVersion() != null
+                    && user.getUserTokenVersion().intValue() == ((Number) tokenVersionValue).intValue();
         } catch (ExpiredJwtException e) {
             log.warn("만료된 JWT 토큰입니다.");
         } catch (JwtException | IllegalArgumentException e) {
@@ -124,7 +150,22 @@ public class JwtProvider {
         return claims.get("email", String.class);
     }
 
+    /**
+     * 토큰에서 회원 권한(USER_TYPE: USER, ADMIN) 추출
+     */
+    public String getUserRole(String token) {
+        Claims claims = getClaims(token);
+        return claims.get("role", String.class);
+    }
+
     public long getExpirationTime() {
         return expirationTime;
     }
+
+    /**
+     * 비밀번호 변경 또는 탈퇴 시 해당 사용자의 기존 JWT를 즉시 무효화한다.
+     */
+    /**
+     * 비밀번호 변경 시점보다 먼저 발급된 해당 회원의 모든 JWT를 무효화한다.
+     */
 }
