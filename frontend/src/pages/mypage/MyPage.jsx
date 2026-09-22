@@ -7,6 +7,9 @@ import './MyPage.css';
 
 // 회원가입과 동일한 비밀번호 규칙: 8자 이상, 영문 대/소문자·숫자·특수문자 포함
 const PASSWORD_PATTERN = /^(?=\S{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).*$/;
+// 회원가입과 동일한 닉네임 길이 규칙을 마이페이지에도 적용한다.
+const NICKNAME_MIN_LENGTH = 2;
+const NICKNAME_MAX_LENGTH = 20;
 
 function MyPage() {
     const { user, updateUser, logout } = useAuth();
@@ -21,6 +24,7 @@ function MyPage() {
     const [isNicknameChecking, setIsNicknameChecking] = useState(false);
     const [isNicknameAvailable, setIsNicknameAvailable] = useState(null);
     const [nicknameMessage, setNicknameMessage] = useState('');
+    const [isNicknameMaxLengthExceeded, setIsNicknameMaxLengthExceeded] = useState(false);
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
@@ -44,9 +48,19 @@ function MyPage() {
         if (!isNicknameEditing) return undefined;
 
         const trimmedNickname = nickname.trim();
+        if (isNicknameMaxLengthExceeded) {
+            setIsNicknameAvailable(false);
+            setNicknameMessage('닉네임은 2자 이상 20자 이하로 입력해 주세요.');
+            return undefined;
+        }
         if (!trimmedNickname) {
             setIsNicknameAvailable(false);
             setNicknameMessage('닉네임을 입력해 주세요.');
+            return undefined;
+        }
+        if (trimmedNickname.length < NICKNAME_MIN_LENGTH || trimmedNickname.length > NICKNAME_MAX_LENGTH) {
+            setIsNicknameAvailable(false);
+            setNicknameMessage('닉네임은 2자 이상 20자 이하로 입력해 주세요.');
             return undefined;
         }
         if (trimmedNickname === displayNickname) {
@@ -63,21 +77,32 @@ function MyPage() {
                 const available = response.data?.data?.available === true;
                 setIsNicknameAvailable(available);
                 setNicknameMessage(available ? '사용 가능한 닉네임입니다.' : '이미 사용 중인 닉네임입니다.');
-            } catch {
+            } catch (error) {
+                const responseData = error.response?.data;
+                const message = responseData?.data || responseData?.responseCode?.message;
                 setIsNicknameAvailable(false);
-                setNicknameMessage('닉네임 중복 확인에 실패했습니다.');
+                setNicknameMessage(message || '닉네임 중복 확인에 실패했습니다.');
             } finally {
                 setIsNicknameChecking(false);
             }
         }, 400);
 
         return () => window.clearTimeout(timerId);
-    }, [nickname, isNicknameEditing, displayNickname]);
+    }, [nickname, isNicknameEditing, displayNickname, isNicknameMaxLengthExceeded]);
 
     const isPasswordMismatch = Boolean(newPasswordConfirm) && newPassword !== newPasswordConfirm;
     const isPasswordInvalid = Boolean(newPassword) && !PASSWORD_PATTERN.test(newPassword);
     const isPasswordSameAsCurrent = Boolean(currentPassword) && currentPassword === newPassword;
-    const isNicknameSaveBlocked = isNicknameEditing && (!nickname.trim() || isNicknameChecking || isNicknameAvailable !== true);
+    const isNicknameSaveBlocked = isNicknameEditing && (!nickname.trim() || isNicknameChecking || isNicknameMaxLengthExceeded || isNicknameAvailable !== true);
+
+    const handleNicknameChange = (event) => {
+        const nextNickname = event.target.value;
+        const isTooLong = nextNickname.length > NICKNAME_MAX_LENGTH;
+
+        // 20자를 초과한 값은 저장하지 않고, 사용자가 제한을 알 수 있도록 오류 상태만 남긴다.
+        setNickname(isTooLong ? nextNickname.slice(0, NICKNAME_MAX_LENGTH) : nextNickname);
+        setIsNicknameMaxLengthExceeded(isTooLong);
+    };
 
     const handleCancel = () => {
         setNickname(displayNickname);
@@ -91,6 +116,7 @@ function MyPage() {
         setIsNicknameEditing(false);
         setIsPasswordEditing(false);
         setIsNicknameAvailable(null);
+        setIsNicknameMaxLengthExceeded(false);
         setNicknameMessage('');
         setSaveMessage('');
     };
@@ -136,6 +162,7 @@ function MyPage() {
             setIsNicknameEditing(false);
             setIsPasswordEditing(false);
             setIsNicknameAvailable(null);
+            setIsNicknameMaxLengthExceeded(false);
             setNicknameMessage('');
             setSaveMessage('회원 정보가 수정되었습니다.');
         } catch (error) {
@@ -232,7 +259,7 @@ function MyPage() {
                             <dd>
                                 {isNicknameEditing ? (
                                     <>
-                                        <input type="text" value={nickname} onChange={(event) => setNickname(event.target.value)} aria-label="닉네임" autoFocus required />
+                                        <input type="text" value={nickname} onChange={handleNicknameChange} aria-label="닉네임" autoFocus required />
                                         {nicknameMessage && <p className={`mypage-field-message ${isNicknameAvailable ? 'is-valid' : 'is-error'}`}>{isNicknameChecking ? '닉네임을 확인 중입니다.' : nicknameMessage}</p>}
                                     </>
                                 ) : (
