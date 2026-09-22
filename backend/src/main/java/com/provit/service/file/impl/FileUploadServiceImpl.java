@@ -161,7 +161,9 @@ public class FileUploadServiceImpl implements FileUploadService {
     }
 
     /**
-     * 카테고리별 대상 리소스에 대한 요청자의 소유권 및 권한을 검증합니다.
+     * 카테고리별 대상 리소스에 대한 DB 존재 여부 및 요청자의 소유권/권한을 엄격히 검증합니다.
+     * 1단계: DB 상에 해당 대상 엔티티(포트폴리오, 게시글, 회원)가 실제로 존재하는지 확인 (Existence Check)
+     * 2단계: 조회된 리소스의 실제 소유자(USER_NUM)와 요청자(userNum)가 일치하는지 대조 (Ownership Check)
      */
     private void validateResourceOwnership(FileCategory category, long targetId, long userNum, String role) {
         // 관리자(ADMIN)는 모든 파일 업로드/삭제 가능
@@ -171,32 +173,38 @@ public class FileUploadServiceImpl implements FileUploadService {
 
         switch (category) {
             case PROFILE -> {
-                // 프로필 사진은 반드시 본인의 USER_NUM과 일치해야 함
+                // 1. 본인의 userNum으로만 프로필 업로드/삭제 가능
                 if (targetId != userNum) {
                     throw new SecurityException("본인의 프로필 사진만 업로드하거나 삭제할 수 있습니다. (요청 회원: " + userNum + ", 대상: " + targetId + ")");
                 }
+                // 2. 실제 유효한(미탈퇴) 회원인지 DB 검증
+                Integer count = sqlSessionTemplate.selectOne(
+                        "com.provit.mapper.file.FileMapper.selectUserExists", targetId);
+                if (count == null || count <= 0) {
+                    throw new IllegalArgumentException("존재하지 않거나 탈퇴 처리된 회원입니다: " + targetId);
+                }
             }
             case PORTFOLIO -> {
-                // 신규 포트폴리오 생성 전(임시 선업로드)으로 targetId를 본인 userNum으로 지정한 경우 허용
-                if (targetId == userNum) {
-                    return;
-                }
-                // 기존 등록된 포트폴리오 번호인 경우 DB 조회로 실제 소유자 확인
+                // 1. DB에서 해당 포트폴리오 존재 여부 및 소유자 조회
                 Integer ownerNum = sqlSessionTemplate.selectOne(
                         "com.provit.mapper.file.FileMapper.selectPortfolioOwner", targetId);
-                if (ownerNum != null && ownerNum.intValue() != (int) userNum) {
+                if (ownerNum == null) {
+                    throw new IllegalArgumentException("존재하지 않는 포트폴리오 번호입니다: " + targetId);
+                }
+                // 2. 실제 소유자 일치 검증
+                if (ownerNum.intValue() != (int) userNum) {
                     throw new SecurityException("본인이 등록한 포트폴리오의 파일만 업로드하거나 삭제할 수 있습니다.");
                 }
             }
             case POST -> {
-                // 신규 게시글 작성 중 에디터 이미지 선업로드 시 targetId를 본인 userNum으로 지정한 경우 허용
-                if (targetId == userNum) {
-                    return;
-                }
-                // 기존 등록된 게시글 번호인 경우 DB 조회로 실제 작성자 확인
+                // 1. DB에서 해당 게시글 존재 여부 및 작성자 조회
                 Integer writerNum = sqlSessionTemplate.selectOne(
                         "com.provit.mapper.file.FileMapper.selectPostOwner", targetId);
-                if (writerNum != null && writerNum.intValue() != (int) userNum) {
+                if (writerNum == null) {
+                    throw new IllegalArgumentException("존재하지 않는 게시글 번호입니다: " + targetId);
+                }
+                // 2. 실제 작성자 일치 검증
+                if (writerNum.intValue() != (int) userNum) {
                     throw new SecurityException("본인이 작성한 게시글의 파일만 업로드하거나 삭제할 수 있습니다.");
                 }
             }

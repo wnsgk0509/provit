@@ -62,7 +62,7 @@ public class FileUploadController {
         if (token == null) {
             log.warn(">> [/api/upload/{}] 인증되지 않은 사용자의 업로드 시도 차단", categoryName);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error(ResponseCode.AUTH_UNAUTHORIZED));
+                    .body(new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null));
         }
         Long authUserNum = jwtProvider.getUserNum(token);
         String authRole = jwtProvider.getUserRole(token);
@@ -78,12 +78,14 @@ public class FileUploadController {
             // PROFILE: 타인 프로필 변조 방지를 위해 무조건 로그인 사용자의 userNum으로 강제 고정
             if (category == FileCategory.PROFILE) {
                 targetId = authUserNum;
-            } else if (targetId == null || targetId <= 0) {
-                // 신규 등록 전(포트폴리오, 게시글) 임시 선업로드의 경우 로그인 회원의 userNum을 targetId로 기본 매핑
-                targetId = authUserNum;
+            } else {
+                // 포트폴리오/게시글 등은 대상 DB 고유 NUM이 반드시 유효해야 함 (임의 우회 원천 차단)
+                if (targetId == null || targetId <= 0) {
+                    throw new IllegalArgumentException("파일을 연결할 대상 고유 번호(targetId)가 누락되었거나 유효하지 않습니다. (포트폴리오 번호 또는 게시글 번호)");
+                }
             }
 
-            // 4. 리소스 소유권 검증 및 파일 저장 (고유 NUM + 난수 결합 명명)
+            // 4. DB 존재 여부 및 리소스 소유권 검증 후 파일 저장 (고유 NUM + 난수 결합 명명)
             FileUploadResponseDTO responseDTO = fileUploadService.uploadFile(
                     file, category, targetId, authUserNum, authRole);
 
@@ -100,7 +102,7 @@ public class FileUploadController {
         } catch (Exception e) {
             log.error(">> [/api/upload/{}] 파일 업로드 서버 오류 발생: {}", categoryName, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error(ResponseCode.INTERNAL_SERVER_ERROR));
+                    .body(new ApiResponse<>(ResponseCode.INTERNAL_SERVER_ERROR, null));
         }
     }
 
@@ -119,7 +121,7 @@ public class FileUploadController {
         if (token == null) {
             log.warn(">> [/api/upload/{}/{}] 비인증 사용자의 파일 삭제 시도 차단", categoryName, savedFileName);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error(ResponseCode.AUTH_UNAUTHORIZED));
+                    .body(new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null));
         }
         Long authUserNum = jwtProvider.getUserNum(token);
         String authRole = jwtProvider.getUserRole(token);
@@ -147,7 +149,7 @@ public class FileUploadController {
         } catch (Exception e) {
             log.error(">> [/api/upload/{}/{}] 파일 삭제 처리 중 서버 오류: {}", categoryName, savedFileName, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error(ResponseCode.INTERNAL_SERVER_ERROR));
+                    .body(new ApiResponse<>(ResponseCode.INTERNAL_SERVER_ERROR, null));
         }
     }
 
