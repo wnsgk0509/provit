@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.provit.common.annotation.LoginUser;
 
 import com.provit.common.ResponseCode;
 import com.provit.dto.interview.InterviewDocumentResponseDTO;
@@ -35,8 +36,7 @@ public class InterviewController {
     }
 
     @GetMapping("/documents")
-    public ResponseEntity<ApiResponse<InterviewDocumentResponseDTO>> getDocuments(HttpServletRequest request) {
-        Long userNum = getAuthenticatedUserNum(request);
+    public ResponseEntity<ApiResponse<InterviewDocumentResponseDTO>> getDocuments(@LoginUser Long userNum) {
         if (userNum == null) {
             return unauthorizedResponse();
         }
@@ -47,8 +47,7 @@ public class InterviewController {
 
     @PostMapping("/context")
     public ResponseEntity<ApiResponse<LlmInterviewContextDTO>> getContext(
-            HttpServletRequest request, @RequestBody InterviewStartRequestDTO selection) {
-        Long userNum = getAuthenticatedUserNum(request);
+            @LoginUser Long userNum, @RequestBody InterviewStartRequestDTO selection) {
         if (userNum == null) {
             return unauthorizedResponse();
         }
@@ -67,8 +66,7 @@ public class InterviewController {
 
     @PostMapping("/start")
     public ResponseEntity<ApiResponse<InterviewStartResponseDTO>> startInterview(
-            HttpServletRequest request, @RequestBody InterviewStartRequestDTO startRequest) {
-        Long userNum = getAuthenticatedUserNum(request);
+            @LoginUser Long userNum, @RequestBody InterviewStartRequestDTO startRequest) {
         if (userNum == null) {
             return unauthorizedResponse();
         }
@@ -79,10 +77,9 @@ public class InterviewController {
 
     @PostMapping("/{historyNum}/answers")
     public ResponseEntity<ApiResponse<InterviewAnswerResponseDTO>> submitAnswer(
-            HttpServletRequest request,
+            @LoginUser Long userNum,
             @PathVariable int historyNum,
             @RequestBody InterviewAnswerRequestDTO answerRequest) {
-        Long userNum = getAuthenticatedUserNum(request);
         if (userNum == null) {
             return unauthorizedResponse();
         }
@@ -92,17 +89,7 @@ public class InterviewController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    private Long getAuthenticatedUserNum(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
-        String token = authHeader.substring(7).trim();
-        if (!jwtProvider.validateToken(token)) {
-            return null;
-        }
-        return jwtProvider.getUserNum(token);
-    }
+
 
     private <T> ResponseEntity<ApiResponse<T>> unauthorizedResponse() {
         return new ResponseEntity<>(

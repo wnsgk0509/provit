@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
@@ -8,6 +8,9 @@ import JobList from './pages/jobs/JobList';
 import Fortune from './pages/fortune/Fortune';
 import Interview from './pages/interview/Interview';
 import CommunityList from './pages/community/CommunityList';
+import CommunityWrite from './pages/community/CommunityWrite';
+import CommunityDetail from './pages/community/CommunityDetail';
+import CommunityEdit from './pages/community/CommunityEdit';
 import MyPage from './pages/mypage/MyPage';
 import DocumentWrite from './pages/documentWrite/DocumentWrite';
 import Login from './pages/auth/Login';
@@ -54,7 +57,10 @@ function App() {
               )}
             />
             <Route path="/community" element={<CommunityList />} />
-            {/* <Route path="/study" element={<Study />} /> 기존 개별 스터디 라우트는 커뮤니티로 통합 */}
+            <Route path="/community/write" element={<CommunityWrite />} />
+            <Route path="/community/:postNum" element={<CommunityDetail />} />
+            <Route path="/community/edit/:postNum" element={<CommunityEdit />} />
+            <Route path="/study" element={<Navigate to="/community?tab=study" replace />} />
             <Route path="/mypage" element={<RequireAuth><MyPage /></RequireAuth>} />
             <Route path="/documents/write" element={<RequireAuth><DocumentWrite /></RequireAuth>} />
             <Route path="/login" element={<Login />} />

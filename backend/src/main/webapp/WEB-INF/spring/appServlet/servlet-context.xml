@@ -9,7 +9,11 @@
                  http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
 
     <!-- 1. Spring MVC 애노테이션 활성화 (Jackson JSON 변환 등 자동 처리) -->
-    <annotation-driven />
+    <annotation-driven>
+        <argument-resolvers>
+            <beans:bean class="com.provit.common.resolver.LoginUserArgumentResolver" />
+        </argument-resolvers>
+    </annotation-driven>
 
     <!-- 외부 프로퍼티 로드 (업로드 스토리지 경로 등) -->
     <context:property-placeholder location="classpath:api.properties" ignore-resource-not-found="true" />
