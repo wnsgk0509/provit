@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createCoverLetter, updateCoverLetter } from '../../../api/documentApi';
 
 const coverLetterFields = [
@@ -17,6 +18,7 @@ const emptyCoverLetter = {
 };
 
 function CoverLetterWrite({ initialData = null, onSaved, onCancel }) {
+    const navigate = useNavigate();
     const isEditMode = Boolean(initialData?.letterNum);
     const [coverLetter, setCoverLetter] = useState(() => (
         Object.keys(emptyCoverLetter).reduce((normalized, key) => ({
@@ -46,13 +48,10 @@ function CoverLetterWrite({ initialData = null, onSaved, onCancel }) {
                 onSaved?.(savedCoverLetter);
                 return;
             }
-            setCoverLetter({ ...emptyCoverLetter });
-            setSaveMessage({
-                type: 'success',
-                text: letterNum
-                    ? `자기소개서가 저장되었습니다. (자기소개서 번호: ${letterNum})`
-                    : '자기소개서가 저장되었습니다.',
-            });
+            if (!letterNum) throw new Error('저장된 자기소개서 번호를 확인하지 못했습니다.');
+            window.alert('자기소개서가 저장되었습니다.');
+            navigate(`/documents/cover-letter/${letterNum}`, { replace: true });
+            window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
         } catch (error) {
             const responseData = error.response?.data;
             setSaveMessage({

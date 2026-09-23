@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Award, BriefcaseBusiness, GraduationCap, Plus, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { createResume, updateResume } from '../../../api/documentApi';
 
 const emptyResume = {
@@ -13,6 +14,7 @@ const emptyCareer = { companyName: '', joinDate: '', resignDate: '', mainDuty: '
 const emptyCertification = { certName: '', certGrade: '', issueDate: '' };
 
 function ResumeWrite({ initialData = null, onSaved, onCancel }) {
+    const navigate = useNavigate();
     const isEditMode = Boolean(initialData?.resume?.resumeNum);
     const [resume, setResume] = useState(() => normalizeFormItem(emptyResume, initialData?.resume));
     const [educations, setEducations] = useState(() => (
@@ -82,16 +84,10 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
                 onSaved?.(savedResume);
                 return;
             }
-            setResume({ ...emptyResume });
-            setEducations([{ ...emptyEducation }]);
-            setCareers([]);
-            setCertifications([]);
-            setSaveMessage({
-                type: 'success',
-                text: resumeNum
-                    ? `이력서가 저장되었습니다. (이력서 번호: ${resumeNum})`
-                    : '이력서가 저장되었습니다.',
-            });
+            if (!resumeNum) throw new Error('저장된 이력서 번호를 확인하지 못했습니다.');
+            window.alert('이력서가 저장되었습니다.');
+            navigate(`/documents/resume/${resumeNum}`, { replace: true });
+            window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
         } catch (error) {
             const responseData = error.response?.data;
             setSaveMessage({

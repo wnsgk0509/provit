@@ -1,18 +1,19 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { FileUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { createPortfolio } from '../../../api/documentApi';
 
 const MAX_PORTFOLIO_FILE_SIZE = 20 * 1000 * 1000;
 const PDF_SIGNATURE = [0x25, 0x50, 0x44, 0x46, 0x2d];
 
 function PortfolioWrite() {
+    const navigate = useNavigate();
     const [portfolioTitle, setPortfolioTitle] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
     const [selectedFileName, setSelectedFileName] = useState('');
     const [fileError, setFileError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
-    const fileInputRef = useRef(null);
 
     const handleFileChange = async (event) => {
         const fileInput = event.currentTarget;
@@ -89,19 +90,10 @@ function PortfolioWrite() {
         try {
             const savedPortfolio = await createPortfolio(portfolioTitle, selectedFile);
             const portfolioNum = savedPortfolio?.portfolioNum;
-            setPortfolioTitle('');
-            setSelectedFile(null);
-            setSelectedFileName('');
-            setFileError('');
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
-            setSaveMessage({
-                type: 'success',
-                text: portfolioNum
-                    ? `포트폴리오가 저장되었습니다. (파일명: ${portfolioNum}.pdf)`
-                    : '포트폴리오가 저장되었습니다.',
-            });
+            if (!portfolioNum) throw new Error('저장된 포트폴리오 번호를 확인하지 못했습니다.');
+            window.alert('포트폴리오가 저장되었습니다.');
+            navigate(`/documents/portfolio/${portfolioNum}`, { replace: true });
+            window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
         } catch (error) {
             const responseData = error.response?.data;
             setSaveMessage({
@@ -143,7 +135,7 @@ function PortfolioWrite() {
                             <strong>{selectedFileName || 'PDF 파일을 선택해 주세요.'}</strong>
                             <span>20MB 이하의 PDF 파일만 등록할 수 있습니다.</span>
                         </label>
-                        <input ref={fileInputRef} id="portfolioFile" className="document-file-input" type="file" accept="application/pdf,.pdf" onChange={handleFileChange} required />
+                        <input id="portfolioFile" className="document-file-input" type="file" accept="application/pdf,.pdf" onChange={handleFileChange} required />
                         {fileError && <p className="document-file-error" role="alert">{fileError}</p>}
                     </div>
                 </div>
