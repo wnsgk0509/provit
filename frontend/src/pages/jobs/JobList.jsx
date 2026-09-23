@@ -4,8 +4,10 @@ import {
     fetchRecruitments, 
     fetchOccupations, 
     fetchJobsByOccupation, 
-    syncRecruitments 
+    syncRecruitments,
+    toggleJobScrap
 } from '../../api/recruitmentApi';
+import { useAuth } from '../../context/AuthContext';
 import './JobList.css';
 
 // 주요 지역 필터 옵션
@@ -31,6 +33,7 @@ const EXPERIENCES = [
 
 function JobList() {
     const navigate = useNavigate();
+    const { isLoggedIn } = useAuth();
 
     // 1. 공고 및 페이징 상태
     const [recruitments, setRecruitments] = useState([]);
@@ -57,7 +60,8 @@ function JobList() {
         size: 9, // 한 페이지당 9개 카드 (3x3 그리드)
         keyword: '',
         location: '',
-        experienceLevel: ''
+        experienceLevel: '',
+        scrapOnly: false
     });
 
     // 4. 검색창 입력 버퍼
@@ -169,9 +173,70 @@ function JobList() {
             size: 9,
             keyword: '',
             location: '',
-            experienceLevel: ''
+            experienceLevel: '',
+            scrapOnly: false
         });
     };
+
+    // 관심 공고 스크랩(북마크) 토글 핸들러
+    const handleToggleScrap = async (e, recruitmentNum) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        if (!isLoggedIn) {
+            if (window.confirm('관심 공고 스크랩은 로그인이 필요한 서비스입니다.\n로그인 페이지로 이동하시겠습니까?')) {
+                navigate('/login');
+            }
+            return;
+        }
+
+        // 1. 낙관적 UI 업데이트 (즉시 별 상태 토글)
+        setRecruitments(prevList =>
+            prevList.map(job =>
+                job.recruitmentNum === recruitmentNum
+                    ? { ...job, isScrapped: !job.isScrapped }
+                    : job
+            )
+        );
+
+        // 2. 서버 스크랩 토글 API 호출
+        try {
+            const res = await toggleJobScrap(recruitmentNum);
+            if (res && res.data) {
+                // 만약 스크랩만 모아보기 상태에서 스크랩을 취소했다면 목록 새로고침
+                if (params.scrapOnly && !res.data.isScrapped) {
+                    loadRecruitments();
+                }
+            }
+        } catch (error) {
+            console.error('스크랩 토글 에러:', error);
+            // 실패 시 UI 롤백
+            setRecruitments(prevList =>
+                prevList.map(job =>
+                    job.recruitmentNum === recruitmentNum
+                        ? { ...job, isScrapped: !job.isScrapped }
+                        : job
+                )
+            );
+            alert('스크랩 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+        }
+    };
+
+    // '내 스크랩 공고만 보기' 필터 토글
+    const handleToggleScrapOnly = () => {
+        if (!isLoggedIn && !params.scrapOnly) {
+            if (window.confirm('스크랩한 공고를 확인하려면 로그인이 필요합니다.\n로그인 페이지로 이동하시겠습니까?')) {
+                navigate('/login');
+            }
+            return;
+        }
+        setParams(prev => ({
+            ...prev,
+            page: 1,
+            scrapOnly: !prev.scrapOnly
+        }));
+    };
+
 
     // 수동 크롤링 동기화 실행
     const handleManualSync = async () => {
@@ -427,6 +492,14 @@ function JobList() {
                                 >
                                     초기화
                                 </button>
+                                <button 
+                                    type="button" 
+                                    className={`btn px-3 text-nowrap fw-bold ${params.scrapOnly ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'}`}
+                                    onClick={handleToggleScrapOnly}
+                                    title={params.scrapOnly ? '전체 공고 보기' : '내가 스크랩한 관심 공고만 모아보기'}
+                                >
+                                    {params.scrapOnly ? '⭐ 스크랩 모아보기 중' : '☆ 내 스크랩 공고'}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -435,9 +508,16 @@ function JobList() {
 
             {/* 3. 검색 결과 요약 */}
             <div className="d-flex justify-content-between align-items-center mb-3 px-1">
-                <span className="small text-muted">
-                    총 <strong className="text-primary">{pageInfo.totalElements.toLocaleString()}</strong>건의 채용 공고
-                </span>
+                <div>
+                    <span className="small text-muted">
+                        총 <strong className="text-primary">{pageInfo.totalElements.toLocaleString()}</strong>건의 채용 공고
+                    </span>
+                    {params.scrapOnly && (
+                        <span className="badge bg-warning text-dark border ms-2">
+                            ⭐ 내 관심 공고만 필터링됨
+                        </span>
+                    )}
+                </div>
                 {params.keyword && (
                     <span className="badge bg-light text-dark border">
                         검색어: "{params.keyword}"
@@ -474,12 +554,23 @@ function JobList() {
                         <div key={job.recruitmentNum} className="col">
                             <div className="card job-card h-100">
                                 <div className="card-body d-flex flex-column p-4">
-                                    {/* 상단: 회사명 + D-Day 뱃지 */}
+                                    {/* 상단: 회사명 + D-Day 뱃지 & 관심 공고 스크랩 버튼 */}
                                     <div className="d-flex justify-content-between align-items-start mb-2">
                                         <span className="job-card-company text-truncate pe-2">
                                             🏢 {job.companyName}
                                         </span>
-                                        {renderDDayBadge(job.expirationDate, job.closeType)}
+                                        <div className="d-flex align-items-center gap-2">
+                                            {renderDDayBadge(job.expirationDate, job.closeType)}
+                                            <button
+                                                type="button"
+                                                className={`job-scrap-btn ${job.isScrapped ? 'active' : ''}`}
+                                                onClick={(e) => handleToggleScrap(e, job.recruitmentNum)}
+                                                title={job.isScrapped ? '관심 공고 스크랩 취소' : '관심 공고 스크랩 등록'}
+                                                aria-label="관심 공고 스크랩"
+                                            >
+                                                {job.isScrapped ? '★' : '☆'}
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {/* 제목 */}

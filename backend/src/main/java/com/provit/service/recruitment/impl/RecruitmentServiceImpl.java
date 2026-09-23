@@ -85,4 +85,33 @@ public class RecruitmentServiceImpl implements RecruitmentService {
         log.info(">> [Service] 마감일 경과 채용 공고 일괄 비활성화 완료: 총 {}건 비활성화 처리", deactivatedCount);
         return deactivatedCount;
     }
+
+    @Override
+    @Transactional
+    public com.provit.dto.recruitment.JobScrapResponseDTO toggleJobScrap(long recruitmentNum, long userNum) {
+        log.info(">> [Service] 관심 공고 스크랩 토글 요청: recruitmentNum={}, userNum={}", recruitmentNum, userNum);
+
+        int exists = recruitmentDAO.checkJobScrap(recruitmentNum, userNum);
+        boolean isScrapped;
+        String message;
+
+        if (exists > 0) {
+            recruitmentDAO.deleteJobScrap(recruitmentNum, userNum);
+            isScrapped = false;
+            message = "관심 공고에서 제외되었습니다.";
+            log.info(">> [Service] 스크랩 취소 완료: recruitmentNum={}, userNum={}", recruitmentNum, userNum);
+        } else {
+            recruitmentDAO.insertJobScrap(recruitmentNum, userNum);
+            isScrapped = true;
+            message = "관심 공고로 등록되었습니다.";
+            log.info(">> [Service] 스크랩 등록 완료: recruitmentNum={}, userNum={}", recruitmentNum, userNum);
+        }
+
+        return com.provit.dto.recruitment.JobScrapResponseDTO.builder()
+                .recruitmentNum(recruitmentNum)
+                .userNum(userNum)
+                .isScrapped(isScrapped)
+                .message(message)
+                .build();
+    }
 }

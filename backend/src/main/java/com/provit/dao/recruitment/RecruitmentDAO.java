@@ -19,4 +19,10 @@ public interface RecruitmentDAO {
     public long selectRecruitmentCount(RecruitmentSearchDTO searchDTO);
 
     public int deactivateExpiredRecruitments();
+
+    public int insertJobScrap(long recruitmentNum, long userNum);
+
+    public int deleteJobScrap(long recruitmentNum, long userNum);
+
+    public int checkJobScrap(long recruitmentNum, long userNum);
 }
