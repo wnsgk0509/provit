@@ -12,6 +12,8 @@ public class CommentDTO {
     private String commentContent;
     private String commentDate; // 포맷팅된 문자열 반환을 위해 String 사용 고려, 혹은 Date
     private String userNickname; // T_USER 조인용
+    private Long parentCommentNum;
+    private Integer isDeleted;
 
     public Long getCommentNum() {
         return commentNum;
@@ -59,5 +61,21 @@ public class CommentDTO {
 
     public void setUserNickname(String userNickname) {
         this.userNickname = userNickname;
+    }
+
+    public Long getParentCommentNum() {
+        return parentCommentNum;
+    }
+
+    public void setParentCommentNum(Long parentCommentNum) {
+        this.parentCommentNum = parentCommentNum;
+    }
+
+    public Integer getIsDeleted() {
+        return isDeleted;
+    }
+
+    public void setIsDeleted(Integer isDeleted) {
+        this.isDeleted = isDeleted;
     }
 }
