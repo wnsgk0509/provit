@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -110,8 +109,9 @@ public class RecruitmentServiceImpl implements RecruitmentService {
                 isScrapped = true;
                 message = "관심 공고로 등록되었습니다.";
                 log.info(">> [Service] 스크랩 등록 완료 (신규 삽입): recruitmentNum={}, userNum={}", recruitmentNum, userNum);
-            } catch (DuplicateKeyException | DataIntegrityViolationException e) {
+            } catch (DataIntegrityViolationException e) {
                 // 3. 동일 사용자·공고의 동시 요청 경합으로 이미 다른 스레드가 INSERT를 완료한 경우:
+                // DuplicateKeyException은 DataIntegrityViolationException의 하위 타입으로 함께 처리되며,
                 // 500 에러를 방지하고 멱등하게 '등록 완료' 상태로 정상 반환
                 log.warn(">> [Service] 스크랩 동시 요청 경합 감지 (PK 충돌 흡수): recruitmentNum={}, userNum={}", recruitmentNum, userNum);
                 isScrapped = true;
