@@ -7,9 +7,6 @@ import axios from 'axios';
 const client = axios.create({
   baseURL: '/api',
   timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // 요청 인터셉터 (JWT 토큰 자동 첨부)

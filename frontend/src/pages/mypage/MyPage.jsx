@@ -1,12 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
+import { ChevronRight, Eye, EyeOff, FileText, KeyRound, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import client from '../../api/client';
+import { getCoverLetterList, getPortfolioList, getResumeList } from '../../api/documentApi';
 import './MyPage.css';
 
 // 회원가입과 동일한 비밀번호 규칙: 8자 이상, 영문 대/소문자·숫자·특수문자 포함
 const PASSWORD_PATTERN = /^(?=\S{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).*$/;
+// 회원가입과 동일한 닉네임 길이 규칙을 마이페이지에도 적용한다.
+const NICKNAME_MIN_LENGTH = 2;
+const NICKNAME_MAX_LENGTH = 20;
+
+const DOCUMENT_OPTIONS = [
+    { value: 'resume', label: '이력서', load: getResumeList },
+    { value: 'cover-letter', label: '자기소개서', load: getCoverLetterList },
+    { value: 'portfolio', label: '포트폴리오', load: getPortfolioList },
+];
 
 function MyPage() {
     const { user, updateUser, logout } = useAuth();
@@ -21,6 +31,7 @@ function MyPage() {
     const [isNicknameChecking, setIsNicknameChecking] = useState(false);
     const [isNicknameAvailable, setIsNicknameAvailable] = useState(null);
     const [nicknameMessage, setNicknameMessage] = useState('');
+    const [isNicknameMaxLengthExceeded, setIsNicknameMaxLengthExceeded] = useState(false);
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
@@ -34,6 +45,10 @@ function MyPage() {
     const [withdrawalPassword, setWithdrawalPassword] = useState('');
     const [withdrawalError, setWithdrawalError] = useState('');
     const [isWithdrawing, setIsWithdrawing] = useState(false);
+    const [selectedDocumentType, setSelectedDocumentType] = useState('resume');
+    const [documentList, setDocumentList] = useState([]);
+    const [isDocumentListLoading, setIsDocumentListLoading] = useState(true);
+    const [documentListError, setDocumentListError] = useState('');
 
     useEffect(() => {
         setDisplayNickname(userNickname);
@@ -44,9 +59,19 @@ function MyPage() {
         if (!isNicknameEditing) return undefined;
 
         const trimmedNickname = nickname.trim();
+        if (isNicknameMaxLengthExceeded) {
+            setIsNicknameAvailable(false);
+            setNicknameMessage('닉네임은 2자 이상 20자 이하로 입력해 주세요.');
+            return undefined;
+        }
         if (!trimmedNickname) {
             setIsNicknameAvailable(false);
             setNicknameMessage('닉네임을 입력해 주세요.');
+            return undefined;
+        }
+        if (trimmedNickname.length < NICKNAME_MIN_LENGTH || trimmedNickname.length > NICKNAME_MAX_LENGTH) {
+            setIsNicknameAvailable(false);
+            setNicknameMessage('닉네임은 2자 이상 20자 이하로 입력해 주세요.');
             return undefined;
         }
         if (trimmedNickname === displayNickname) {
@@ -63,21 +88,67 @@ function MyPage() {
                 const available = response.data?.data?.available === true;
                 setIsNicknameAvailable(available);
                 setNicknameMessage(available ? '사용 가능한 닉네임입니다.' : '이미 사용 중인 닉네임입니다.');
-            } catch {
+            } catch (error) {
+                const responseData = error.response?.data;
+                const message = responseData?.data || responseData?.responseCode?.message;
                 setIsNicknameAvailable(false);
-                setNicknameMessage('닉네임 중복 확인에 실패했습니다.');
+                setNicknameMessage(message || '닉네임 중복 확인에 실패했습니다.');
             } finally {
                 setIsNicknameChecking(false);
             }
         }, 400);
 
         return () => window.clearTimeout(timerId);
-    }, [nickname, isNicknameEditing, displayNickname]);
+    }, [nickname, isNicknameEditing, displayNickname, isNicknameMaxLengthExceeded]);
+
+    useEffect(() => {
+        let isActive = true;
+        const selectedOption = DOCUMENT_OPTIONS.find(
+            (option) => option.value === selectedDocumentType,
+        );
+
+        selectedOption.load()
+            .then((documents) => {
+                if (isActive) setDocumentList(documents || []);
+            })
+            .catch((error) => {
+                if (!isActive) return;
+                const responseData = error.response?.data;
+                setDocumentListError(
+                    responseData?.data
+                    || responseData?.responseCode?.message
+                    || '문서 목록을 불러오지 못했습니다.',
+                );
+            })
+            .finally(() => {
+                if (isActive) setIsDocumentListLoading(false);
+            });
+
+        return () => {
+            isActive = false;
+        };
+    }, [selectedDocumentType]);
 
     const isPasswordMismatch = Boolean(newPasswordConfirm) && newPassword !== newPasswordConfirm;
     const isPasswordInvalid = Boolean(newPassword) && !PASSWORD_PATTERN.test(newPassword);
     const isPasswordSameAsCurrent = Boolean(currentPassword) && currentPassword === newPassword;
-    const isNicknameSaveBlocked = isNicknameEditing && (!nickname.trim() || isNicknameChecking || isNicknameAvailable !== true);
+    const isNicknameSaveBlocked = isNicknameEditing && (!nickname.trim() || isNicknameChecking || isNicknameMaxLengthExceeded || isNicknameAvailable !== true);
+
+    const handleNicknameChange = (event) => {
+        const nextNickname = event.target.value;
+        const isTooLong = nextNickname.length > NICKNAME_MAX_LENGTH;
+
+        // 20자를 초과한 값은 저장하지 않고, 사용자가 제한을 알 수 있도록 오류 상태만 남긴다.
+        setNickname(isTooLong ? nextNickname.slice(0, NICKNAME_MAX_LENGTH) : nextNickname);
+        setIsNicknameMaxLengthExceeded(isTooLong);
+    };
+
+    const handleDocumentTypeChange = (event) => {
+        setSelectedDocumentType(event.target.value);
+        setDocumentList([]);
+        setDocumentListError('');
+        setIsDocumentListLoading(true);
+    };
 
     const handleCancel = () => {
         setNickname(displayNickname);
@@ -91,6 +162,7 @@ function MyPage() {
         setIsNicknameEditing(false);
         setIsPasswordEditing(false);
         setIsNicknameAvailable(null);
+        setIsNicknameMaxLengthExceeded(false);
         setNicknameMessage('');
         setSaveMessage('');
     };
@@ -136,6 +208,7 @@ function MyPage() {
             setIsNicknameEditing(false);
             setIsPasswordEditing(false);
             setIsNicknameAvailable(null);
+            setIsNicknameMaxLengthExceeded(false);
             setNicknameMessage('');
             setSaveMessage('회원 정보가 수정되었습니다.');
         } catch (error) {
@@ -197,17 +270,76 @@ function MyPage() {
                 <p>자소서 첨삭과 계정 정보를 관리하세요.</p>
             </header>
 
-            <section className="mypage-cover-letter" aria-labelledby="cover-letter-title">
+            <section className="mypage-documents" aria-labelledby="document-management-title">
                 <div className="mypage-section-title">
-                    <span>COVER LETTER</span>
-                    <h2 id="cover-letter-title">자소서 첨삭</h2>
-                    <p>작성한 자기소개서와 첨삭 결과가 이곳에 표시됩니다.</p>
-                    <Link className="mypage-document-write-link" to="/documents/write">
+                    <span>DOCUMENTS</span>
+                    <h2 id="document-management-title">취업 문서 관리</h2>
+                    <p>작성한 이력서, 자기소개서와 포트폴리오를 확인하세요.</p>
+                </div>
+
+                <fieldset className="mypage-document-types">
+                    <legend>조회할 문서 종류</legend>
+                    {DOCUMENT_OPTIONS.map((option) => (
+                        <label
+                            className={selectedDocumentType === option.value ? 'is-selected' : ''}
+                            key={option.value}
+                        >
+                            <input
+                                type="radio"
+                                name="documentType"
+                                value={option.value}
+                                checked={selectedDocumentType === option.value}
+                                onChange={handleDocumentTypeChange}
+                            />
+                            <span>{option.label}</span>
+                        </label>
+                    ))}
+                </fieldset>
+
+                <div className="mypage-document-list" aria-live="polite">
+                    {isDocumentListLoading && (
+                        <div className="mypage-document-state" role="status">
+                            문서 목록을 불러오고 있습니다.
+                        </div>
+                    )}
+
+                    {!isDocumentListLoading && documentListError && (
+                        <div className="mypage-document-state is-error" role="alert">
+                            {documentListError}
+                        </div>
+                    )}
+
+                    {!isDocumentListLoading && !documentListError && documentList.length === 0 && (
+                        <div className="mypage-document-state">
+                            등록된 {DOCUMENT_OPTIONS.find((option) => option.value === selectedDocumentType)?.label}가 없습니다.
+                        </div>
+                    )}
+
+                    {!isDocumentListLoading && !documentListError && documentList.map((documentItem) => (
+                        <Link
+                            className="mypage-document-item"
+                            to={`/documents/${selectedDocumentType}/${documentItem.documentNum}`}
+                            key={documentItem.documentNum}
+                        >
+                            <span className="mypage-document-icon" aria-hidden="true">
+                                <FileText size={20} />
+                            </span>
+                            <span className="mypage-document-info">
+                                <strong>{documentItem.documentTitle || '제목 없음'}</strong>
+                                <span>작성일 {formatDocumentDate(documentItem.createdAt)}</span>
+                            </span>
+                            <ChevronRight size={19} aria-hidden="true" />
+                        </Link>
+                    ))}
+                </div>
+
+                <div className="mypage-document-write-action">
+                    <Link
+                        className="mypage-document-write-link"
+                        to={`/documents/write?type=${selectedDocumentType}`}
+                    >
                         문서 작성하기
                     </Link>
-                </div>
-                <div className="mypage-cover-letter-placeholder" aria-label="자소서 첨삭 내용 영역">
-                    <p>자소서 첨삭 영역</p>
                 </div>
             </section>
 
@@ -232,7 +364,7 @@ function MyPage() {
                             <dd>
                                 {isNicknameEditing ? (
                                     <>
-                                        <input type="text" value={nickname} onChange={(event) => setNickname(event.target.value)} aria-label="닉네임" autoFocus required />
+                                        <input type="text" value={nickname} onChange={handleNicknameChange} aria-label="닉네임" autoFocus required />
                                         {nicknameMessage && <p className={`mypage-field-message ${isNicknameAvailable ? 'is-valid' : 'is-error'}`}>{isNicknameChecking ? '닉네임을 확인 중입니다.' : nicknameMessage}</p>}
                                     </>
                                 ) : (
@@ -316,6 +448,10 @@ function MyPage() {
             </form>
         </div>
     );
+}
+
+function formatDocumentDate(value) {
+    return value ? value.slice(0, 10).replaceAll('-', '.') : '-';
 }
 
 export default MyPage;

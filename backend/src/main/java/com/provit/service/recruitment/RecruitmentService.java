@@ -19,4 +19,6 @@ public interface RecruitmentService {
 	public PageResponse<RecruitmentDTO> getRecruitmentList(RecruitmentSearchDTO searchDTO);
 
 	public int deactivateExpiredRecruitments();
+
+	public com.provit.dto.recruitment.JobScrapResponseDTO toggleJobScrap(long recruitmentNum, long userNum);
 }

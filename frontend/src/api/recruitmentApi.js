@@ -60,3 +60,19 @@ export const syncRecruitments = async (limit = 100) => {
         throw error;
     }
 };
+
+/**
+ * 특정 채용 공고 관심 등록(스크랩/북마크) 토글
+ * @param {number|string} recruitmentNum - 채용 공고 고유 식별 번호
+ * @returns {Promise<Object>} ApiResponse<JobScrapResponseDTO>
+ */
+export const toggleJobScrap = async (recruitmentNum) => {
+    try {
+        const response = await client.post(`/recruitment/${recruitmentNum}/scrap`);
+        return response.data;
+    } catch (error) {
+        console.error(`채용 공고 스크랩 토글 실패 (공고번호: ${recruitmentNum}):`, error);
+        throw error;
+    }
+};
+

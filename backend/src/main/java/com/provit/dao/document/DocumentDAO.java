@@ -1,0 +1,64 @@
+package com.provit.dao.document;
+
+import java.util.List;
+
+import com.provit.dto.document.CareerDTO;
+import com.provit.dto.document.CertificationDTO;
+import com.provit.dto.document.CoverLetterDTO;
+import com.provit.dto.document.DocumentSummaryDTO;
+import com.provit.dto.document.EducationDTO;
+import com.provit.dto.document.PortfolioDTO;
+import com.provit.dto.document.ResumeDTO;
+
+public interface DocumentDAO {
+
+    int countEducationCode(int educationCode);
+
+    int insertResume(ResumeDTO resume);
+
+    int insertEducation(EducationDTO education);
+
+    int insertCareer(CareerDTO career);
+
+    int insertCertification(CertificationDTO certification);
+
+    int selectNextPortfolioNum();
+
+    int insertPortfolio(PortfolioDTO portfolio);
+
+    int insertCoverLetter(CoverLetterDTO coverLetter);
+
+    int updateResume(ResumeDTO resume);
+
+    int deleteEducationList(int resumeNum);
+
+    int deleteCareerList(int resumeNum);
+
+    int deleteCertificationList(int resumeNum);
+
+    int updateCoverLetter(CoverLetterDTO coverLetter);
+
+    int deleteResume(int userNum, int resumeNum);
+
+    int deleteCoverLetter(int userNum, int letterNum);
+
+    int deletePortfolio(int userNum, int portfolioNum);
+
+    ResumeDTO selectResume(int userNum, int resumeNum);
+
+    List<EducationDTO> selectEducationList(int resumeNum);
+
+    List<CareerDTO> selectCareerList(int resumeNum);
+
+    List<CertificationDTO> selectCertificationList(int resumeNum);
+
+    CoverLetterDTO selectCoverLetter(int userNum, int letterNum);
+
+    PortfolioDTO selectPortfolio(int userNum, int portfolioNum);
+
+    List<DocumentSummaryDTO> selectResumeSummaryList(int userNum);
+
+    List<DocumentSummaryDTO> selectCoverLetterSummaryList(int userNum);
+
+    List<DocumentSummaryDTO> selectPortfolioSummaryList(int userNum);
+}
