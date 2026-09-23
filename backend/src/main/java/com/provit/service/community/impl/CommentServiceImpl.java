@@ -32,6 +32,10 @@ public class CommentServiceImpl implements CommentService {
             if (parentComment == null) {
                 throw new IllegalArgumentException("부모 댓글이 존재하지 않습니다.");
             }
+            // 리뷰 피드백 반영: 부모 댓글이 현재 게시글에 속하는지 검증
+            if (!parentComment.getPostNum().equals(commentDto.getPostNum())) {
+                throw new IllegalArgumentException("부모 댓글이 해당 게시글에 존재하지 않습니다.");
+            }
             // 인스타그램 방식: 대댓글에 답글을 달아도 원본 부모의 대댓글로 편입 (1단계 계층형 유지)
             if (parentComment.getParentCommentNum() != null) {
                 commentDto.setParentCommentNum(parentComment.getParentCommentNum());
