@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FileText } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import ResumeWrite from './components/ResumeWrite';
 import CoverLetterWrite from './components/CoverLetterWrite';
 import PortfolioWrite from './components/PortfolioWrite';
@@ -17,8 +18,16 @@ const documentForms = {
     portfolio: PortfolioWrite,
 };
 
+const routeDocumentTypes = {
+    resume: 'resume',
+    'cover-letter': 'coverLetter',
+    portfolio: 'portfolio',
+};
+
 function DocumentWrite() {
-    const [documentType, setDocumentType] = useState('resume');
+    const [searchParams] = useSearchParams();
+    const initialDocumentType = routeDocumentTypes[searchParams.get('type')] || 'resume';
+    const [documentType, setDocumentType] = useState(initialDocumentType);
     const SelectedDocumentForm = documentForms[documentType];
 
     return (

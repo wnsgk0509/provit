@@ -39,6 +39,18 @@
         ORDER BY UPDATED_AT DESC, PORTFOLIO_NUM DESC
     </select>
 
+    <select id="selectPortfolioSummaryList"
+            parameterType="int"
+            resultType="com.provit.dto.document.DocumentSummaryDTO">
+        SELECT
+            PORTFOLIO_NUM AS DOCUMENT_NUM,
+            PORTFOLIO_TITLE AS DOCUMENT_TITLE,
+            CREATED_AT
+        FROM T_PORTFOLIO
+        WHERE USER_NUM = #{userNum}
+        ORDER BY CREATED_AT DESC, PORTFOLIO_NUM DESC
+    </select>
+
     <select id="selectPortfolio" resultType="com.provit.dto.document.PortfolioDTO">
         SELECT PORTFOLIO_NUM, USER_NUM, PORTFOLIO_TITLE, FILE_URL, CREATED_AT, UPDATED_AT
         FROM T_PORTFOLIO

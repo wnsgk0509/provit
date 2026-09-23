@@ -1,6 +1,7 @@
 package com.provit.controller.document;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.provit.common.ResponseCode;
 import com.provit.dto.document.CoverLetterDTO;
+import com.provit.dto.document.DocumentSummaryDTO;
 import com.provit.dto.document.PortfolioCreateRequestDTO;
 import com.provit.dto.document.PortfolioDTO;
 import com.provit.dto.document.ResumeDetailDTO;
@@ -110,6 +112,21 @@ public class DocumentController {
         return new ResponseEntity<>(ApiResponse.success(ResponseCode.SUCCESS, resume), HttpStatus.OK);
     }
 
+    @GetMapping("/resumes")
+    public ResponseEntity<ApiResponse<List<DocumentSummaryDTO>>> getResumeList(
+            HttpServletRequest request) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null),
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        List<DocumentSummaryDTO> resumes = documentService.getResumeSummaryList(
+                Math.toIntExact(userNum));
+        return new ResponseEntity<>(ApiResponse.success(ResponseCode.SUCCESS, resumes), HttpStatus.OK);
+    }
+
     @GetMapping("/cover-letters/{letterNum}")
     public ResponseEntity<ApiResponse<CoverLetterDTO>> getCoverLetter(
             HttpServletRequest request,
@@ -125,6 +142,22 @@ public class DocumentController {
                 Math.toIntExact(userNum), letterNum);
         return new ResponseEntity<>(
                 ApiResponse.success(ResponseCode.SUCCESS, coverLetter), HttpStatus.OK);
+    }
+
+    @GetMapping("/cover-letters")
+    public ResponseEntity<ApiResponse<List<DocumentSummaryDTO>>> getCoverLetterList(
+            HttpServletRequest request) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null),
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        List<DocumentSummaryDTO> coverLetters = documentService.getCoverLetterSummaryList(
+                Math.toIntExact(userNum));
+        return new ResponseEntity<>(
+                ApiResponse.success(ResponseCode.SUCCESS, coverLetters), HttpStatus.OK);
     }
 
     @GetMapping("/portfolios/{portfolioNum}")
@@ -143,6 +176,22 @@ public class DocumentController {
         portfolio.setFileUrl(null);
         return new ResponseEntity<>(
                 ApiResponse.success(ResponseCode.SUCCESS, portfolio), HttpStatus.OK);
+    }
+
+    @GetMapping("/portfolios")
+    public ResponseEntity<ApiResponse<List<DocumentSummaryDTO>>> getPortfolioList(
+            HttpServletRequest request) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null),
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        List<DocumentSummaryDTO> portfolios = documentService.getPortfolioSummaryList(
+                Math.toIntExact(userNum));
+        return new ResponseEntity<>(
+                ApiResponse.success(ResponseCode.SUCCESS, portfolios), HttpStatus.OK);
     }
 
     @GetMapping(value = "/portfolios/{portfolioNum}/file", produces = MediaType.APPLICATION_PDF_VALUE)

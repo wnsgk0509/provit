@@ -19,6 +19,7 @@ import com.provit.dao.document.DocumentDAO;
 import com.provit.dto.document.CareerDTO;
 import com.provit.dto.document.CertificationDTO;
 import com.provit.dto.document.CoverLetterDTO;
+import com.provit.dto.document.DocumentSummaryDTO;
 import com.provit.dto.document.EducationDTO;
 import com.provit.dto.document.PortfolioCreateRequestDTO;
 import com.provit.dto.document.PortfolioDTO;
@@ -172,6 +173,24 @@ public class DocumentServiceImpl implements DocumentService {
     public Resource getPortfolioFile(int userNum, int portfolioNum) {
         PortfolioDTO portfolio = getPortfolio(userNum, portfolioNum);
         return portfolioFileStorage.loadAsResource(portfolio.getFileUrl());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentSummaryDTO> getResumeSummaryList(int userNum) {
+        return documentDAO.selectResumeSummaryList(userNum);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentSummaryDTO> getCoverLetterSummaryList(int userNum) {
+        return documentDAO.selectCoverLetterSummaryList(userNum);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentSummaryDTO> getPortfolioSummaryList(int userNum) {
+        return documentDAO.selectPortfolioSummaryList(userNum);
     }
 
     private void validateCoverLetter(CoverLetterDTO coverLetter) {

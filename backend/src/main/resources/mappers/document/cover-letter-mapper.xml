@@ -43,6 +43,18 @@
         ORDER BY UPDATED_AT DESC, LETTER_NUM DESC
     </select>
 
+    <select id="selectCoverLetterSummaryList"
+            parameterType="int"
+            resultType="com.provit.dto.document.DocumentSummaryDTO">
+        SELECT
+            LETTER_NUM AS DOCUMENT_NUM,
+            COVER_LETTER_TITLE AS DOCUMENT_TITLE,
+            CREATED_AT
+        FROM T_COVER_LETTER
+        WHERE USER_NUM = #{userNum}
+        ORDER BY CREATED_AT DESC, LETTER_NUM DESC
+    </select>
+
     <select id="selectCoverLetter" resultType="com.provit.dto.document.CoverLetterDTO">
         SELECT
             LETTER_NUM,

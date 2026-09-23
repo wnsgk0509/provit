@@ -11,6 +11,7 @@ import com.provit.dao.document.DocumentDAO;
 import com.provit.dto.document.CareerDTO;
 import com.provit.dto.document.CertificationDTO;
 import com.provit.dto.document.CoverLetterDTO;
+import com.provit.dto.document.DocumentSummaryDTO;
 import com.provit.dto.document.EducationDTO;
 import com.provit.dto.document.PortfolioDTO;
 import com.provit.dto.document.ResumeDTO;
@@ -108,5 +109,21 @@ public class DocumentDAOImpl implements DocumentDAO {
         return sqlSession.selectOne(
                 PORTFOLIO_NAMESPACE + ".selectPortfolio",
                 Map.of("userNum", userNum, "portfolioNum", portfolioNum));
+    }
+
+    @Override
+    public List<DocumentSummaryDTO> selectResumeSummaryList(int userNum) {
+        return sqlSession.selectList(RESUME_NAMESPACE + ".selectResumeSummaryList", userNum);
+    }
+
+    @Override
+    public List<DocumentSummaryDTO> selectCoverLetterSummaryList(int userNum) {
+        return sqlSession.selectList(
+                COVER_LETTER_NAMESPACE + ".selectCoverLetterSummaryList", userNum);
+    }
+
+    @Override
+    public List<DocumentSummaryDTO> selectPortfolioSummaryList(int userNum) {
+        return sqlSession.selectList(PORTFOLIO_NAMESPACE + ".selectPortfolioSummaryList", userNum);
     }
 }

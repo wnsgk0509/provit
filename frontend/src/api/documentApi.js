@@ -26,13 +26,28 @@ export async function getResume(resumeNum) {
     return response.data.data;
 }
 
+export async function getResumeList() {
+    const response = await client.get('/documents/resumes');
+    return response.data.data;
+}
+
 export async function getCoverLetter(letterNum) {
     const response = await client.get(`/documents/cover-letters/${letterNum}`);
     return response.data.data;
 }
 
+export async function getCoverLetterList() {
+    const response = await client.get('/documents/cover-letters');
+    return response.data.data;
+}
+
 export async function getPortfolio(portfolioNum) {
     const response = await client.get(`/documents/portfolios/${portfolioNum}`);
+    return response.data.data;
+}
+
+export async function getPortfolioList() {
+    const response = await client.get('/documents/portfolios');
     return response.data.data;
 }
 

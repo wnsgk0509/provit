@@ -133,6 +133,18 @@
         ORDER BY UPDATED_AT DESC, RESUME_NUM DESC
     </select>
 
+    <select id="selectResumeSummaryList"
+            parameterType="int"
+            resultType="com.provit.dto.document.DocumentSummaryDTO">
+        SELECT
+            RESUME_NUM AS DOCUMENT_NUM,
+            RESUME_TITLE AS DOCUMENT_TITLE,
+            CREATED_AT
+        FROM T_RESUME
+        WHERE USER_NUM = #{userNum}
+        ORDER BY CREATED_AT DESC, RESUME_NUM DESC
+    </select>
+
     <select id="selectEducationList" parameterType="int" resultType="com.provit.dto.document.EducationDTO">
         SELECT EDU_NUM, RESUME_NUM, SCHOOL_NAME, ADMISSION_DATE, GRADUATION_DATE, MAJOR, EDUCATION_STATUS
         FROM T_EDUCATION

@@ -5,6 +5,7 @@ import java.util.List;
 import com.provit.dto.document.CareerDTO;
 import com.provit.dto.document.CertificationDTO;
 import com.provit.dto.document.CoverLetterDTO;
+import com.provit.dto.document.DocumentSummaryDTO;
 import com.provit.dto.document.EducationDTO;
 import com.provit.dto.document.PortfolioDTO;
 import com.provit.dto.document.ResumeDTO;
@@ -38,4 +39,10 @@ public interface DocumentDAO {
     CoverLetterDTO selectCoverLetter(int userNum, int letterNum);
 
     PortfolioDTO selectPortfolio(int userNum, int portfolioNum);
+
+    List<DocumentSummaryDTO> selectResumeSummaryList(int userNum);
+
+    List<DocumentSummaryDTO> selectCoverLetterSummaryList(int userNum);
+
+    List<DocumentSummaryDTO> selectPortfolioSummaryList(int userNum);
 }
