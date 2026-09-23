@@ -5,11 +5,14 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.provit.dao.recruitment.RecruitmentDAO;
 import com.provit.dto.recruitment.JobDTO;
+import com.provit.dto.recruitment.JobScrapResponseDTO;
 import com.provit.dto.recruitment.OccupationDTO;
 import com.provit.dto.recruitment.RecruitmentDTO;
 import com.provit.dto.recruitment.RecruitmentSearchDTO;
@@ -88,26 +91,35 @@ public class RecruitmentServiceImpl implements RecruitmentService {
 
     @Override
     @Transactional
-    public com.provit.dto.recruitment.JobScrapResponseDTO toggleJobScrap(long recruitmentNum, long userNum) {
+    public JobScrapResponseDTO toggleJobScrap(long recruitmentNum, long userNum) {
         log.info(">> [Service] 관심 공고 스크랩 토글 요청: recruitmentNum={}, userNum={}", recruitmentNum, userNum);
 
-        int exists = recruitmentDAO.checkJobScrap(recruitmentNum, userNum);
+        // 1. Delete-First: 사전 조회(SELECT) 없이 먼저 삭제를 시도하여 존재 여부 판별
+        int deleted = recruitmentDAO.deleteJobScrap(recruitmentNum, userNum);
         boolean isScrapped;
         String message;
 
-        if (exists > 0) {
-            recruitmentDAO.deleteJobScrap(recruitmentNum, userNum);
+        if (deleted > 0) {
             isScrapped = false;
             message = "관심 공고에서 제외되었습니다.";
-            log.info(">> [Service] 스크랩 취소 완료: recruitmentNum={}, userNum={}", recruitmentNum, userNum);
+            log.info(">> [Service] 스크랩 취소 완료 (삭제 성공): recruitmentNum={}, userNum={}", recruitmentNum, userNum);
         } else {
-            recruitmentDAO.insertJobScrap(recruitmentNum, userNum);
-            isScrapped = true;
-            message = "관심 공고로 등록되었습니다.";
-            log.info(">> [Service] 스크랩 등록 완료: recruitmentNum={}, userNum={}", recruitmentNum, userNum);
+            // 2. 존재하지 않았으므로 신규 등록(INSERT) 시도
+            try {
+                recruitmentDAO.insertJobScrap(recruitmentNum, userNum);
+                isScrapped = true;
+                message = "관심 공고로 등록되었습니다.";
+                log.info(">> [Service] 스크랩 등록 완료 (신규 삽입): recruitmentNum={}, userNum={}", recruitmentNum, userNum);
+            } catch (DuplicateKeyException | DataIntegrityViolationException e) {
+                // 3. 동일 사용자·공고의 동시 요청 경합으로 이미 다른 스레드가 INSERT를 완료한 경우:
+                // 500 에러를 방지하고 멱등하게 '등록 완료' 상태로 정상 반환
+                log.warn(">> [Service] 스크랩 동시 요청 경합 감지 (PK 충돌 흡수): recruitmentNum={}, userNum={}", recruitmentNum, userNum);
+                isScrapped = true;
+                message = "관심 공고로 등록되었습니다.";
+            }
         }
 
-        return com.provit.dto.recruitment.JobScrapResponseDTO.builder()
+        return JobScrapResponseDTO.builder()
                 .recruitmentNum(recruitmentNum)
                 .userNum(userNum)
                 .isScrapped(isScrapped)

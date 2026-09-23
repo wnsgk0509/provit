@@ -47,6 +47,7 @@ function JobList() {
     });
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
+    const [pendingScraps, setPendingScraps] = useState(() => new Set());
 
     // 2. 직군 / 직무 연쇄 드롭다운 상태
     const [occupations, setOccupations] = useState([]);
@@ -190,7 +191,15 @@ function JobList() {
             return;
         }
 
-        // 1. 낙관적 UI 업데이트 (즉시 별 상태 토글)
+        // 1. 이미 요청 진행 중인 공고는 중복 클릭 무시 (광클/더블클릭 방지)
+        if (pendingScraps.has(recruitmentNum)) {
+            return;
+        }
+
+        // 2. Pending 상태 등록
+        setPendingScraps(prev => new Set(prev).add(recruitmentNum));
+
+        // 3. 낙관적 UI 업데이트 (즉시 별 상태 토글로 체감 속도 향상)
         setRecruitments(prevList =>
             prevList.map(job =>
                 job.recruitmentNum === recruitmentNum
@@ -199,10 +208,19 @@ function JobList() {
             )
         );
 
-        // 2. 서버 스크랩 토글 API 호출
+        // 4. 서버 스크랩 토글 API 호출
         try {
             const res = await toggleJobScrap(recruitmentNum);
             if (res && res.data) {
+                // 5. 서버에서 최종 확정된 isScrapped 상태로 UI 정합성 동기화
+                setRecruitments(prevList =>
+                    prevList.map(job =>
+                        job.recruitmentNum === recruitmentNum
+                            ? { ...job, isScrapped: res.data.isScrapped }
+                            : job
+                    )
+                );
+
                 // 만약 스크랩만 모아보기 상태에서 스크랩을 취소했다면 목록 새로고침
                 if (params.scrapOnly && !res.data.isScrapped) {
                     loadRecruitments();
@@ -210,7 +228,7 @@ function JobList() {
             }
         } catch (error) {
             console.error('스크랩 토글 에러:', error);
-            // 실패 시 UI 롤백
+            // 6. 실패 시 이전 상태로 안전하게 롤백
             setRecruitments(prevList =>
                 prevList.map(job =>
                     job.recruitmentNum === recruitmentNum
@@ -219,6 +237,13 @@ function JobList() {
                 )
             );
             alert('스크랩 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+        } finally {
+            // 7. Pending 상태 해제
+            setPendingScraps(prev => {
+                const next = new Set(prev);
+                next.delete(recruitmentNum);
+                return next;
+            });
         }
     };
 
@@ -565,6 +590,7 @@ function JobList() {
                                                 type="button"
                                                 className={`job-scrap-btn ${job.isScrapped ? 'active' : ''}`}
                                                 onClick={(e) => handleToggleScrap(e, job.recruitmentNum)}
+                                                disabled={pendingScraps.has(job.recruitmentNum)}
                                                 title={job.isScrapped ? '관심 공고 스크랩 취소' : '관심 공고 스크랩 등록'}
                                                 aria-label="관심 공고 스크랩"
                                             >
