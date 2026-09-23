@@ -50,7 +50,11 @@ public class StudyServiceImpl implements StudyService {
     @Override
     @Transactional
     public int updateStudy(StudyDTO studyDto) {
-        return studyDao.updateStudy(studyDto);
+        int affectedRows = studyDao.updateStudy(studyDto);
+        if (affectedRows == 0) {
+            throw new IllegalArgumentException("스터디 방이 존재하지 않거나 권한이 없습니다.");
+        }
+        return affectedRows;
     }
 
     @Override
@@ -61,7 +65,10 @@ public class StudyServiceImpl implements StudyService {
         Map<String, Object> params = new HashMap<>();
         params.put("studyNum", studyNum);
         params.put("userNum", userNum);
-        studyDao.deleteStudy(params);
+        int affectedRows = studyDao.deleteStudy(params);
+        if (affectedRows == 0) {
+            throw new IllegalArgumentException("스터디 방이 존재하지 않거나 권한이 없습니다.");
+        }
     }
 
     @Override

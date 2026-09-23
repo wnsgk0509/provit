@@ -60,7 +60,10 @@ public class PostServiceImpl implements PostService {
     @Override
     @org.springframework.transaction.annotation.Transactional
     public void updatePost(PostDTO postDto) {
-        postDao.updatePost(postDto);
+        int affectedRows = postDao.updatePost(postDto);
+        if (affectedRows == 0) {
+            throw new IllegalArgumentException("게시글이 존재하지 않거나 권한이 없습니다.");
+        }
     }
 
     @Override
@@ -69,6 +72,9 @@ public class PostServiceImpl implements PostService {
         Map<String, Object> params = new HashMap<>();
         params.put("postNum", postNum);
         params.put("userNum", userNum);
-        postDao.deletePost(params);
+        int affectedRows = postDao.deletePost(params);
+        if (affectedRows == 0) {
+            throw new IllegalArgumentException("게시글이 존재하지 않거나 권한이 없습니다.");
+        }
     }
 }

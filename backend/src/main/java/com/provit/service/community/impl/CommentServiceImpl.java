@@ -34,7 +34,10 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public void updateComment(CommentDTO commentDto) {
-        commentDao.updateComment(commentDto);
+        int affectedRows = commentDao.updateComment(commentDto);
+        if (affectedRows == 0) {
+            throw new IllegalArgumentException("댓글이 존재하지 않거나 권한이 없습니다.");
+        }
     }
 
     @Override
@@ -43,6 +46,9 @@ public class CommentServiceImpl implements CommentService {
         java.util.Map<String, Object> params = new java.util.HashMap<>();
         params.put("commentNum", commentNum);
         params.put("userNum", userNum);
-        commentDao.deleteComment(params);
+        int affectedRows = commentDao.deleteComment(params);
+        if (affectedRows == 0) {
+            throw new IllegalArgumentException("댓글이 존재하지 않거나 권한이 없습니다.");
+        }
     }
 }
