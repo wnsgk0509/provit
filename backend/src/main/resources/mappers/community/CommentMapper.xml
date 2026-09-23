@@ -13,7 +13,9 @@
             C.USER_NUM AS userNum,
             C.COMMENT_CONTENT AS commentContent,
             TO_CHAR(C.COMMENT_DATE, 'YYYY-MM-DD HH24:MI:SS') AS commentDate,
-            U.USER_NICKNAME AS userNickname
+            U.USER_NICKNAME AS userNickname,
+            C.PARENT_COMMENT_NUM AS parentCommentNum,
+            C.IS_DELETED AS isDeleted
         FROM 
             T_COMMENT C
         JOIN 
@@ -21,7 +23,7 @@
         WHERE 
             C.POST_NUM = #{postNum}
         ORDER BY 
-            C.COMMENT_NUM ASC
+            NVL(C.PARENT_COMMENT_NUM, C.COMMENT_NUM) ASC, C.COMMENT_NUM ASC
     </select>
 
     <!-- 2. 댓글 작성 -->
@@ -33,12 +35,16 @@
             COMMENT_NUM,
             POST_NUM,
             USER_NUM,
-            COMMENT_CONTENT
+            COMMENT_CONTENT,
+            PARENT_COMMENT_NUM,
+            IS_DELETED
         ) VALUES (
             #{commentNum},
             #{postNum},
             #{userNum},
-            #{commentContent}
+            #{commentContent},
+            #{parentCommentNum, jdbcType=NUMERIC},
+            0
         )
     </insert>
 
@@ -49,13 +55,32 @@
             COMMENT_CONTENT = #{commentContent},
             COMMENT_DATE = SYSDATE
         WHERE 
-            COMMENT_NUM = #{commentNum} AND USER_NUM = #{userNum}
+            COMMENT_NUM = #{commentNum} AND USER_NUM = #{userNum} AND IS_DELETED = 0
     </update>
 
     <!-- 4. 댓글 삭제 -->
-    <delete id="deleteComment" parameterType="map">
-        DELETE FROM T_COMMENT
-        WHERE COMMENT_NUM = #{commentNum} AND USER_NUM = #{userNum}
-    </delete>
+    <update id="deleteComment" parameterType="map">
+        UPDATE T_COMMENT
+        SET
+            IS_DELETED = 1,
+            COMMENT_CONTENT = '삭제된 댓글입니다.'
+        WHERE COMMENT_NUM = #{commentNum} AND USER_NUM = #{userNum} AND IS_DELETED = 0
+    </update>
+
+    <!-- 5. 특정 댓글 상세 조회 (대댓글 검증용) -->
+    <select id="selectCommentDetail" resultType="com.provit.dto.community.CommentDTO" parameterType="Long">
+        SELECT 
+            COMMENT_NUM AS commentNum,
+            POST_NUM AS postNum,
+            USER_NUM AS userNum,
+            COMMENT_CONTENT AS commentContent,
+            TO_CHAR(COMMENT_DATE, 'YYYY-MM-DD HH24:MI:SS') AS commentDate,
+            PARENT_COMMENT_NUM AS parentCommentNum,
+            IS_DELETED AS isDeleted
+        FROM 
+            T_COMMENT
+        WHERE 
+            COMMENT_NUM = #{commentNum}
+    </select>
 
 </mapper>
