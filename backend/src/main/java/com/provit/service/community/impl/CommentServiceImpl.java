@@ -1,0 +1,54 @@
+package com.provit.service.community.impl;
+
+import com.provit.dao.community.CommentDAO;
+import com.provit.dto.community.CommentDTO;
+import com.provit.service.community.CommentService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+public class CommentServiceImpl implements CommentService {
+
+    private final CommentDAO commentDao;
+
+    @Autowired
+    public CommentServiceImpl(CommentDAO commentDao) {
+        this.commentDao = commentDao;
+    }
+
+    @Override
+    public List<CommentDTO> getCommentList(Long postNum) {
+        return commentDao.selectCommentList(postNum);
+    }
+
+    @Override
+    @Transactional
+    public Long createComment(CommentDTO commentDto) {
+        commentDao.insertComment(commentDto);
+        return commentDto.getCommentNum();
+    }
+
+    @Override
+    @Transactional
+    public void updateComment(CommentDTO commentDto) {
+        int affectedRows = commentDao.updateComment(commentDto);
+        if (affectedRows == 0) {
+            throw new IllegalArgumentException("댓글이 존재하지 않거나 권한이 없습니다.");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteComment(Long commentNum, Long userNum) {
+        java.util.Map<String, Object> params = new java.util.HashMap<>();
+        params.put("commentNum", commentNum);
+        params.put("userNum", userNum);
+        int affectedRows = commentDao.deleteComment(params);
+        if (affectedRows == 0) {
+            throw new IllegalArgumentException("댓글이 존재하지 않거나 권한이 없습니다.");
+        }
+    }
+}

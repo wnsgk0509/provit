@@ -1,0 +1,19 @@
+package com.provit.dao.study;
+
+import com.provit.dto.study.StudyDTO;
+import java.util.List;
+import java.util.Map;
+
+public interface StudyDAO {
+    List<StudyDTO> selectStudyList(Long userNum);
+    StudyDTO selectStudyDetail(Long studyNum);
+    int insertStudy(StudyDTO studyDto);
+    int updateStudy(StudyDTO studyDto);
+    int deleteStudy(Map<String, Object> params);
+    
+    // Member
+    int insertStudyMember(Map<String, Object> params);
+    int deleteStudyMember(Map<String, Object> params);
+    int checkStudyMember(Map<String, Object> params);
+    List<String> selectStudyMembers(Long studyNum);
+}

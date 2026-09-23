@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.mapper.file.FileMapper">
+
+    <!-- 1. 포트폴리오 소유 회원 번호(USER_NUM) 조회 (소유권 검증용) -->
+    <select id="selectPortfolioOwner" parameterType="long" resultType="java.lang.Integer">
+        SELECT USER_NUM
+        FROM T_PORTFOLIO
+        WHERE PORTFOLIO_NUM = #{portfolioNum}
+    </select>
+
+    <!-- 2. 게시글 작성자 회원 번호(USER_NUM) 조회 (소유권 검증용) -->
+    <select id="selectPostOwner" parameterType="long" resultType="java.lang.Integer">
+        SELECT USER_NUM
+        FROM T_POST
+        WHERE POST_NUM = #{postNum}
+    </select>
+
+    <!-- 3. 회원 번호(USER_NUM) 존재 및 활성 상태 확인 (프로필 업로드 검증용) -->
+    <select id="selectUserExists" parameterType="long" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM T_USER
+        WHERE USER_NUM = #{userNum}
+          AND (USER_IS_DELETED IS NULL OR USER_IS_DELETED = 0)
+    </select>
+
+</mapper>
