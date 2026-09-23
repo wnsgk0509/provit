@@ -1,8 +1,34 @@
-import { Award, BriefcaseBusiness, GraduationCap, Pencil } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Award, BriefcaseBusiness, GraduationCap, Pencil, Trash2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { deleteResume } from '../../../api/documentApi';
 
 function ResumeRead({ document }) {
+    const navigate = useNavigate();
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState('');
     const { resume, educationList = [], careerList = [], certificationList = [] } = document;
+
+    const handleDelete = async () => {
+        if (!window.confirm('이력서를 삭제하시겠습니까? 삭제한 문서는 복구할 수 없습니다.')) return;
+
+        setIsDeleting(true);
+        setDeleteError('');
+        try {
+            await deleteResume(resume.resumeNum);
+            navigate('/mypage', { replace: true });
+            window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+        } catch (error) {
+            const responseData = error.response?.data;
+            setDeleteError(
+                responseData?.data
+                || responseData?.responseCode?.message
+                || '이력서를 삭제하지 못했습니다.',
+            );
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     return (
         <article className="document-form document-read-card">
@@ -62,6 +88,9 @@ function ResumeRead({ document }) {
             </ReadListSection>
 
             <div className="document-form-actions">
+                <button type="button" className="document-danger-button" onClick={handleDelete} disabled={isDeleting}>
+                    <Trash2 size={17} /> {isDeleting ? '삭제 중...' : '이력서 삭제'}
+                </button>
                 <Link
                     className="document-primary-button document-read-edit-link"
                     to={`/documents/resume/${resume.resumeNum}/edit`}
@@ -69,6 +98,7 @@ function ResumeRead({ document }) {
                     <Pencil size={17} /> 이력서 수정
                 </Link>
             </div>
+            {deleteError && <p className="document-delete-error" role="alert">{deleteError}</p>}
         </article>
     );
 }

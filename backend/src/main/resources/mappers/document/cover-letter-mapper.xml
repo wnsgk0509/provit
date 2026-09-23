@@ -45,6 +45,12 @@
           AND USER_NUM = #{userNum}
     </update>
 
+    <delete id="deleteCoverLetter">
+        DELETE FROM T_COVER_LETTER
+        WHERE LETTER_NUM = #{letterNum}
+          AND USER_NUM = #{userNum}
+    </delete>
+
     <select id="selectCoverLetterListByUserNum"
             parameterType="int"
             resultType="com.provit.dto.interview.InterviewDocumentOptionDTO">

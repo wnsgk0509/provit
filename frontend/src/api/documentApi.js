@@ -20,6 +20,18 @@ export async function updateCoverLetter(letterNum, coverLetter) {
     return response.data.data;
 }
 
+export async function deleteResume(resumeNum) {
+    await client.delete(`/documents/resumes/${resumeNum}`);
+}
+
+export async function deleteCoverLetter(letterNum) {
+    await client.delete(`/documents/cover-letters/${letterNum}`);
+}
+
+export async function deletePortfolio(portfolioNum) {
+    await client.delete(`/documents/portfolios/${portfolioNum}`);
+}
+
 export async function createPortfolio(portfolioTitle, file) {
     const formData = new FormData();
     formData.append('portfolioTitle', portfolioTitle.trim());

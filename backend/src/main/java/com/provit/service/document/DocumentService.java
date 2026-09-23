@@ -22,6 +22,12 @@ public interface DocumentService {
 
     CoverLetterDTO updateCoverLetter(int userNum, int letterNum, CoverLetterDTO coverLetter);
 
+    void deleteResume(int userNum, int resumeNum);
+
+    void deleteCoverLetter(int userNum, int letterNum);
+
+    void deletePortfolio(int userNum, int portfolioNum);
+
     ResumeDetailDTO getResume(int userNum, int resumeNum);
 
     CoverLetterDTO getCoverLetter(int userNum, int letterNum);

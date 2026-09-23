@@ -28,6 +28,12 @@
         )
     </insert>
 
+    <delete id="deletePortfolio">
+        DELETE FROM T_PORTFOLIO
+        WHERE PORTFOLIO_NUM = #{portfolioNum}
+          AND USER_NUM = #{userNum}
+    </delete>
+
     <select id="selectPortfolioListByUserNum"
             parameterType="int"
             resultType="com.provit.dto.interview.InterviewDocumentOptionDTO">

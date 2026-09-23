@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -132,6 +133,51 @@ public class DocumentController {
                 Math.toIntExact(userNum), letterNum, coverLetter);
         return new ResponseEntity<>(
                 ApiResponse.success(ResponseCode.SUCCESS, updatedCoverLetter), HttpStatus.OK);
+    }
+
+    @DeleteMapping("/resumes/{resumeNum}")
+    public ResponseEntity<ApiResponse<Void>> deleteResume(
+            HttpServletRequest request,
+            @PathVariable int resumeNum) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null),
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        documentService.deleteResume(Math.toIntExact(userNum), resumeNum);
+        return new ResponseEntity<>(ApiResponse.<Void>success(), HttpStatus.OK);
+    }
+
+    @DeleteMapping("/cover-letters/{letterNum}")
+    public ResponseEntity<ApiResponse<Void>> deleteCoverLetter(
+            HttpServletRequest request,
+            @PathVariable int letterNum) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null),
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        documentService.deleteCoverLetter(Math.toIntExact(userNum), letterNum);
+        return new ResponseEntity<>(ApiResponse.<Void>success(), HttpStatus.OK);
+    }
+
+    @DeleteMapping("/portfolios/{portfolioNum}")
+    public ResponseEntity<ApiResponse<Void>> deletePortfolio(
+            HttpServletRequest request,
+            @PathVariable int portfolioNum) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null),
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        documentService.deletePortfolio(Math.toIntExact(userNum), portfolioNum);
+        return new ResponseEntity<>(ApiResponse.<Void>success(), HttpStatus.OK);
     }
 
     @GetMapping("/resumes/{resumeNum}")

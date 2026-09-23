@@ -329,6 +329,7 @@
 }
 
 .document-secondary-button,
+.document-danger-button,
 .document-primary-button {
     min-height: 44px;
     padding: 0 22px;
@@ -349,6 +350,21 @@
     background: #f8fafc;
 }
 
+.document-danger-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid #d65b5b;
+    color: #c63f3f;
+    background: #fff;
+}
+
+.document-danger-button:hover {
+    color: #fff;
+    background: #c94a4a;
+}
+
 .document-primary-button {
     border: 1px solid #4d67be;
     color: #fff;
@@ -360,6 +376,7 @@
 }
 
 .document-secondary-button:disabled,
+.document-danger-button:disabled,
 .document-primary-button:disabled {
     cursor: not-allowed;
     opacity: .65;
@@ -384,6 +401,13 @@
     color: #d14343;
 }
 
+.document-delete-error {
+    margin: 12px 0 0;
+    color: #d14343;
+    font-size: 13px;
+    text-align: right;
+}
+
 @media (max-width: 640px) {
     .document-type-card,
     .document-form {
@@ -406,6 +430,7 @@
 
     .document-add-button,
     .document-secondary-button,
+    .document-danger-button,
     .document-primary-button {
         width: 100%;
     }

@@ -132,6 +132,12 @@
         WHERE RESUME_NUM = #{resumeNum}
     </delete>
 
+    <delete id="deleteResume">
+        DELETE FROM T_RESUME
+        WHERE RESUME_NUM = #{resumeNum}
+          AND USER_NUM = #{userNum}
+    </delete>
+
     <select id="selectResume" resultType="com.provit.dto.document.ResumeDTO">
         SELECT
             R.RESUME_NUM,

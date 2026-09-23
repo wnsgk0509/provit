@@ -207,6 +207,32 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
+    @Transactional
+    public void deleteResume(int userNum, int resumeNum) {
+        if (documentDAO.deleteResume(userNum, resumeNum) != 1) {
+            throw new NoSuchElementException("삭제할 수 있는 이력서가 없습니다.");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteCoverLetter(int userNum, int letterNum) {
+        if (documentDAO.deleteCoverLetter(userNum, letterNum) != 1) {
+            throw new NoSuchElementException("삭제할 수 있는 자기소개서가 없습니다.");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deletePortfolio(int userNum, int portfolioNum) {
+        PortfolioDTO portfolio = getPortfolio(userNum, portfolioNum);
+        if (documentDAO.deletePortfolio(userNum, portfolioNum) != 1) {
+            throw new NoSuchElementException("삭제할 수 있는 포트폴리오가 없습니다.");
+        }
+        registerFileDeleteAfterCommit(portfolio.getFileUrl());
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public ResumeDetailDTO getResume(int userNum, int resumeNum) {
         ResumeDTO resume = documentDAO.selectResume(userNum, resumeNum);
@@ -319,6 +345,15 @@ public class DocumentServiceImpl implements DocumentService {
                 if (status != TransactionSynchronization.STATUS_COMMITTED) {
                     portfolioFileStorage.deleteIfExists(fileUrl);
                 }
+            }
+        });
+    }
+
+    private void registerFileDeleteAfterCommit(String fileUrl) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                portfolioFileStorage.deleteIfExists(fileUrl);
             }
         });
     }

@@ -1,11 +1,15 @@
 import { useState } from 'react';
-import { Download, FileText } from 'lucide-react';
-import { downloadPortfolioFile } from '../../../api/documentApi';
+import { Download, FileText, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { deletePortfolio, downloadPortfolioFile } from '../../../api/documentApi';
 import { DocumentDate } from './ResumeRead';
 
 function PortfolioRead({ document }) {
+    const navigate = useNavigate();
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [downloadError, setDownloadError] = useState('');
+    const [deleteError, setDeleteError] = useState('');
 
     const handleDownload = async () => {
         setIsDownloading(true);
@@ -27,6 +31,27 @@ function PortfolioRead({ document }) {
             );
         } finally {
             setIsDownloading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!window.confirm('포트폴리오를 삭제하시겠습니까? 첨부된 PDF도 함께 삭제되며 복구할 수 없습니다.')) return;
+
+        setIsDeleting(true);
+        setDeleteError('');
+        try {
+            await deletePortfolio(document.portfolioNum);
+            navigate('/mypage', { replace: true });
+            window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+        } catch (error) {
+            const responseData = error.response?.data;
+            setDeleteError(
+                responseData?.data
+                || responseData?.responseCode?.message
+                || '포트폴리오를 삭제하지 못했습니다.',
+            );
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -58,6 +83,13 @@ function PortfolioRead({ document }) {
                 </div>
                 {downloadError && <p className="document-file-error" role="alert">{downloadError}</p>}
             </section>
+
+            <div className="document-form-actions">
+                <button type="button" className="document-danger-button" onClick={handleDelete} disabled={isDeleting}>
+                    <Trash2 size={17} /> {isDeleting ? '삭제 중...' : '포트폴리오 삭제'}
+                </button>
+            </div>
+            {deleteError && <p className="document-delete-error" role="alert">{deleteError}</p>}
         </article>
     );
 }
