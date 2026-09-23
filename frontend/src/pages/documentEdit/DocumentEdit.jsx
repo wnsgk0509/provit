@@ -35,18 +35,23 @@ function DocumentEdit() {
 
     useEffect(() => {
         let isActive = true;
+        const currentConfig = editConfigs[documentType];
 
         async function loadDocument() {
-            if (!config || !/^\d+$/.test(documentId) || Number(documentId) < 1) {
+            if (!currentConfig || !/^\d+$/.test(documentId) || Number(documentId) < 1) {
                 if (isActive) {
+                    setDocument(null);
                     setErrorMessage('수정할 수 없는 문서 주소입니다.');
                     setIsLoading(false);
                 }
                 return;
             }
 
+            setIsLoading(true);
+            setErrorMessage('');
+            setDocument(null);
             try {
-                const loadedDocument = await config.load(documentId);
+                const loadedDocument = await currentConfig.load(documentId);
                 if (isActive) setDocument(loadedDocument);
             } catch (error) {
                 if (!isActive) return;
@@ -65,7 +70,7 @@ function DocumentEdit() {
         return () => {
             isActive = false;
         };
-    }, [config, documentId]);
+    }, [documentType, documentId]);
 
     const SelectedForm = config?.component;
     const returnToRead = () => navigate(readPath, { replace: true });

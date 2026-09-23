@@ -35,10 +35,12 @@ function DocumentRead() {
 
     useEffect(() => {
         let isActive = true;
+        const currentConfig = documentConfigs[documentType];
 
         async function loadDocument() {
-            if (!config || !/^\d+$/.test(documentId) || Number(documentId) < 1) {
+            if (!currentConfig || !/^\d+$/.test(documentId) || Number(documentId) < 1) {
                 if (isActive) {
+                    setDocument(null);
                     setErrorMessage('잘못된 문서 주소입니다.');
                     setIsLoading(false);
                 }
@@ -47,8 +49,9 @@ function DocumentRead() {
 
             setIsLoading(true);
             setErrorMessage('');
+            setDocument(null);
             try {
-                const loadedDocument = await config.load(documentId);
+                const loadedDocument = await currentConfig.load(documentId);
                 if (isActive) setDocument(loadedDocument);
             } catch (error) {
                 if (!isActive) return;
@@ -67,7 +70,7 @@ function DocumentRead() {
         return () => {
             isActive = false;
         };
-    }, [config, documentId]);
+    }, [documentType, documentId]);
 
     const SelectedDocument = config?.component;
 
