@@ -55,6 +55,9 @@ api.fortune.key=운세_API키_입력
 jwt.secret=provit_team_project_secret_key_must_be_256bits_long_example
 jwt.expiration=86400000
 
+# 5. 파일 업로드 외부 스토리지 루트 경로 (Windows: D:/fileStorage_Provit, Linux/서버: /app/fileStorage_Provit)
+file.upload.base-dir=D:/fileStorage_Provit
+
 
 --------------------------------------------------------------------------------
 3. 설정 완료 후 체크리스트

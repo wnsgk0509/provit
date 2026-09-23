@@ -45,19 +45,23 @@ public class AuthServiceImpl implements AuthService {
     private final JwtProvider jwtProvider;
     private final MailService mailService;
 
-    // 이메일 인증코드 캐시 (이메일 -> 인증코드 정보, 유효시간 5분)
+    // 이메일 인증코드 캐시 (이메일 -> 인증코드 정보, 유효시간 3분)
     private final Map<String, VerificationCodeInfo> emailCodeMap = new ConcurrentHashMap<>();
     // 이메일 인증 완료 티켓 캐시 (토큰 -> 이메일 정보, 유효시간 30분)
     private final Map<String, VerificationTokenInfo> verifiedTokenMap = new ConcurrentHashMap<>();
     // 동일 이메일의 인증 메일 반복 발송 방지용 쿨다운
     private final Map<String, Long> emailSendCooldownMap = new ConcurrentHashMap<>();
 
-    private static final long CODE_EXPIRE_MILLIS = 5 * 60 * 1000L; // 5분
+    private static final long CODE_EXPIRE_MILLIS = 3 * 60 * 1000L; // 3분
     private static final long TOKEN_EXPIRE_MILLIS = 30 * 60 * 1000L; // 30분
     private static final long SEND_COOLDOWN_MILLIS = 60 * 1000L; // 1분
     private static final int MAX_VERIFICATION_ATTEMPTS = 5;
     private static final LocalDate MIN_BIRTH_DATE = LocalDate.of(1900, 1, 1);
     private static final int ADULT_AGE = 19;
+    // 가입 이름과 서비스 전반에서 사용하는 닉네임의 길이 기준이다.
+    private static final int USER_NAME_MAX_LENGTH = 4;
+    private static final int NICKNAME_MIN_LENGTH = 2;
+    private static final int NICKNAME_MAX_LENGTH = 20;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=\\S{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9\\s]).*$");
@@ -124,11 +128,15 @@ public class AuthServiceImpl implements AuthService {
         if (CommonUtil.isEmpty(nickname)) {
             throw new IllegalArgumentException("닉네임을 입력해 주세요.");
         }
-        return userDAO.countByNickname(nickname.trim()) == 0;
+        String trimmedNickname = nickname.trim();
+        if (trimmedNickname.length() < NICKNAME_MIN_LENGTH || trimmedNickname.length() > NICKNAME_MAX_LENGTH) {
+            throw new IllegalArgumentException("닉네임은 2자 이상 20자 이하로 입력해 주세요.");
+        }
+        return userDAO.countByNickname(trimmedNickname) == 0;
     }
 
     @Override
-    public void sendVerificationEmail(String email) {
+    public long sendVerificationEmail(String email) {
         String trimmedEmail = normalizeEmail(email);
 
         // 1. 이미 등록된 이메일인지 검증
@@ -159,6 +167,9 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalStateException("인증 이메일 발송에 실패했습니다. 이메일 주소를 확인해 주세요.");
         }
         emailSendCooldownMap.put(trimmedEmail, now + SEND_COOLDOWN_MILLIS);
+
+        // 프런트 타이머가 서버와 동일한 만료 시각을 기준으로 동작하도록 반환한다.
+        return expireAt;
     }
 
     @Override
@@ -179,7 +190,7 @@ public class AuthServiceImpl implements AuthService {
 
         if (info.isExpired()) {
             emailCodeMap.remove(trimmedEmail);
-            throw new IllegalArgumentException("인증번호 유효시간(5분)이 만료되었습니다. 다시 발송해 주세요.");
+            throw new IllegalArgumentException("인증번호 유효시간(3분)이 만료되었습니다. 다시 발송해 주세요.");
         }
 
         if (!info.code.equals(trimmedCode)) {
@@ -211,8 +222,15 @@ public class AuthServiceImpl implements AuthService {
         if (CommonUtil.isEmpty(requestDTO.getUserName())) {
             throw new IllegalArgumentException("이름을 입력해 주세요.");
         }
+        if (requestDTO.getUserName().trim().length() > USER_NAME_MAX_LENGTH) {
+            throw new IllegalArgumentException("이름은 4자 이하로 입력해 주세요.");
+        }
         if (CommonUtil.isEmpty(requestDTO.getUserNickname())) {
             throw new IllegalArgumentException("닉네임을 입력해 주세요.");
+        }
+        if (requestDTO.getUserNickname().trim().length() < NICKNAME_MIN_LENGTH
+                || requestDTO.getUserNickname().trim().length() > NICKNAME_MAX_LENGTH) {
+            throw new IllegalArgumentException("닉네임은 2자 이상 20자 이하로 입력해 주세요.");
         }
         if (CommonUtil.isEmpty(requestDTO.getUserEmail())) {
             throw new IllegalArgumentException("이메일을 입력해 주세요.");
@@ -374,6 +392,9 @@ public class AuthServiceImpl implements AuthService {
             String nickname = requestDTO.getUserNickname().trim();
             if (nickname.isEmpty()) {
                 throw new IllegalArgumentException("닉네임을 입력해 주세요.");
+            }
+            if (nickname.length() < NICKNAME_MIN_LENGTH || nickname.length() > NICKNAME_MAX_LENGTH) {
+                throw new IllegalArgumentException("닉네임은 2자 이상 20자 이하로 입력해 주세요.");
             }
             if (!nickname.equals(user.getUserNickname())) {
                 if (userDAO.countByNickname(nickname) > 0) {

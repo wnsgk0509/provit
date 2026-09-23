@@ -45,9 +45,9 @@
         </init-param>
         <load-on-startup>1</load-on-startup>
         <multipart-config>
-            <max-file-size>20000000</max-file-size>
-            <max-request-size>22000000</max-request-size>
-            <file-size-threshold>1048576</file-size-threshold>
+            <max-file-size>20971520</max-file-size> <!-- 단일 파일 최대 20MB -->
+            <max-request-size>52428800</max-request-size> <!-- 전체 요청 최대 50MB -->
+            <file-size-threshold>0</file-size-threshold>
         </multipart-config>
     </servlet>
 
