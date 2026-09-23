@@ -19,6 +19,13 @@ public class RecruitmentSearchDTO {
     private String location;
     private String experienceLevel;
 
+    // 로그인한 요청자 회원 번호 (스크랩 여부 확인 및 스크랩 필터링용)
+    private Long userNum;
+
+    // 스크랩한 공고만 필터링 조회 여부
+    @Builder.Default
+    private Boolean scrapOnly = false;
+
     @Builder.Default
     private int page = 1;
 

@@ -54,4 +54,29 @@ public class RecruitmentDAOImpl implements RecruitmentDAO {
 	public int deactivateExpiredRecruitments() {
 		return sqlSessionTemplate.update("recruitment_mapper.deactivateExpiredRecruitments");
 	}
+
+	@Override
+	public int insertJobScrap(long recruitmentNum, long userNum) {
+		java.util.Map<String, Object> params = new java.util.HashMap<>();
+		params.put("recruitmentNum", recruitmentNum);
+		params.put("userNum", userNum);
+		return sqlSessionTemplate.insert("recruitment_mapper.insertJobScrap", params);
+	}
+
+	@Override
+	public int deleteJobScrap(long recruitmentNum, long userNum) {
+		java.util.Map<String, Object> params = new java.util.HashMap<>();
+		params.put("recruitmentNum", recruitmentNum);
+		params.put("userNum", userNum);
+		return sqlSessionTemplate.delete("recruitment_mapper.deleteJobScrap", params);
+	}
+
+	@Override
+	public int checkJobScrap(long recruitmentNum, long userNum) {
+		java.util.Map<String, Object> params = new java.util.HashMap<>();
+		params.put("recruitmentNum", recruitmentNum);
+		params.put("userNum", userNum);
+		Integer count = sqlSessionTemplate.selectOne("recruitment_mapper.checkJobScrap", params);
+		return count != null ? count : 0;
+	}
 }
