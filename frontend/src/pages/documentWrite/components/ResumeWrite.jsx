@@ -3,6 +3,19 @@ import { Award, BriefcaseBusiness, GraduationCap, Plus, Trash2 } from 'lucide-re
 import { useNavigate } from 'react-router-dom';
 import { createResume, updateResume } from '../../../api/documentApi';
 
+const educationCodeOptions = [
+    { value: '0', label: '학력무관' },
+    { value: '1', label: '고등학교졸업' },
+    { value: '2', label: '대학졸업(2,3년)' },
+    { value: '3', label: '대학교졸업(4년)' },
+    { value: '4', label: '석사졸업' },
+    { value: '5', label: '박사졸업' },
+    { value: '6', label: '고등학교졸업이상' },
+    { value: '7', label: '대학졸업(2년,3년 이상)' },
+    { value: '8', label: '대학교졸업(4년)이상' },
+    { value: '9', label: '석사졸업이상' },
+];
+
 const emptyResume = {
     resumeTitle: '', highestLevel: '', educationCode: '', motivation: '',
     desiredLocation: '', desiredWorkType: '',
@@ -133,10 +146,11 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
                         <label htmlFor="educationCode">학력 구분 <b>*</b></label>
                         <select id="educationCode" name="educationCode" value={resume.educationCode} onChange={handleResumeChange} required>
                             <option value="">선택해 주세요</option>
-                            <option value="0">학력 무관</option>
-                            <option value="1">고졸</option>
-                            <option value="2">초대졸</option>
-                            <option value="3">대졸</option>
+                            {educationCodeOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
                         </select>
                     </div>
                     <div className="document-field">
