@@ -11,6 +11,7 @@ function PortfolioWrite() {
     const [portfolioTitle, setPortfolioTitle] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
     const [selectedFileName, setSelectedFileName] = useState('');
+    const [titleError, setTitleError] = useState('');
     const [fileError, setFileError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
@@ -76,19 +77,35 @@ function PortfolioWrite() {
         setSaveMessage({ type: '', text: '' });
     };
 
+    const handleTitleChange = (event) => {
+        const nextTitle = event.target.value;
+        setPortfolioTitle(nextTitle);
+        if (nextTitle.trim()) setTitleError('');
+        setSaveMessage({ type: '', text: '' });
+    };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
+        const trimmedTitle = portfolioTitle.trim();
+        const hasTitleError = !trimmedTitle;
+        const hasFileError = !selectedFile;
 
-        if (!selectedFile) {
+        setTitleError(hasTitleError ? '포트폴리오 제목을 입력해 주세요.' : '');
+
+        if (hasFileError) {
             setFileError('포트폴리오 PDF 파일을 선택해 주세요.');
+        }
+
+        if (hasTitleError || hasFileError) {
             return;
         }
 
+        setPortfolioTitle(trimmedTitle);
         setIsSaving(true);
         setSaveMessage({ type: '', text: '' });
 
         try {
-            const savedPortfolio = await createPortfolio(portfolioTitle, selectedFile);
+            const savedPortfolio = await createPortfolio(trimmedTitle, selectedFile);
             const portfolioNum = savedPortfolio?.portfolioNum;
             if (!portfolioNum) throw new Error('저장된 포트폴리오 번호를 확인하지 못했습니다.');
             window.alert('포트폴리오가 저장되었습니다.');
@@ -108,7 +125,7 @@ function PortfolioWrite() {
     };
 
     return (
-        <form className="document-form" onSubmit={handleSubmit}>
+        <form className="document-form" onSubmit={handleSubmit} noValidate>
             <div className="document-form-heading">
                 <span>PORTFOLIO</span>
                 <h2>포트폴리오 등록</h2>
@@ -123,7 +140,21 @@ function PortfolioWrite() {
                 <div className="document-field-grid">
                     <div className="document-field document-field-wide">
                         <label htmlFor="portfolioTitle">포트폴리오 제목 <b>*</b></label>
-                        <input id="portfolioTitle" value={portfolioTitle} onChange={(event) => setPortfolioTitle(event.target.value)} maxLength="200" placeholder="예: 백엔드 개발 프로젝트 포트폴리오" required />
+                        <input
+                            id="portfolioTitle"
+                            value={portfolioTitle}
+                            onChange={handleTitleChange}
+                            maxLength="200"
+                            placeholder="예: 백엔드 개발 프로젝트 포트폴리오"
+                            aria-invalid={Boolean(titleError)}
+                            aria-describedby={titleError ? 'portfolioTitle-error' : undefined}
+                            required
+                        />
+                        {titleError && (
+                            <p id="portfolioTitle-error" className="document-field-error" role="alert">
+                                {titleError}
+                            </p>
+                        )}
                     </div>
                     <div className="document-field document-field-wide">
                         <label htmlFor="portfolioFile">포트폴리오 파일 <b>*</b></label>
