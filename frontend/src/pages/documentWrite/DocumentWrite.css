@@ -305,6 +305,20 @@
     font-weight: 400;
 }
 
+.document-file-upload.is-valid {
+    border-color: #8fc9a2;
+    color: #287a48;
+    background: #effaf2;
+}
+
+.document-file-upload.is-valid strong {
+    color: #25683e;
+}
+
+.document-file-upload.is-valid span {
+    color: #5d8a6c;
+}
+
 .document-file-input {
     position: absolute;
     width: 1px !important;

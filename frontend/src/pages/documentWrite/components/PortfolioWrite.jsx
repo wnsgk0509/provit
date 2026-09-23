@@ -3,6 +3,7 @@ import { FileUp } from 'lucide-react';
 import { createPortfolio } from '../../../api/documentApi';
 
 const MAX_PORTFOLIO_FILE_SIZE = 20 * 1000 * 1000;
+const PDF_SIGNATURE = [0x25, 0x50, 0x44, 0x46, 0x2d];
 
 function PortfolioWrite() {
     const [portfolioTitle, setPortfolioTitle] = useState('');
@@ -13,7 +14,8 @@ function PortfolioWrite() {
     const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
     const fileInputRef = useRef(null);
 
-    const handleFileChange = (event) => {
+    const handleFileChange = async (event) => {
+        const fileInput = event.currentTarget;
         const selectedFile = event.target.files?.[0];
 
         if (!selectedFile) {
@@ -39,6 +41,31 @@ function PortfolioWrite() {
             setSelectedFile(null);
             setSelectedFileName('');
             setFileError('포트폴리오 파일은 20MB 이하여야 합니다.');
+            return;
+        }
+
+        try {
+            const signatureBuffer = await selectedFile.slice(0, PDF_SIGNATURE.length).arrayBuffer();
+            const signatureBytes = new Uint8Array(signatureBuffer);
+            const hasPdfSignature = PDF_SIGNATURE.every(
+                (expectedByte, index) => signatureBytes[index] === expectedByte,
+            );
+
+            if (fileInput.files?.[0] !== selectedFile) return;
+
+            if (!hasPdfSignature) {
+                fileInput.value = '';
+                setSelectedFile(null);
+                setSelectedFileName('');
+                setFileError('올바른 PDF 파일이 아닙니다. PDF 파일을 다시 선택해 주세요.');
+                return;
+            }
+        } catch {
+            if (fileInput.files?.[0] !== selectedFile) return;
+            fileInput.value = '';
+            setSelectedFile(null);
+            setSelectedFileName('');
+            setFileError('파일을 확인하지 못했습니다. 다시 선택해 주세요.');
             return;
         }
 
@@ -108,7 +135,10 @@ function PortfolioWrite() {
                     </div>
                     <div className="document-field document-field-wide">
                         <label htmlFor="portfolioFile">포트폴리오 파일 <b>*</b></label>
-                        <label className="document-file-upload" htmlFor="portfolioFile">
+                        <label
+                            className={`document-file-upload${selectedFile ? ' is-valid' : ''}`}
+                            htmlFor="portfolioFile"
+                        >
                             <FileUp size={30} aria-hidden="true" />
                             <strong>{selectedFileName || 'PDF 파일을 선택해 주세요.'}</strong>
                             <span>20MB 이하의 PDF 파일만 등록할 수 있습니다.</span>
