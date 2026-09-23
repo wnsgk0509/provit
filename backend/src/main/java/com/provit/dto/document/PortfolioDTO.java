@@ -1,4 +1,4 @@
-package com.provit.dto.user;
+package com.provit.dto.document;
 
 import java.util.Date;
 

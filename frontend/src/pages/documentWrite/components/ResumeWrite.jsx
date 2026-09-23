@@ -1,20 +1,48 @@
 import { useState } from 'react';
 import { Award, BriefcaseBusiness, GraduationCap, Plus, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { createResume, updateResume } from '../../../api/documentApi';
 
+const educationCodeOptions = [
+    { value: '0', label: '학력무관' },
+    { value: '1', label: '고등학교졸업' },
+    { value: '2', label: '대학졸업(2,3년)' },
+    { value: '3', label: '대학교졸업(4년)' },
+    { value: '4', label: '석사졸업' },
+    { value: '5', label: '박사졸업' },
+    { value: '6', label: '고등학교졸업이상' },
+    { value: '7', label: '대학졸업(2년,3년 이상)' },
+    { value: '8', label: '대학교졸업(4년)이상' },
+    { value: '9', label: '석사졸업이상' },
+];
+
+const emptyResume = {
+    resumeTitle: '', highestLevel: '', educationCode: '', motivation: '',
+    desiredLocation: '', desiredWorkType: '',
+};
 const emptyEducation = {
     schoolName: '', admissionDate: '', graduationDate: '', major: '', educationStatus: '',
 };
 const emptyCareer = { companyName: '', joinDate: '', resignDate: '', mainDuty: '' };
 const emptyCertification = { certName: '', certGrade: '', issueDate: '' };
 
-function ResumeWrite() {
-    const [resume, setResume] = useState({
-        resumeTitle: '', highestLevel: '', educationCode: '', motivation: '',
-        desiredLocation: '', desiredWorkType: '',
-    });
-    const [educations, setEducations] = useState([{ ...emptyEducation }]);
-    const [careers, setCareers] = useState([]);
-    const [certifications, setCertifications] = useState([]);
+function ResumeWrite({ initialData = null, onSaved, onCancel }) {
+    const navigate = useNavigate();
+    const isEditMode = Boolean(initialData?.resume?.resumeNum);
+    const [resume, setResume] = useState(() => normalizeFormItem(emptyResume, initialData?.resume));
+    const [educations, setEducations] = useState(() => (
+        initialData
+            ? normalizeFormList(emptyEducation, initialData.educationList)
+            : [{ ...emptyEducation }]
+    ));
+    const [careers, setCareers] = useState(() => (
+        normalizeFormList(emptyCareer, initialData?.careerList)
+    ));
+    const [certifications, setCertifications] = useState(() => (
+        normalizeFormList(emptyCertification, initialData?.certificationList)
+    ));
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
 
     const handleResumeChange = (event) => {
         const { name, value } = event.target;
@@ -31,12 +59,67 @@ function ResumeWrite() {
         setter((items) => items.filter((_, itemIndex) => itemIndex !== index));
     };
 
+    const emptyDateToNull = (item, dateFields) => {
+        const normalizedItem = { ...item };
+        dateFields.forEach((field) => {
+            normalizedItem[field] = normalizedItem[field] || null;
+        });
+        return normalizedItem;
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        setIsSaving(true);
+        setSaveMessage({ type: '', text: '' });
+
+        const payload = {
+            resume: {
+                ...resume,
+                educationCode: Number(resume.educationCode),
+            },
+            educationList: educations.map((education) => (
+                emptyDateToNull(education, ['admissionDate', 'graduationDate'])
+            )),
+            careerList: careers.map((career) => (
+                emptyDateToNull(career, ['joinDate', 'resignDate'])
+            )),
+            certificationList: certifications.map((certification) => (
+                emptyDateToNull(certification, ['issueDate'])
+            )),
+        };
+
+        try {
+            const savedResume = isEditMode
+                ? await updateResume(initialData.resume.resumeNum, payload)
+                : await createResume(payload);
+            const resumeNum = savedResume?.resume?.resumeNum;
+            if (isEditMode) {
+                onSaved?.(savedResume);
+                return;
+            }
+            if (!resumeNum) throw new Error('저장된 이력서 번호를 확인하지 못했습니다.');
+            window.alert('이력서가 저장되었습니다.');
+            navigate(`/documents/resume/${resumeNum}`, { replace: true });
+            window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+        } catch (error) {
+            const responseData = error.response?.data;
+            setSaveMessage({
+                type: 'error',
+                text: responseData?.data
+                    || responseData?.responseCode?.message
+                    || `이력서를 ${isEditMode ? '수정' : '저장'}하지 못했습니다. 잠시 후 다시 시도해 주세요.`,
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
-        <form className="document-form" onSubmit={(event) => event.preventDefault()}>
+        <form className="document-form" onSubmit={handleSubmit}>
             <div className="document-form-heading">
                 <span>RESUME</span>
-                <h2>이력서 작성</h2>
-                <p>기본 정보와 학력, 경력, 자격증을 입력해 이력서를 구성하세요.</p>
+                <h2>이력서 {isEditMode ? '수정' : '작성'}</h2>
+                <p>기본 정보와 학력, 경력, 자격증을 {isEditMode ? '수정' : '입력'}해 이력서를 구성하세요.</p>
             </div>
 
             <section className="document-form-section" aria-labelledby="resume-basic-title">
@@ -63,10 +146,11 @@ function ResumeWrite() {
                         <label htmlFor="educationCode">학력 구분 <b>*</b></label>
                         <select id="educationCode" name="educationCode" value={resume.educationCode} onChange={handleResumeChange} required>
                             <option value="">선택해 주세요</option>
-                            <option value="0">학력 무관</option>
-                            <option value="1">고졸</option>
-                            <option value="2">초대졸</option>
-                            <option value="3">대졸</option>
+                            {educationCodeOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
                         </select>
                     </div>
                     <div className="document-field">
@@ -191,10 +275,33 @@ function ResumeWrite() {
             </RepeatSection>
 
             <div className="document-form-actions">
-                <button type="submit" className="document-primary-button">이력서 저장</button>
+                {onCancel && (
+                    <button type="button" className="document-secondary-button" onClick={onCancel} disabled={isSaving}>
+                        취소
+                    </button>
+                )}
+                <button type="submit" className="document-primary-button" disabled={isSaving}>
+                    {isSaving ? '저장 중...' : `이력서 ${isEditMode ? '수정' : '저장'}`}
+                </button>
             </div>
+            {saveMessage.text && (
+                <p className={`document-save-message is-${saveMessage.type}`} role="status">
+                    {saveMessage.text}
+                </p>
+            )}
         </form>
     );
+}
+
+function normalizeFormItem(template, item) {
+    return Object.keys(template).reduce((normalized, key) => ({
+        ...normalized,
+        [key]: item?.[key] ?? '',
+    }), {});
+}
+
+function normalizeFormList(template, items) {
+    return (items || []).map((item) => normalizeFormItem(template, item));
 }
 
 function RepeatSection({ title, description, icon, items, addLabel, onAdd, onRemove, children }) {

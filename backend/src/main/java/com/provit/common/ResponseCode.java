@@ -16,6 +16,7 @@ public enum ResponseCode {
 	// 2xx 성공 + 성공했지만 empty 데이터
 	SUCCESS(200, "요청이 성공적으로 처리되었습니다."), SUCCESS_EMPTY(201, "요청이 성공적으로 처리되었습니다."), CREATED(202, "리소스가 성공적으로 생성되었습니다."),
 	BAD_REQUEST(220, "잘못된 요청입니다."), INTERNAL_SERVER_ERROR(221, "서버 오류가 발생했습니다."),
+	NOT_FOUND(222, "요청한 리소스를 찾을 수 없습니다."),
 
 	// 3xx 로그인/회원가입 및 인증
 	AUTH_LOGIN_SUCCESS(300, "로그인에 성공하였습니다."),

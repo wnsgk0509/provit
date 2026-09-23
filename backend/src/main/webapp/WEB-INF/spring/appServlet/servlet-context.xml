@@ -17,6 +17,11 @@
 
     <!-- 2. 정적 리소스 핸들링 -->
     <resources mapping="/resources/**" location="/resources/" />
+    <!-- 업로드 파일 외부 스토리지 정적 리소스 매핑 (OS/서버 환경별 외부 프로퍼티 기반 동적 매핑) -->
+    <resources mapping="/uploads/**" location="file:${file.upload.base-dir:D:/fileStorage_Provit}/" />
+
+    <!-- 멀티파트 파일 업로드 리졸버 (Servlet 3.0+ StandardServletMultipartResolver) -->
+    <beans:bean id="multipartResolver" class="org.springframework.web.multipart.support.StandardServletMultipartResolver" />
 
     <!-- 3. 개발 환경 CORS 전역 설정 (프론트엔드 localhost:5173 통신 허용) -->
     <cors>
