@@ -1,12 +1,19 @@
 package com.provit.controller.document;
 
+import java.nio.charset.StandardCharsets;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -86,6 +93,76 @@ public class DocumentController {
         return new ResponseEntity<>(
                 ApiResponse.success(ResponseCode.CREATED, savedCoverLetter),
                 HttpStatus.CREATED);
+    }
+
+    @GetMapping("/resumes/{resumeNum}")
+    public ResponseEntity<ApiResponse<ResumeDetailDTO>> getResume(
+            HttpServletRequest request,
+            @PathVariable int resumeNum) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null),
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        ResumeDetailDTO resume = documentService.getResume(Math.toIntExact(userNum), resumeNum);
+        return new ResponseEntity<>(ApiResponse.success(ResponseCode.SUCCESS, resume), HttpStatus.OK);
+    }
+
+    @GetMapping("/cover-letters/{letterNum}")
+    public ResponseEntity<ApiResponse<CoverLetterDTO>> getCoverLetter(
+            HttpServletRequest request,
+            @PathVariable int letterNum) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null),
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        CoverLetterDTO coverLetter = documentService.getCoverLetter(
+                Math.toIntExact(userNum), letterNum);
+        return new ResponseEntity<>(
+                ApiResponse.success(ResponseCode.SUCCESS, coverLetter), HttpStatus.OK);
+    }
+
+    @GetMapping("/portfolios/{portfolioNum}")
+    public ResponseEntity<ApiResponse<PortfolioDTO>> getPortfolio(
+            HttpServletRequest request,
+            @PathVariable int portfolioNum) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null),
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        PortfolioDTO portfolio = documentService.getPortfolio(
+                Math.toIntExact(userNum), portfolioNum);
+        portfolio.setFileUrl(null);
+        return new ResponseEntity<>(
+                ApiResponse.success(ResponseCode.SUCCESS, portfolio), HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/portfolios/{portfolioNum}/file", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<Resource> downloadPortfolio(
+            HttpServletRequest request,
+            @PathVariable int portfolioNum) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        Resource file = documentService.getPortfolioFile(Math.toIntExact(userNum), portfolioNum);
+        String filename = portfolioNum + ".pdf";
+        ContentDisposition contentDisposition = ContentDisposition.attachment()
+                .filename(filename, StandardCharsets.UTF_8)
+                .build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(file);
     }
 
     private Long getAuthenticatedUserNum(HttpServletRequest request) {

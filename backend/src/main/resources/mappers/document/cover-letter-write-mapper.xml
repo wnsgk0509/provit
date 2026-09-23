@@ -32,4 +32,20 @@
         )
     </insert>
 
+    <select id="selectCoverLetter" resultType="com.provit.dto.user.CoverLetterDTO">
+        SELECT
+            LETTER_NUM,
+            USER_NUM,
+            COVER_LETTER_TITLE,
+            GROWTH_PROCESS,
+            PERSONALITY_STRENGTHS_WEAKNESSES,
+            PROBLEM_SOLVING_EXPERIENCE,
+            POST_JOINING_ASPIRATION,
+            CREATED_AT,
+            UPDATED_AT
+        FROM T_COVER_LETTER
+        WHERE LETTER_NUM = #{letterNum}
+          AND USER_NUM = #{userNum}
+    </select>
+
 </mapper>

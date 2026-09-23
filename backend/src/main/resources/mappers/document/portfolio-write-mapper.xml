@@ -28,4 +28,11 @@
         )
     </insert>
 
+    <select id="selectPortfolio" resultType="com.provit.dto.user.PortfolioDTO">
+        SELECT PORTFOLIO_NUM, USER_NUM, PORTFOLIO_TITLE, FILE_URL, CREATED_AT, UPDATED_AT
+        FROM T_PORTFOLIO
+        WHERE PORTFOLIO_NUM = #{portfolioNum}
+          AND USER_NUM = #{userNum}
+    </select>
+
 </mapper>

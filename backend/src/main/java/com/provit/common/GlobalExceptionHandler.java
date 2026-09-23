@@ -1,5 +1,7 @@
 package com.provit.common;
 
+import java.util.NoSuchElementException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -49,6 +51,13 @@ public class GlobalExceptionHandler {
 		ApiResponse<String> response = new ApiResponse<>(
 				ResponseCode.BAD_REQUEST, "포트폴리오 파일은 20MB 이하여야 합니다.");
 		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler(NoSuchElementException.class)
+	public ResponseEntity<ApiResponse<String>> handleNoSuchElementException(NoSuchElementException e) {
+		log.warn("리소스 조회 실패: {}", e.getMessage());
+		ApiResponse<String> response = new ApiResponse<>(ResponseCode.NOT_FOUND, e.getMessage());
+		return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
 	}
 
 	/**

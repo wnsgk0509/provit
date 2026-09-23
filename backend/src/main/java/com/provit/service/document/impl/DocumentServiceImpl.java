@@ -5,8 +5,10 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -127,6 +129,49 @@ public class DocumentServiceImpl implements DocumentService {
 
         requireSingleInsert(documentDAO.insertCoverLetter(coverLetter), "자기소개서");
         return coverLetter;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResumeDetailDTO getResume(int userNum, int resumeNum) {
+        ResumeDTO resume = documentDAO.selectResume(userNum, resumeNum);
+        if (resume == null) {
+            throw new NoSuchElementException("조회할 수 있는 이력서가 없습니다.");
+        }
+
+        ResumeDetailDTO resumeDetail = new ResumeDetailDTO();
+        resumeDetail.setResume(resume);
+        resumeDetail.setEducationList(documentDAO.selectEducationList(resumeNum));
+        resumeDetail.setCareerList(documentDAO.selectCareerList(resumeNum));
+        resumeDetail.setCertificationList(documentDAO.selectCertificationList(resumeNum));
+        return resumeDetail;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CoverLetterDTO getCoverLetter(int userNum, int letterNum) {
+        CoverLetterDTO coverLetter = documentDAO.selectCoverLetter(userNum, letterNum);
+        if (coverLetter == null) {
+            throw new NoSuchElementException("조회할 수 있는 자기소개서가 없습니다.");
+        }
+        return coverLetter;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PortfolioDTO getPortfolio(int userNum, int portfolioNum) {
+        PortfolioDTO portfolio = documentDAO.selectPortfolio(userNum, portfolioNum);
+        if (portfolio == null) {
+            throw new NoSuchElementException("조회할 수 있는 포트폴리오가 없습니다.");
+        }
+        return portfolio;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Resource getPortfolioFile(int userNum, int portfolioNum) {
+        PortfolioDTO portfolio = getPortfolio(userNum, portfolioNum);
+        return portfolioFileStorage.loadAsResource(portfolio.getFileUrl());
     }
 
     private void validateCoverLetter(CoverLetterDTO coverLetter) {

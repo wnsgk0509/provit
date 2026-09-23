@@ -1,5 +1,8 @@
 package com.provit.dao.document.impl;
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.ibatis.session.SqlSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -69,5 +72,41 @@ public class DocumentDAOImpl implements DocumentDAO {
     @Override
     public int insertCoverLetter(CoverLetterDTO coverLetter) {
         return sqlSession.insert(COVER_LETTER_NAMESPACE + ".insertCoverLetter", coverLetter);
+    }
+
+    @Override
+    public ResumeDTO selectResume(int userNum, int resumeNum) {
+        return sqlSession.selectOne(
+                RESUME_NAMESPACE + ".selectResume",
+                Map.of("userNum", userNum, "resumeNum", resumeNum));
+    }
+
+    @Override
+    public List<EducationDTO> selectEducationList(int resumeNum) {
+        return sqlSession.selectList(RESUME_NAMESPACE + ".selectEducationList", resumeNum);
+    }
+
+    @Override
+    public List<CareerDTO> selectCareerList(int resumeNum) {
+        return sqlSession.selectList(RESUME_NAMESPACE + ".selectCareerList", resumeNum);
+    }
+
+    @Override
+    public List<CertificationDTO> selectCertificationList(int resumeNum) {
+        return sqlSession.selectList(RESUME_NAMESPACE + ".selectCertificationList", resumeNum);
+    }
+
+    @Override
+    public CoverLetterDTO selectCoverLetter(int userNum, int letterNum) {
+        return sqlSession.selectOne(
+                COVER_LETTER_NAMESPACE + ".selectCoverLetter",
+                Map.of("userNum", userNum, "letterNum", letterNum));
+    }
+
+    @Override
+    public PortfolioDTO selectPortfolio(int userNum, int portfolioNum) {
+        return sqlSession.selectOne(
+                PORTFOLIO_NAMESPACE + ".selectPortfolio",
+                Map.of("userNum", userNum, "portfolioNum", portfolioNum));
     }
 }

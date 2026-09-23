@@ -103,4 +103,44 @@
         )
     </insert>
 
+    <select id="selectResume" resultType="com.provit.dto.user.ResumeDTO">
+        SELECT
+            R.RESUME_NUM,
+            R.USER_NUM,
+            R.RESUME_TITLE,
+            R.HIGHEST_LEVEL,
+            R.EDUCATION_CODE,
+            E.EDUCATION_NAME,
+            R.MOTIVATION,
+            R.DESIRED_LOCATION,
+            R.DESIRED_WORK_TYPE,
+            R.CREATED_AT,
+            R.UPDATED_AT
+        FROM T_RESUME R
+        JOIN T_EDUCODE E ON E.EDUCATION_CODE = R.EDUCATION_CODE
+        WHERE R.RESUME_NUM = #{resumeNum}
+          AND R.USER_NUM = #{userNum}
+    </select>
+
+    <select id="selectEducationList" parameterType="int" resultType="com.provit.dto.user.EducationDTO">
+        SELECT EDU_NUM, RESUME_NUM, SCHOOL_NAME, ADMISSION_DATE, GRADUATION_DATE, MAJOR, EDUCATION_STATUS
+        FROM T_EDUCATION
+        WHERE RESUME_NUM = #{resumeNum}
+        ORDER BY EDU_NUM
+    </select>
+
+    <select id="selectCareerList" parameterType="int" resultType="com.provit.dto.user.CareerDTO">
+        SELECT CAREER_NUM, RESUME_NUM, COMPANY_NAME, JOIN_DATE, RESIGN_DATE, MAIN_DUTY
+        FROM T_CAREER
+        WHERE RESUME_NUM = #{resumeNum}
+        ORDER BY CAREER_NUM
+    </select>
+
+    <select id="selectCertificationList" parameterType="int" resultType="com.provit.dto.user.CertificationDTO">
+        SELECT CERT_NUM, RESUME_NUM, CERT_NAME, CERT_GRADE, ISSUE_DATE
+        FROM T_CERTIFICATION
+        WHERE RESUME_NUM = #{resumeNum}
+        ORDER BY CERT_NUM
+    </select>
+
 </mapper>

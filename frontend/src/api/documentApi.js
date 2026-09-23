@@ -20,3 +20,26 @@ export async function createPortfolio(portfolioTitle, file) {
     });
     return response.data.data;
 }
+
+export async function getResume(resumeNum) {
+    const response = await client.get(`/documents/resumes/${resumeNum}`);
+    return response.data.data;
+}
+
+export async function getCoverLetter(letterNum) {
+    const response = await client.get(`/documents/cover-letters/${letterNum}`);
+    return response.data.data;
+}
+
+export async function getPortfolio(portfolioNum) {
+    const response = await client.get(`/documents/portfolios/${portfolioNum}`);
+    return response.data.data;
+}
+
+export async function downloadPortfolioFile(portfolioNum) {
+    const response = await client.get(`/documents/portfolios/${portfolioNum}/file`, {
+        responseType: 'blob',
+        timeout: 60000,
+    });
+    return response.data;
+}
