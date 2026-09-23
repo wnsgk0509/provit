@@ -329,6 +329,7 @@
     white-space: nowrap;
 }
 
+.document-field-error,
 .document-file-error {
     margin: 8px 0 0;
     color: #d14343;
