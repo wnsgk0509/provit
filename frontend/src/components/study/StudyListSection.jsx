@@ -144,9 +144,15 @@ function StudyListSection() {
                                 >
                                     <div className="card-body p-4 d-flex flex-column">
                                         <div className="mb-3">
-                                            <span className="badge bg-primary-subtle text-primary px-3 py-1 rounded-pill" style={{ fontSize: '0.75rem' }}>
-                                                {study.isJoined ? '참여 중' : '모집 중'} · {study.memberCount}명
-                                            </span>
+                                            {study.memberCount >= study.maxMembers ? (
+                                                <span className="badge bg-danger-subtle text-danger px-3 py-1 rounded-pill" style={{ fontSize: '0.75rem' }}>
+                                                    모집 마감 · {study.memberCount} / {study.maxMembers}명
+                                                </span>
+                                            ) : (
+                                                <span className="badge bg-primary-subtle text-primary px-3 py-1 rounded-pill" style={{ fontSize: '0.75rem' }}>
+                                                    {study.isJoined ? '참여 중' : '모집 중'} · {study.memberCount} / {study.maxMembers}명
+                                                </span>
+                                            )}
                                         </div>
                                         
                                         <h5 className="card-title fw-bold mb-2">{study.studyName}</h5>
@@ -182,8 +188,12 @@ function StudyListSection() {
                                                         참여 취소
                                                     </button>
                                                 ) : (
-                                                    <button className="btn btn-outline-primary btn-sm px-3 rounded-pill" onClick={(e) => handleJoin(e, study.studyNum)}>
-                                                        참여하기
+                                                    <button 
+                                                        className={`btn ${study.memberCount >= study.maxMembers ? 'btn-outline-danger' : 'btn-outline-primary'} btn-sm px-3 rounded-pill`} 
+                                                        onClick={(e) => handleJoin(e, study.studyNum)}
+                                                        disabled={study.memberCount >= study.maxMembers}
+                                                    >
+                                                        {study.memberCount >= study.maxMembers ? '모집 마감' : '참여하기'}
                                                     </button>
                                                 )
                                             ) : (

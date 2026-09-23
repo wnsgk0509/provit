@@ -50,6 +50,11 @@ public class StudyServiceImpl implements StudyService {
     @Override
     @Transactional
     public int updateStudy(StudyDTO studyDto) {
+        StudyDTO existingStudy = studyDao.selectStudyDetail(studyDto.getStudyNum());
+        if (existingStudy != null && studyDto.getMaxMembers() < existingStudy.getMemberCount()) {
+            throw new IllegalArgumentException("최대 인원은 현재 참여 인원(" + existingStudy.getMemberCount() + "명)보다 적게 설정할 수 없습니다.");
+        }
+
         int affectedRows = studyDao.updateStudy(studyDto);
         if (affectedRows == 0) {
             throw new IllegalArgumentException("스터디 방이 존재하지 않거나 권한이 없습니다.");
@@ -74,6 +79,14 @@ public class StudyServiceImpl implements StudyService {
     @Override
     @Transactional
     public void joinStudy(Long studyNum, Long userNum) {
+        StudyDTO study = studyDao.selectStudyDetail(studyNum);
+        if (study == null) {
+            throw new IllegalArgumentException("존재하지 않는 스터디입니다.");
+        }
+        if (study.getMemberCount() >= study.getMaxMembers()) {
+            throw new IllegalArgumentException("스터디 정원이 가득 차서 참여할 수 없습니다.");
+        }
+
         Map<String, Object> params = new HashMap<>();
         params.put("studyNum", studyNum);
         params.put("userNum", userNum);

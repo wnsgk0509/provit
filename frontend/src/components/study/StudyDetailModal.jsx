@@ -35,8 +35,8 @@ function StudyDetailModal({ show, onClose, study }) {
                     </div>
                     <div className="modal-body p-4">
                         <div className="mb-4">
-                            <span className="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill me-2">
-                                👥 {study.memberCount}명 참여중
+                            <span className={`badge ${study.memberCount >= study.maxMembers ? 'bg-danger-subtle text-danger' : 'bg-primary-subtle text-primary'} px-3 py-2 rounded-pill me-2`}>
+                                👥 {study.memberCount} / {study.maxMembers}명 {study.memberCount >= study.maxMembers ? '마감됨' : '참여중'}
                             </span>
                             {study.isJoined && (
                                 <span className="badge bg-success-subtle text-success px-3 py-2 rounded-pill">
