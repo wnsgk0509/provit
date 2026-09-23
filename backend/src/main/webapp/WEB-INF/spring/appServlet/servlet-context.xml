@@ -18,8 +18,6 @@
     <!-- 외부 프로퍼티 로드 (업로드 스토리지 경로 등) -->
     <context:property-placeholder location="classpath:api.properties" ignore-resource-not-found="true" />
 
-    <beans:bean id="multipartResolver"
-                class="org.springframework.web.multipart.support.StandardServletMultipartResolver" />
 
     <!-- 2. 정적 리소스 핸들링 -->
     <resources mapping="/resources/**" location="/resources/" />
