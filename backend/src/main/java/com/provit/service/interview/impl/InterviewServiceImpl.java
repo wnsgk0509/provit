@@ -14,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.provit.dao.interview.InterviewDAO;
+import com.provit.dto.document.ResumeDTO;
+import com.provit.dto.document.ResumeDetailDTO;
 import com.provit.dto.interview.InterviewAnswerRequestDTO;
 import com.provit.dto.interview.InterviewAnswerResponseDTO;
 import com.provit.dto.interview.InterviewDocumentResponseDTO;
@@ -29,8 +31,6 @@ import com.provit.dto.interview.LlmEvaluationResponseDTO;
 import com.provit.dto.interview.LlmFollowUpRequestDTO;
 import com.provit.dto.interview.LlmInterviewContextDTO;
 import com.provit.dto.interview.LlmQuestionRequestDTO;
-import com.provit.dto.user.ResumeDTO;
-import com.provit.dto.user.ResumeDetailDTO;
 import com.provit.service.interview.InterviewService;
 import com.provit.service.interview.InterviewPersistenceService;
 import com.provit.service.interview.generator.InterviewGenerator;

@@ -8,19 +8,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.provit.dao.document.DocumentDAO;
-import com.provit.dto.user.CareerDTO;
-import com.provit.dto.user.CertificationDTO;
-import com.provit.dto.user.CoverLetterDTO;
-import com.provit.dto.user.EducationDTO;
-import com.provit.dto.user.PortfolioDTO;
-import com.provit.dto.user.ResumeDTO;
+import com.provit.dto.document.CareerDTO;
+import com.provit.dto.document.CertificationDTO;
+import com.provit.dto.document.CoverLetterDTO;
+import com.provit.dto.document.EducationDTO;
+import com.provit.dto.document.PortfolioDTO;
+import com.provit.dto.document.ResumeDTO;
 
 @Repository
 public class DocumentDAOImpl implements DocumentDAO {
 
-    private static final String RESUME_NAMESPACE = "com.provit.mapper.document.ResumeWriteMapper";
-    private static final String PORTFOLIO_NAMESPACE = "com.provit.mapper.document.PortfolioWriteMapper";
-    private static final String COVER_LETTER_NAMESPACE = "com.provit.mapper.document.CoverLetterWriteMapper";
+    private static final String RESUME_NAMESPACE = "com.provit.mapper.document.ResumeMapper";
+    private static final String PORTFOLIO_NAMESPACE = "com.provit.mapper.document.PortfolioMapper";
+    private static final String COVER_LETTER_NAMESPACE = "com.provit.mapper.document.CoverLetterMapper";
 
     private final SqlSession sqlSession;
 

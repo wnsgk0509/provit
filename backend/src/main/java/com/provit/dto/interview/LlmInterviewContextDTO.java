@@ -1,8 +1,8 @@
 package com.provit.dto.interview;
 
-import com.provit.dto.user.CoverLetterDTO;
-import com.provit.dto.user.PortfolioDTO;
-import com.provit.dto.user.ResumeDetailDTO;
+import com.provit.dto.document.CoverLetterDTO;
+import com.provit.dto.document.PortfolioDTO;
+import com.provit.dto.document.ResumeDetailDTO;
 import com.provit.dto.user.UserJobPreferenceDTO;
 
 import lombok.Data;

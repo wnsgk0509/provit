@@ -2,10 +2,10 @@ package com.provit.service.document;
 
 import org.springframework.core.io.Resource;
 
+import com.provit.dto.document.CoverLetterDTO;
 import com.provit.dto.document.PortfolioCreateRequestDTO;
-import com.provit.dto.user.CoverLetterDTO;
-import com.provit.dto.user.PortfolioDTO;
-import com.provit.dto.user.ResumeDetailDTO;
+import com.provit.dto.document.PortfolioDTO;
+import com.provit.dto.document.ResumeDetailDTO;
 
 public interface DocumentService {
 

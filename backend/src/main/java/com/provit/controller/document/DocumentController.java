@@ -20,11 +20,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.provit.common.ResponseCode;
+import com.provit.dto.document.CoverLetterDTO;
 import com.provit.dto.document.PortfolioCreateRequestDTO;
+import com.provit.dto.document.PortfolioDTO;
+import com.provit.dto.document.ResumeDetailDTO;
 import com.provit.dto.response.ApiResponse;
-import com.provit.dto.user.CoverLetterDTO;
-import com.provit.dto.user.PortfolioDTO;
-import com.provit.dto.user.ResumeDetailDTO;
 import com.provit.service.document.DocumentService;
 import com.provit.util.jwt.JwtProvider;
 

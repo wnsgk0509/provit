@@ -1,4 +1,4 @@
-package com.provit.dto.user;
+package com.provit.dto.document;
 
 import java.util.Date;
 
@@ -7,18 +7,17 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 @Data
-public class EducationDTO {
+public class CareerDTO {
 
-    private int eduNum;
+    private int careerNum;
     private int resumeNum;
-    private String schoolName;
+    private String companyName;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
-    private Date admissionDate;
+    private Date joinDate;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
-    private Date graduationDate;
+    private Date resignDate;
 
-    private String major;
-    private String educationStatus;
+    private String mainDuty;
 }

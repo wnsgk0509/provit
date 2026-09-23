@@ -16,14 +16,14 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 
 import com.provit.dao.document.DocumentDAO;
+import com.provit.dto.document.CareerDTO;
+import com.provit.dto.document.CertificationDTO;
+import com.provit.dto.document.CoverLetterDTO;
+import com.provit.dto.document.EducationDTO;
 import com.provit.dto.document.PortfolioCreateRequestDTO;
-import com.provit.dto.user.CareerDTO;
-import com.provit.dto.user.CertificationDTO;
-import com.provit.dto.user.CoverLetterDTO;
-import com.provit.dto.user.EducationDTO;
-import com.provit.dto.user.PortfolioDTO;
-import com.provit.dto.user.ResumeDTO;
-import com.provit.dto.user.ResumeDetailDTO;
+import com.provit.dto.document.PortfolioDTO;
+import com.provit.dto.document.ResumeDTO;
+import com.provit.dto.document.ResumeDetailDTO;
 import com.provit.service.document.DocumentService;
 import com.provit.service.document.storage.PortfolioFileStorage;
 
