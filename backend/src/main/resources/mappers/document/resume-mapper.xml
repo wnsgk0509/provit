@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.mapper.document.ResumeMapper">
+
+    <select id="countEducationCode" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM T_EDUCODE
+        WHERE EDUCATION_CODE = #{educationCode}
+    </select>
+
+    <insert id="insertResume" parameterType="com.provit.dto.document.ResumeDTO">
+        <selectKey keyProperty="resumeNum" resultType="int" order="BEFORE">
+            SELECT SEQ_T_RESUME.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_RESUME (
+            RESUME_NUM,
+            USER_NUM,
+            RESUME_TITLE,
+            HIGHEST_LEVEL,
+            EDUCATION_CODE,
+            MOTIVATION,
+            DESIRED_LOCATION,
+            DESIRED_WORK_TYPE,
+            CREATED_AT,
+            UPDATED_AT
+        ) VALUES (
+            #{resumeNum},
+            #{userNum},
+            #{resumeTitle},
+            #{highestLevel},
+            #{educationCode},
+            #{motivation, jdbcType=CLOB},
+            #{desiredLocation, jdbcType=VARCHAR},
+            #{desiredWorkType, jdbcType=VARCHAR},
+            SYSDATE,
+            SYSDATE
+        )
+    </insert>
+
+    <insert id="insertEducation" parameterType="com.provit.dto.document.EducationDTO">
+        <selectKey keyProperty="eduNum" resultType="int" order="BEFORE">
+            SELECT SEQ_T_EDUCATION.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_EDUCATION (
+            EDU_NUM,
+            RESUME_NUM,
+            SCHOOL_NAME,
+            ADMISSION_DATE,
+            GRADUATION_DATE,
+            MAJOR,
+            EDUCATION_STATUS
+        ) VALUES (
+            #{eduNum},
+            #{resumeNum},
+            #{schoolName},
+            #{admissionDate, jdbcType=DATE},
+            #{graduationDate, jdbcType=DATE},
+            #{major, jdbcType=VARCHAR},
+            #{educationStatus}
+        )
+    </insert>
+
+    <insert id="insertCareer" parameterType="com.provit.dto.document.CareerDTO">
+        <selectKey keyProperty="careerNum" resultType="int" order="BEFORE">
+            SELECT SEQ_T_CAREER.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_CAREER (
+            CAREER_NUM,
+            RESUME_NUM,
+            COMPANY_NAME,
+            JOIN_DATE,
+            RESIGN_DATE,
+            MAIN_DUTY
+        ) VALUES (
+            #{careerNum},
+            #{resumeNum},
+            #{companyName},
+            #{joinDate, jdbcType=DATE},
+            #{resignDate, jdbcType=DATE},
+            #{mainDuty, jdbcType=VARCHAR}
+        )
+    </insert>
+
+    <insert id="insertCertification" parameterType="com.provit.dto.document.CertificationDTO">
+        <selectKey keyProperty="certNum" resultType="int" order="BEFORE">
+            SELECT SEQ_T_CERTIFICATION.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_CERTIFICATION (
+            CERT_NUM,
+            RESUME_NUM,
+            CERT_NAME,
+            CERT_GRADE,
+            ISSUE_DATE
+        ) VALUES (
+            #{certNum},
+            #{resumeNum},
+            #{certName},
+            #{certGrade, jdbcType=VARCHAR},
+            #{issueDate, jdbcType=DATE}
+        )
+    </insert>
+
+    <update id="updateResume" parameterType="com.provit.dto.document.ResumeDTO">
+        UPDATE T_RESUME
+        SET
+            RESUME_TITLE = #{resumeTitle},
+            HIGHEST_LEVEL = #{highestLevel},
+            EDUCATION_CODE = #{educationCode},
+            MOTIVATION = #{motivation, jdbcType=CLOB},
+            DESIRED_LOCATION = #{desiredLocation, jdbcType=VARCHAR},
+            DESIRED_WORK_TYPE = #{desiredWorkType, jdbcType=VARCHAR},
+            UPDATED_AT = SYSDATE
+        WHERE RESUME_NUM = #{resumeNum}
+          AND USER_NUM = #{userNum}
+    </update>
+
+    <delete id="deleteEducationList" parameterType="int">
+        DELETE FROM T_EDUCATION
+        WHERE RESUME_NUM = #{resumeNum}
+    </delete>
+
+    <delete id="deleteCareerList" parameterType="int">
+        DELETE FROM T_CAREER
+        WHERE RESUME_NUM = #{resumeNum}
+    </delete>
+
+    <delete id="deleteCertificationList" parameterType="int">
+        DELETE FROM T_CERTIFICATION
+        WHERE RESUME_NUM = #{resumeNum}
+    </delete>
+
+    <delete id="deleteResume">
+        DELETE FROM T_RESUME
+        WHERE RESUME_NUM = #{resumeNum}
+          AND USER_NUM = #{userNum}
+    </delete>
+
+    <select id="selectResume" resultType="com.provit.dto.document.ResumeDTO">
+        SELECT
+            R.RESUME_NUM,
+            R.USER_NUM,
+            R.RESUME_TITLE,
+            R.HIGHEST_LEVEL,
+            R.EDUCATION_CODE,
+            E.EDUCATION_NAME,
+            R.MOTIVATION,
+            R.DESIRED_LOCATION,
+            R.DESIRED_WORK_TYPE,
+            R.CREATED_AT,
+            R.UPDATED_AT
+        FROM T_RESUME R
+        JOIN T_EDUCODE E ON E.EDUCATION_CODE = R.EDUCATION_CODE
+        WHERE R.RESUME_NUM = #{resumeNum}
+          AND R.USER_NUM = #{userNum}
+    </select>
+
+    <select id="selectResumeListByUserNum"
+            parameterType="int"
+            resultType="com.provit.dto.interview.InterviewDocumentOptionDTO">
+        SELECT
+            RESUME_NUM AS DOCUMENT_NUM,
+            RESUME_TITLE AS DOCUMENT_TITLE
+        FROM T_RESUME
+        WHERE USER_NUM = #{userNum}
+        ORDER BY UPDATED_AT DESC, RESUME_NUM DESC
+    </select>
+
+    <select id="selectResumeSummaryList"
+            parameterType="int"
+            resultType="com.provit.dto.document.DocumentSummaryDTO">
+        SELECT
+            RESUME_NUM AS DOCUMENT_NUM,
+            RESUME_TITLE AS DOCUMENT_TITLE,
+            CREATED_AT
+        FROM T_RESUME
+        WHERE USER_NUM = #{userNum}
+        ORDER BY CREATED_AT DESC, RESUME_NUM DESC
+    </select>
+
+    <select id="selectEducationList" parameterType="int" resultType="com.provit.dto.document.EducationDTO">
+        SELECT EDU_NUM, RESUME_NUM, SCHOOL_NAME, ADMISSION_DATE, GRADUATION_DATE, MAJOR, EDUCATION_STATUS
+        FROM T_EDUCATION
+        WHERE RESUME_NUM = #{resumeNum}
+        ORDER BY ADMISSION_DATE DESC, EDU_NUM DESC
+    </select>
+
+    <select id="selectCareerList" parameterType="int" resultType="com.provit.dto.document.CareerDTO">
+        SELECT CAREER_NUM, RESUME_NUM, COMPANY_NAME, JOIN_DATE, RESIGN_DATE, MAIN_DUTY
+        FROM T_CAREER
+        WHERE RESUME_NUM = #{resumeNum}
+        ORDER BY JOIN_DATE DESC, CAREER_NUM DESC
+    </select>
+
+    <select id="selectCertificationList" parameterType="int" resultType="com.provit.dto.document.CertificationDTO">
+        SELECT CERT_NUM, RESUME_NUM, CERT_NAME, CERT_GRADE, ISSUE_DATE
+        FROM T_CERTIFICATION
+        WHERE RESUME_NUM = #{resumeNum}
+        ORDER BY ISSUE_DATE DESC, CERT_NUM DESC
+    </select>
+
+</mapper>

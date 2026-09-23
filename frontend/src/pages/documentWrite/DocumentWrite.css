@@ -305,6 +305,20 @@
     font-weight: 400;
 }
 
+.document-file-upload.is-valid {
+    border-color: #8fc9a2;
+    color: #287a48;
+    background: #effaf2;
+}
+
+.document-file-upload.is-valid strong {
+    color: #25683e;
+}
+
+.document-file-upload.is-valid span {
+    color: #5d8a6c;
+}
+
 .document-file-input {
     position: absolute;
     width: 1px !important;
@@ -324,19 +338,88 @@
 .document-form-actions {
     display: flex;
     justify-content: flex-end;
+    gap: 10px;
     padding-top: 28px;
 }
 
+.document-secondary-button,
+.document-danger-button,
 .document-primary-button {
     min-height: 44px;
-    border: 1px solid #4d67be;
     padding: 0 22px;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.document-secondary-button {
+    border: 1px solid #cfd5df;
+    color: #4b5563;
+    background: #fff;
+}
+
+.document-secondary-button:hover {
+    border-color: #aeb7c5;
+    background: #f8fafc;
+}
+
+.document-danger-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid #d65b5b;
+    color: #c63f3f;
+    background: #fff;
+}
+
+.document-danger-button:hover {
+    color: #fff;
+    background: #c94a4a;
+}
+
+.document-primary-button {
+    border: 1px solid #4d67be;
     color: #fff;
     background: #4d67be;
 }
 
 .document-primary-button:hover {
     background: #4059a9;
+}
+
+.document-secondary-button:disabled,
+.document-danger-button:disabled,
+.document-primary-button:disabled {
+    cursor: not-allowed;
+    opacity: .65;
+}
+
+.document-primary-button:disabled {
+    border-color: #aeb7d4;
+    background: #aeb7d4;
+}
+
+.document-save-message {
+    margin: 14px 0 0;
+    font-size: 13px;
+    text-align: right;
+}
+
+.document-save-message.is-success {
+    color: #258045;
+}
+
+.document-save-message.is-error {
+    color: #d14343;
+}
+
+.document-delete-error {
+    margin: 12px 0 0;
+    color: #d14343;
+    font-size: 13px;
+    text-align: right;
 }
 
 @media (max-width: 640px) {
@@ -360,8 +443,14 @@
     }
 
     .document-add-button,
+    .document-secondary-button,
+    .document-danger-button,
     .document-primary-button {
         width: 100%;
+    }
+
+    .document-form-actions {
+        flex-direction: column-reverse;
     }
 
     .document-file-upload {

@@ -1,0 +1,175 @@
+package com.provit.dao.document.impl;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.ibatis.session.SqlSession;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
+import com.provit.dao.document.DocumentDAO;
+import com.provit.dto.document.CareerDTO;
+import com.provit.dto.document.CertificationDTO;
+import com.provit.dto.document.CoverLetterDTO;
+import com.provit.dto.document.DocumentSummaryDTO;
+import com.provit.dto.document.EducationDTO;
+import com.provit.dto.document.PortfolioDTO;
+import com.provit.dto.document.ResumeDTO;
+
+@Repository
+public class DocumentDAOImpl implements DocumentDAO {
+
+    private static final String RESUME_NAMESPACE = "com.provit.mapper.document.ResumeMapper";
+    private static final String PORTFOLIO_NAMESPACE = "com.provit.mapper.document.PortfolioMapper";
+    private static final String COVER_LETTER_NAMESPACE = "com.provit.mapper.document.CoverLetterMapper";
+
+    private final SqlSession sqlSession;
+
+    @Autowired
+    public DocumentDAOImpl(SqlSession sqlSession) {
+        this.sqlSession = sqlSession;
+    }
+
+    @Override
+    public int countEducationCode(int educationCode) {
+        Integer count = sqlSession.selectOne(RESUME_NAMESPACE + ".countEducationCode", educationCode);
+        return count == null ? 0 : count;
+    }
+
+    @Override
+    public int insertResume(ResumeDTO resume) {
+        return sqlSession.insert(RESUME_NAMESPACE + ".insertResume", resume);
+    }
+
+    @Override
+    public int insertEducation(EducationDTO education) {
+        return sqlSession.insert(RESUME_NAMESPACE + ".insertEducation", education);
+    }
+
+    @Override
+    public int insertCareer(CareerDTO career) {
+        return sqlSession.insert(RESUME_NAMESPACE + ".insertCareer", career);
+    }
+
+    @Override
+    public int insertCertification(CertificationDTO certification) {
+        return sqlSession.insert(RESUME_NAMESPACE + ".insertCertification", certification);
+    }
+
+    @Override
+    public int selectNextPortfolioNum() {
+        Integer portfolioNum = sqlSession.selectOne(PORTFOLIO_NAMESPACE + ".selectNextPortfolioNum");
+        if (portfolioNum == null) {
+            throw new IllegalStateException("포트폴리오 번호를 발급하지 못했습니다.");
+        }
+        return portfolioNum;
+    }
+
+    @Override
+    public int insertPortfolio(PortfolioDTO portfolio) {
+        return sqlSession.insert(PORTFOLIO_NAMESPACE + ".insertPortfolio", portfolio);
+    }
+
+    @Override
+    public int insertCoverLetter(CoverLetterDTO coverLetter) {
+        return sqlSession.insert(COVER_LETTER_NAMESPACE + ".insertCoverLetter", coverLetter);
+    }
+
+    @Override
+    public int updateResume(ResumeDTO resume) {
+        return sqlSession.update(RESUME_NAMESPACE + ".updateResume", resume);
+    }
+
+    @Override
+    public int deleteEducationList(int resumeNum) {
+        return sqlSession.delete(RESUME_NAMESPACE + ".deleteEducationList", resumeNum);
+    }
+
+    @Override
+    public int deleteCareerList(int resumeNum) {
+        return sqlSession.delete(RESUME_NAMESPACE + ".deleteCareerList", resumeNum);
+    }
+
+    @Override
+    public int deleteCertificationList(int resumeNum) {
+        return sqlSession.delete(RESUME_NAMESPACE + ".deleteCertificationList", resumeNum);
+    }
+
+    @Override
+    public int updateCoverLetter(CoverLetterDTO coverLetter) {
+        return sqlSession.update(COVER_LETTER_NAMESPACE + ".updateCoverLetter", coverLetter);
+    }
+
+    @Override
+    public int deleteResume(int userNum, int resumeNum) {
+        return sqlSession.delete(
+                RESUME_NAMESPACE + ".deleteResume",
+                Map.of("userNum", userNum, "resumeNum", resumeNum));
+    }
+
+    @Override
+    public int deleteCoverLetter(int userNum, int letterNum) {
+        return sqlSession.delete(
+                COVER_LETTER_NAMESPACE + ".deleteCoverLetter",
+                Map.of("userNum", userNum, "letterNum", letterNum));
+    }
+
+    @Override
+    public int deletePortfolio(int userNum, int portfolioNum) {
+        return sqlSession.delete(
+                PORTFOLIO_NAMESPACE + ".deletePortfolio",
+                Map.of("userNum", userNum, "portfolioNum", portfolioNum));
+    }
+
+    @Override
+    public ResumeDTO selectResume(int userNum, int resumeNum) {
+        return sqlSession.selectOne(
+                RESUME_NAMESPACE + ".selectResume",
+                Map.of("userNum", userNum, "resumeNum", resumeNum));
+    }
+
+    @Override
+    public List<EducationDTO> selectEducationList(int resumeNum) {
+        return sqlSession.selectList(RESUME_NAMESPACE + ".selectEducationList", resumeNum);
+    }
+
+    @Override
+    public List<CareerDTO> selectCareerList(int resumeNum) {
+        return sqlSession.selectList(RESUME_NAMESPACE + ".selectCareerList", resumeNum);
+    }
+
+    @Override
+    public List<CertificationDTO> selectCertificationList(int resumeNum) {
+        return sqlSession.selectList(RESUME_NAMESPACE + ".selectCertificationList", resumeNum);
+    }
+
+    @Override
+    public CoverLetterDTO selectCoverLetter(int userNum, int letterNum) {
+        return sqlSession.selectOne(
+                COVER_LETTER_NAMESPACE + ".selectCoverLetter",
+                Map.of("userNum", userNum, "letterNum", letterNum));
+    }
+
+    @Override
+    public PortfolioDTO selectPortfolio(int userNum, int portfolioNum) {
+        return sqlSession.selectOne(
+                PORTFOLIO_NAMESPACE + ".selectPortfolio",
+                Map.of("userNum", userNum, "portfolioNum", portfolioNum));
+    }
+
+    @Override
+    public List<DocumentSummaryDTO> selectResumeSummaryList(int userNum) {
+        return sqlSession.selectList(RESUME_NAMESPACE + ".selectResumeSummaryList", userNum);
+    }
+
+    @Override
+    public List<DocumentSummaryDTO> selectCoverLetterSummaryList(int userNum) {
+        return sqlSession.selectList(
+                COVER_LETTER_NAMESPACE + ".selectCoverLetterSummaryList", userNum);
+    }
+
+    @Override
+    public List<DocumentSummaryDTO> selectPortfolioSummaryList(int userNum) {
+        return sqlSession.selectList(PORTFOLIO_NAMESPACE + ".selectPortfolioSummaryList", userNum);
+    }
+}
