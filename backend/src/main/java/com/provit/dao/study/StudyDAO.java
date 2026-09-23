@@ -9,7 +9,7 @@ public interface StudyDAO {
     StudyDTO selectStudyDetail(Long studyNum);
     int insertStudy(StudyDTO studyDto);
     int updateStudy(StudyDTO studyDto);
-    int deleteStudy(Long studyNum);
+    int deleteStudy(Map<String, Object> params);
     
     // Member
     int insertStudyMember(Map<String, Object> params);

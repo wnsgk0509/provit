@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.provit.common.annotation.LoginUser;
+import com.provit.common.ResponseCode;
 
 /**
  * 프론트엔드(React)의 요청을 받는 게시판 컨트롤러 (웨이터 역할)
@@ -54,7 +56,9 @@ public class PostController {
      * 새 게시글을 등록합니다.
      */
     @org.springframework.web.bind.annotation.PostMapping
-    public ApiResponse<Long> createPost(@org.springframework.web.bind.annotation.RequestBody PostDTO postDto) {
+    public ApiResponse<Long> createPost(@org.springframework.web.bind.annotation.RequestBody PostDTO postDto, @LoginUser Long userNum) {
+        if (userNum == null) return new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
+        postDto.setUserNum(userNum);
         Long createdPostNum = postService.createPost(postDto);
         return ApiResponse.success(createdPostNum);
     }
@@ -65,9 +69,12 @@ public class PostController {
     @org.springframework.web.bind.annotation.PutMapping("/{postNum}")
     public ApiResponse<Void> updatePost(
             @org.springframework.web.bind.annotation.PathVariable Long postNum, 
-            @org.springframework.web.bind.annotation.RequestBody PostDTO postDto) {
+            @org.springframework.web.bind.annotation.RequestBody PostDTO postDto,
+            @LoginUser Long userNum) {
+        if (userNum == null) return new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
         // 안전을 위해 URL의 번호를 DTO에 세팅합니다.
         postDto.setPostNum(postNum);
+        postDto.setUserNum(userNum);
         postService.updatePost(postDto);
         return ApiResponse.success();
     }
@@ -76,8 +83,11 @@ public class PostController {
      * 특정 게시글을 삭제합니다.
      */
     @org.springframework.web.bind.annotation.DeleteMapping("/{postNum}")
-    public ApiResponse<Void> deletePost(@org.springframework.web.bind.annotation.PathVariable Long postNum) {
-        postService.deletePost(postNum);
+    public ApiResponse<Void> deletePost(
+            @org.springframework.web.bind.annotation.PathVariable Long postNum,
+            @LoginUser Long userNum) {
+        if (userNum == null) return new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
+        postService.deletePost(postNum, userNum);
         return ApiResponse.success();
     }
 }

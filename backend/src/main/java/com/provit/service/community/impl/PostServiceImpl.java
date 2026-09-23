@@ -1,6 +1,6 @@
 package com.provit.service.community.impl;
 
-import com.provit.dao.community.impl.PostDAOImpl;
+import com.provit.dao.community.PostDAO;
 import com.provit.dto.common.PageResponseDTO;
 import com.provit.dto.community.PostDTO;
 import com.provit.dto.community.PostSearchDTO;
@@ -9,7 +9,9 @@ import com.provit.service.community.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 게시판 비즈니스 로직을 실제 수행하는 서비스 구현체 (주방장)
@@ -17,11 +19,11 @@ import java.util.List;
 @Service
 public class PostServiceImpl implements PostService {
 
-    private final PostDAOImpl postDao;
+    private final PostDAO postDao;
 
     // DAO(창고 관리인)를 주입받습니다.
     @Autowired
-    public PostServiceImpl(PostDAOImpl postDao) {
+    public PostServiceImpl(PostDAO postDao) {
         this.postDao = postDao;
     }
 
@@ -63,7 +65,10 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
-    public void deletePost(Long postNum) {
-        postDao.deletePost(postNum);
+    public void deletePost(Long postNum, Long userNum) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("postNum", postNum);
+        params.put("userNum", userNum);
+        postDao.deletePost(params);
     }
 }

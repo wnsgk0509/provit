@@ -35,7 +35,7 @@ public class CommentDAOImpl implements CommentDAO {
     }
 
     @Override
-    public int deleteComment(Long commentNum) {
-        return sqlSession.delete(NAMESPACE + "deleteComment", commentNum);
+    public int deleteComment(java.util.Map<String, Object> params) {
+        return sqlSession.delete(NAMESPACE + "deleteComment", params);
     }
 }

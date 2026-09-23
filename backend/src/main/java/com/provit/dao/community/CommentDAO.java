@@ -7,5 +7,5 @@ public interface CommentDAO {
     List<CommentDTO> selectCommentList(Long postNum);
     int insertComment(CommentDTO commentDto);
     int updateComment(CommentDTO commentDto);
-    int deleteComment(Long commentNum);
+    int deleteComment(java.util.Map<String, Object> params);
 }

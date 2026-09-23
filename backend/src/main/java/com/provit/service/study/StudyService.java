@@ -7,8 +7,8 @@ public interface StudyService {
     List<StudyDTO> getStudyList(Long userNum);
     StudyDTO getStudyDetail(Long studyNum);
     Long createStudy(StudyDTO studyDto);
-    void updateStudy(StudyDTO studyDto);
-    void deleteStudy(Long studyNum);
+    int updateStudy(StudyDTO studyDto);
+    void deleteStudy(Long studyNum, Long userNum);
     void joinStudy(Long studyNum, Long userNum);
     void leaveStudy(Long studyNum, Long userNum);
     List<String> getStudyMembers(Long studyNum);

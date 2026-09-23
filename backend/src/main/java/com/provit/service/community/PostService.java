@@ -32,5 +32,5 @@ public interface PostService {
     /**
      * 특정 게시글을 삭제합니다.
      */
-    void deletePost(Long postNum);
+    void deletePost(Long postNum, Long userNum);
 }

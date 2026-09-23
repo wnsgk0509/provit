@@ -39,7 +39,10 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional
-    public void deleteComment(Long commentNum) {
-        commentDao.deleteComment(commentNum);
+    public void deleteComment(Long commentNum, Long userNum) {
+        java.util.Map<String, Object> params = new java.util.HashMap<>();
+        params.put("commentNum", commentNum);
+        params.put("userNum", userNum);
+        commentDao.deleteComment(params);
     }
 }

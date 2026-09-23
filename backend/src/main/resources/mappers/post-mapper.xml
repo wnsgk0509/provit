@@ -123,13 +123,13 @@
             POST_TITLE = #{postTitle},
             POST_CONTENT = #{postContent},
             POST_FILE = #{postFile, jdbcType=VARCHAR}
-        WHERE POST_NUM = #{postNum}
+        WHERE POST_NUM = #{postNum} AND USER_NUM = #{userNum}
     </update>
 
     <!-- 7. 게시글 삭제 -->
-    <delete id="deletePost" parameterType="long">
+    <delete id="deletePost" parameterType="map">
         DELETE FROM T_POST
-        WHERE POST_NUM = #{postNum}
+        WHERE POST_NUM = #{postNum} AND USER_NUM = #{userNum}
     </delete>
 
 </mapper>

@@ -41,8 +41,8 @@ public class StudyDAOImpl implements StudyDAO {
     }
 
     @Override
-    public int deleteStudy(Long studyNum) {
-        return sqlSession.delete(NAMESPACE + "deleteStudy", studyNum);
+    public int deleteStudy(Map<String, Object> params) {
+        return sqlSession.delete(NAMESPACE + "deleteStudy", params);
     }
 
     @Override

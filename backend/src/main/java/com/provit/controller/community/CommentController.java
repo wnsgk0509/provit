@@ -5,6 +5,8 @@ import com.provit.dto.response.ApiResponse;
 import com.provit.service.community.CommentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import com.provit.common.annotation.LoginUser;
+import com.provit.common.ResponseCode;
 
 import java.util.List;
 
@@ -34,10 +36,14 @@ public class CommentController {
     @PostMapping
     public ApiResponse<Long> createComment(
             @PathVariable Long postNum, 
-            @RequestBody CommentDTO commentDto) {
+            @RequestBody CommentDTO commentDto,
+            @LoginUser Long userNum) {
+        
+        if (userNum == null) return new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
         
         // URL의 postNum을 DTO에 강제 주입하여 무결성 유지
         commentDto.setPostNum(postNum);
+        commentDto.setUserNum(userNum);
         Long createdCommentNum = commentService.createComment(commentDto);
         return ApiResponse.success(createdCommentNum);
     }
@@ -49,10 +55,14 @@ public class CommentController {
     public ApiResponse<Void> updateComment(
             @PathVariable Long postNum,
             @PathVariable Long commentNum,
-            @RequestBody CommentDTO commentDto) {
+            @RequestBody CommentDTO commentDto,
+            @LoginUser Long userNum) {
+            
+        if (userNum == null) return new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
             
         commentDto.setPostNum(postNum);
         commentDto.setCommentNum(commentNum);
+        commentDto.setUserNum(userNum);
         commentService.updateComment(commentDto);
         return ApiResponse.success();
     }
@@ -63,9 +73,12 @@ public class CommentController {
     @DeleteMapping("/{commentNum}")
     public ApiResponse<Void> deleteComment(
             @PathVariable Long postNum,
-            @PathVariable Long commentNum) {
+            @PathVariable Long commentNum,
+            @LoginUser Long userNum) {
             
-        commentService.deleteComment(commentNum);
+        if (userNum == null) return new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
+            
+        commentService.deleteComment(commentNum, userNum);
         return ApiResponse.success();
     }
 }

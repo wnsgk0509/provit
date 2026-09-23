@@ -49,16 +49,19 @@ public class StudyServiceImpl implements StudyService {
 
     @Override
     @Transactional
-    public void updateStudy(StudyDTO studyDto) {
-        studyDao.updateStudy(studyDto);
+    public int updateStudy(StudyDTO studyDto) {
+        return studyDao.updateStudy(studyDto);
     }
 
     @Override
     @Transactional
-    public void deleteStudy(Long studyNum) {
+    public void deleteStudy(Long studyNum, Long userNum) {
         // DB 테이블에 ON DELETE CASCADE가 걸려 있으므로, 
         // 방을 지우면 참여자 명단도 자동으로 지워짐
-        studyDao.deleteStudy(studyNum);
+        Map<String, Object> params = new HashMap<>();
+        params.put("studyNum", studyNum);
+        params.put("userNum", userNum);
+        studyDao.deleteStudy(params);
     }
 
     @Override

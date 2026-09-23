@@ -5,6 +5,8 @@ import com.provit.dto.study.StudyDTO;
 import com.provit.service.study.StudyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import com.provit.common.annotation.LoginUser;
+import com.provit.common.ResponseCode;
 
 import java.util.List;
 
@@ -24,7 +26,7 @@ public class StudyController {
      * @param userNum 로그인한 유저의 식별자 (선택) - 본인이 참여 중인지 알기 위함
      */
     @GetMapping
-    public ApiResponse<List<StudyDTO>> getStudyList(@RequestParam(required = false) Long userNum) {
+    public ApiResponse<List<StudyDTO>> getStudyList(@LoginUser Long userNum) {
         List<StudyDTO> list = studyService.getStudyList(userNum);
         return ApiResponse.success(list);
     }
@@ -33,7 +35,9 @@ public class StudyController {
      * 2. 스터디 개설
      */
     @PostMapping
-    public ApiResponse<Long> createStudy(@RequestBody StudyDTO studyDto) {
+    public ApiResponse<Long> createStudy(@RequestBody StudyDTO studyDto, @LoginUser Long userNum) {
+        if (userNum == null) return new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
+        studyDto.setUserNum(userNum);
         Long studyNum = studyService.createStudy(studyDto);
         return ApiResponse.success(studyNum);
     }
@@ -42,10 +46,12 @@ public class StudyController {
      * 3. 스터디 삭제 (방장 전용)
      */
     @DeleteMapping("/{studyNum}")
-    public ApiResponse<Void> deleteStudy(@PathVariable Long studyNum) {
+    public ApiResponse<Void> deleteStudy(@PathVariable Long studyNum, @LoginUser Long userNum) {
+        if (userNum == null) return new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
         // 실제 운영 환경에서는 로그인한 유저 세션/토큰의 userNum과
         // 해당 스터디의 userNum(방장)이 일치하는지 백엔드에서 검증해야 함
-        studyService.deleteStudy(studyNum);
+        // (StudyService/DAO 에서 WHERE 조건으로 검증)
+        studyService.deleteStudy(studyNum, userNum);
         return ApiResponse.success();
     }
 
@@ -55,8 +61,11 @@ public class StudyController {
     @PutMapping("/{studyNum}")
     public ApiResponse<Void> updateStudy(
             @PathVariable Long studyNum,
-            @RequestBody StudyDTO studyDto) {
+            @RequestBody StudyDTO studyDto,
+            @LoginUser Long userNum) {
+        if (userNum == null) return new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
         studyDto.setStudyNum(studyNum);
+        studyDto.setUserNum(userNum);
         studyService.updateStudy(studyDto);
         return ApiResponse.success();
     }
@@ -67,9 +76,9 @@ public class StudyController {
     @PostMapping("/{studyNum}/join")
     public ApiResponse<Void> joinStudy(
             @PathVariable Long studyNum,
-            @RequestBody StudyDTO studyDto) {
-        // body에서 userNum만 꺼내서 사용
-        studyService.joinStudy(studyNum, studyDto.getUserNum());
+            @LoginUser Long userNum) {
+        if (userNum == null) return new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
+        studyService.joinStudy(studyNum, userNum);
         return ApiResponse.success();
     }
 
@@ -79,7 +88,8 @@ public class StudyController {
     @DeleteMapping("/{studyNum}/leave")
     public ApiResponse<Void> leaveStudy(
             @PathVariable Long studyNum,
-            @RequestParam Long userNum) {
+            @LoginUser Long userNum) {
+        if (userNum == null) return new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
         studyService.leaveStudy(studyNum, userNum);
         return ApiResponse.success();
     }

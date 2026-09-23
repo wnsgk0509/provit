@@ -49,13 +49,13 @@
             COMMENT_CONTENT = #{commentContent},
             COMMENT_DATE = SYSDATE
         WHERE 
-            COMMENT_NUM = #{commentNum}
+            COMMENT_NUM = #{commentNum} AND USER_NUM = #{userNum}
     </update>
 
     <!-- 4. 댓글 삭제 -->
-    <delete id="deleteComment" parameterType="Long">
+    <delete id="deleteComment" parameterType="map">
         DELETE FROM T_COMMENT
-        WHERE COMMENT_NUM = #{commentNum}
+        WHERE COMMENT_NUM = #{commentNum} AND USER_NUM = #{userNum}
     </delete>
 
 </mapper>

@@ -16,13 +16,13 @@
             S.STUDY_EXPLAIN AS studyExplain,
             TO_CHAR(S.STUDY_CREATE_DATE, 'YYYY-MM-DD HH24:MI:SS') AS studyCreateDate,
             (SELECT COUNT(*) FROM T_STUDY_MEMBER M WHERE M.STUDY_NUM = S.STUDY_NUM) AS memberCount,
-            <if test="userNum != null">
+            <if test="value != null">
                 CASE WHEN EXISTS (
                     SELECT 1 FROM T_STUDY_MEMBER M2 
-                    WHERE M2.STUDY_NUM = S.STUDY_NUM AND M2.USER_NUM = #{userNum}
+                    WHERE M2.STUDY_NUM = S.STUDY_NUM AND M2.USER_NUM = #{value}
                 ) THEN 1 ELSE 0 END AS isJoined
             </if>
-            <if test="userNum == null">
+            <if test="value == null">
                 0 AS isJoined
             </if>
         FROM 
@@ -70,9 +70,9 @@
     </insert>
 
     <!-- 4. 스터디 삭제 (방장만 가능) -->
-    <delete id="deleteStudy" parameterType="Long">
+    <delete id="deleteStudy" parameterType="map">
         DELETE FROM T_STUDY
-        WHERE STUDY_NUM = #{studyNum}
+        WHERE STUDY_NUM = #{studyNum} AND USER_NUM = #{userNum}
     </delete>
 
     <!-- 4-1. 스터디 수정 (방장만 가능) -->
