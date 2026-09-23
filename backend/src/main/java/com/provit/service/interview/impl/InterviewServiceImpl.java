@@ -92,9 +92,11 @@ public class InterviewServiceImpl implements InterviewService {
         LlmInterviewContextDTO context = new LlmInterviewContextDTO();
         context.setJobPreference(interviewDAO.selectUserJobPreferenceByUserNum(userNum));
         context.setResumeDetail(getResumeDetail(userNum, resumeNum));
-        context.setPortfolio(interviewDAO.selectPortfolioByPortfolioNumAndUserNum(portfolioNum, userNum));
+        if (portfolioNum > 0) {
+            context.setPortfolio(interviewDAO.selectPortfolioByPortfolioNumAndUserNum(portfolioNum, userNum));
+        }
         context.setCoverLetter(interviewDAO.selectCoverLetterByLetterNumAndUserNum(letterNum, userNum));
-        validateSelectedDocuments(context);
+        validateSelectedDocuments(context, portfolioNum);
 
         return context;
     }
@@ -344,13 +346,10 @@ public class InterviewServiceImpl implements InterviewService {
         if (letterNum <= 0) {
             throw new IllegalArgumentException("자기소개서를 선택해 주세요.");
         }
-        if (portfolioNum <= 0) {
-            throw new IllegalArgumentException("포트폴리오를 선택해 주세요.");
-        }
     }
 
-    private void validateSelectedDocuments(LlmInterviewContextDTO context) {
-        if (context.getPortfolio() == null) {
+    private void validateSelectedDocuments(LlmInterviewContextDTO context, int portfolioNum) {
+        if (portfolioNum > 0 && context.getPortfolio() == null) {
             throw new IllegalArgumentException("선택한 포트폴리오를 찾을 수 없습니다.");
         }
         if (context.getCoverLetter() == null) {
