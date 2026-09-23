@@ -32,6 +32,19 @@
         )
     </insert>
 
+    <update id="updateCoverLetter" parameterType="com.provit.dto.document.CoverLetterDTO">
+        UPDATE T_COVER_LETTER
+        SET
+            COVER_LETTER_TITLE = #{coverLetterTitle},
+            GROWTH_PROCESS = #{growthProcess, jdbcType=VARCHAR},
+            PERSONALITY_STRENGTHS_WEAKNESSES = #{personalityStrengthsWeaknesses, jdbcType=VARCHAR},
+            PROBLEM_SOLVING_EXPERIENCE = #{problemSolvingExperience, jdbcType=VARCHAR},
+            POST_JOINING_ASPIRATION = #{postJoiningAspiration, jdbcType=VARCHAR},
+            UPDATED_AT = SYSDATE
+        WHERE LETTER_NUM = #{letterNum}
+          AND USER_NUM = #{userNum}
+    </update>
+
     <select id="selectCoverLetterListByUserNum"
             parameterType="int"
             resultType="com.provit.dto.interview.InterviewDocumentOptionDTO">

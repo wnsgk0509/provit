@@ -10,6 +10,16 @@ export async function createCoverLetter(coverLetter) {
     return response.data.data;
 }
 
+export async function updateResume(resumeNum, resumeDetail) {
+    const response = await client.put(`/documents/resumes/${resumeNum}`, resumeDetail);
+    return response.data.data;
+}
+
+export async function updateCoverLetter(letterNum, coverLetter) {
+    const response = await client.put(`/documents/cover-letters/${letterNum}`, coverLetter);
+    return response.data.data;
+}
+
 export async function createPortfolio(portfolioTitle, file) {
     const formData = new FormData();
     formData.append('portfolioTitle', portfolioTitle.trim());

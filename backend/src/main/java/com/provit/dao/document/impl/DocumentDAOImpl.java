@@ -76,6 +76,31 @@ public class DocumentDAOImpl implements DocumentDAO {
     }
 
     @Override
+    public int updateResume(ResumeDTO resume) {
+        return sqlSession.update(RESUME_NAMESPACE + ".updateResume", resume);
+    }
+
+    @Override
+    public int deleteEducationList(int resumeNum) {
+        return sqlSession.delete(RESUME_NAMESPACE + ".deleteEducationList", resumeNum);
+    }
+
+    @Override
+    public int deleteCareerList(int resumeNum) {
+        return sqlSession.delete(RESUME_NAMESPACE + ".deleteCareerList", resumeNum);
+    }
+
+    @Override
+    public int deleteCertificationList(int resumeNum) {
+        return sqlSession.delete(RESUME_NAMESPACE + ".deleteCertificationList", resumeNum);
+    }
+
+    @Override
+    public int updateCoverLetter(CoverLetterDTO coverLetter) {
+        return sqlSession.update(COVER_LETTER_NAMESPACE + ".updateCoverLetter", coverLetter);
+    }
+
+    @Override
     public ResumeDTO selectResume(int userNum, int resumeNum) {
         return sqlSession.selectOne(
                 RESUME_NAMESPACE + ".selectResume",

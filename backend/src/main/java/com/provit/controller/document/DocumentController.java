@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -95,6 +96,42 @@ public class DocumentController {
         return new ResponseEntity<>(
                 ApiResponse.success(ResponseCode.CREATED, savedCoverLetter),
                 HttpStatus.CREATED);
+    }
+
+    @PutMapping("/resumes/{resumeNum}")
+    public ResponseEntity<ApiResponse<ResumeDetailDTO>> updateResume(
+            HttpServletRequest request,
+            @PathVariable int resumeNum,
+            @RequestBody ResumeDetailDTO resumeDetail) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null),
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        ResumeDetailDTO updatedResume = documentService.updateResume(
+                Math.toIntExact(userNum), resumeNum, resumeDetail);
+        return new ResponseEntity<>(
+                ApiResponse.success(ResponseCode.SUCCESS, updatedResume), HttpStatus.OK);
+    }
+
+    @PutMapping("/cover-letters/{letterNum}")
+    public ResponseEntity<ApiResponse<CoverLetterDTO>> updateCoverLetter(
+            HttpServletRequest request,
+            @PathVariable int letterNum,
+            @RequestBody CoverLetterDTO coverLetter) {
+        Long userNum = getAuthenticatedUserNum(request);
+        if (userNum == null) {
+            return new ResponseEntity<>(
+                    new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null),
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        CoverLetterDTO updatedCoverLetter = documentService.updateCoverLetter(
+                Math.toIntExact(userNum), letterNum, coverLetter);
+        return new ResponseEntity<>(
+                ApiResponse.success(ResponseCode.SUCCESS, updatedCoverLetter), HttpStatus.OK);
     }
 
     @GetMapping("/resumes/{resumeNum}")

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createCoverLetter } from '../../../api/documentApi';
+import { createCoverLetter, updateCoverLetter } from '../../../api/documentApi';
 
 const coverLetterFields = [
     { name: 'growthProcess', label: '성장 과정', placeholder: '성장 과정에서 형성된 가치관과 직무에 영향을 준 경험을 작성해 주세요.' },
@@ -16,8 +16,14 @@ const emptyCoverLetter = {
     postJoiningAspiration: '',
 };
 
-function CoverLetterWrite() {
-    const [coverLetter, setCoverLetter] = useState({ ...emptyCoverLetter });
+function CoverLetterWrite({ initialData = null, onSaved, onCancel }) {
+    const isEditMode = Boolean(initialData?.letterNum);
+    const [coverLetter, setCoverLetter] = useState(() => (
+        Object.keys(emptyCoverLetter).reduce((normalized, key) => ({
+            ...normalized,
+            [key]: initialData?.[key] ?? '',
+        }), {})
+    ));
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
 
@@ -32,8 +38,14 @@ function CoverLetterWrite() {
         setSaveMessage({ type: '', text: '' });
 
         try {
-            const savedCoverLetter = await createCoverLetter(coverLetter);
+            const savedCoverLetter = isEditMode
+                ? await updateCoverLetter(initialData.letterNum, coverLetter)
+                : await createCoverLetter(coverLetter);
             const letterNum = savedCoverLetter?.letterNum;
+            if (isEditMode) {
+                onSaved?.(savedCoverLetter);
+                return;
+            }
             setCoverLetter({ ...emptyCoverLetter });
             setSaveMessage({
                 type: 'success',
@@ -47,7 +59,7 @@ function CoverLetterWrite() {
                 type: 'error',
                 text: responseData?.data
                     || responseData?.responseCode?.message
-                    || '자기소개서를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+                    || `자기소개서를 ${isEditMode ? '수정' : '저장'}하지 못했습니다. 잠시 후 다시 시도해 주세요.`,
             });
         } finally {
             setIsSaving(false);
@@ -58,8 +70,8 @@ function CoverLetterWrite() {
         <form className="document-form" onSubmit={handleSubmit}>
             <div className="document-form-heading">
                 <span>COVER LETTER</span>
-                <h2>자기소개서 작성</h2>
-                <p>나의 경험과 역량이 드러나도록 항목별 내용을 작성하세요.</p>
+                <h2>자기소개서 {isEditMode ? '수정' : '작성'}</h2>
+                <p>나의 경험과 역량이 드러나도록 항목별 내용을 {isEditMode ? '수정' : '작성'}하세요.</p>
             </div>
 
             <section className="document-form-section" aria-labelledby="cover-letter-form-title">
@@ -85,8 +97,13 @@ function CoverLetterWrite() {
             </section>
 
             <div className="document-form-actions">
+                {onCancel && (
+                    <button type="button" className="document-secondary-button" onClick={onCancel} disabled={isSaving}>
+                        취소
+                    </button>
+                )}
                 <button type="submit" className="document-primary-button" disabled={isSaving}>
-                    {isSaving ? '저장 중...' : '자기소개서 저장'}
+                    {isSaving ? '저장 중...' : `자기소개서 ${isEditMode ? '수정' : '저장'}`}
                 </button>
             </div>
             {saveMessage.text && (

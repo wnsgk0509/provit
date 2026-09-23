@@ -18,6 +18,10 @@ public interface DocumentService {
 
     CoverLetterDTO createCoverLetter(int userNum, CoverLetterDTO coverLetter);
 
+    ResumeDetailDTO updateResume(int userNum, int resumeNum, ResumeDetailDTO resumeDetail);
+
+    CoverLetterDTO updateCoverLetter(int userNum, int letterNum, CoverLetterDTO coverLetter);
+
     ResumeDetailDTO getResume(int userNum, int resumeNum);
 
     CoverLetterDTO getCoverLetter(int userNum, int letterNum);

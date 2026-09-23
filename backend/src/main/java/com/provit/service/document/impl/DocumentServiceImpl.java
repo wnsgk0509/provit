@@ -133,6 +133,80 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
+    @Transactional
+    public ResumeDetailDTO updateResume(
+            int userNum, int resumeNum, ResumeDetailDTO resumeDetail) {
+        validateResumeDetail(resumeDetail);
+        if (documentDAO.selectResume(userNum, resumeNum) == null) {
+            throw new NoSuchElementException("수정할 수 있는 이력서가 없습니다.");
+        }
+
+        ResumeDTO resume = resumeDetail.getResume();
+        resume.setResumeNum(resumeNum);
+        resume.setUserNum(userNum);
+        resume.setEducationName(null);
+        resume.setCreatedAt(null);
+        resume.setUpdatedAt(null);
+        trimResume(resume);
+
+        if (documentDAO.countEducationCode(resume.getEducationCode()) != 1) {
+            throw new IllegalArgumentException("유효하지 않은 학력 구분입니다.");
+        }
+        requireSingleUpdate(documentDAO.updateResume(resume), "이력서");
+
+        documentDAO.deleteEducationList(resumeNum);
+        documentDAO.deleteCareerList(resumeNum);
+        documentDAO.deleteCertificationList(resumeNum);
+
+        for (EducationDTO education : safeList(resumeDetail.getEducationList())) {
+            education.setEduNum(0);
+            education.setResumeNum(resumeNum);
+            trimEducation(education);
+            requireSingleInsert(documentDAO.insertEducation(education), "학력");
+        }
+        for (CareerDTO career : safeList(resumeDetail.getCareerList())) {
+            career.setCareerNum(0);
+            career.setResumeNum(resumeNum);
+            trimCareer(career);
+            requireSingleInsert(documentDAO.insertCareer(career), "경력");
+        }
+        for (CertificationDTO certification : safeList(resumeDetail.getCertificationList())) {
+            certification.setCertNum(0);
+            certification.setResumeNum(resumeNum);
+            trimCertification(certification);
+            requireSingleInsert(documentDAO.insertCertification(certification), "자격증");
+        }
+
+        return getResume(userNum, resumeNum);
+    }
+
+    @Override
+    @Transactional
+    public CoverLetterDTO updateCoverLetter(
+            int userNum, int letterNum, CoverLetterDTO coverLetter) {
+        validateCoverLetter(coverLetter);
+        if (documentDAO.selectCoverLetter(userNum, letterNum) == null) {
+            throw new NoSuchElementException("수정할 수 있는 자기소개서가 없습니다.");
+        }
+
+        coverLetter.setLetterNum(letterNum);
+        coverLetter.setUserNum(userNum);
+        coverLetter.setCoverLetterTitle(trimRequired(coverLetter.getCoverLetterTitle()));
+        coverLetter.setGrowthProcess(trimOptional(coverLetter.getGrowthProcess()));
+        coverLetter.setPersonalityStrengthsWeaknesses(
+                trimOptional(coverLetter.getPersonalityStrengthsWeaknesses()));
+        coverLetter.setProblemSolvingExperience(
+                trimOptional(coverLetter.getProblemSolvingExperience()));
+        coverLetter.setPostJoiningAspiration(
+                trimOptional(coverLetter.getPostJoiningAspiration()));
+        coverLetter.setCreatedAt(null);
+        coverLetter.setUpdatedAt(null);
+
+        requireSingleUpdate(documentDAO.updateCoverLetter(coverLetter), "자기소개서");
+        return getCoverLetter(userNum, letterNum);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public ResumeDetailDTO getResume(int userNum, int resumeNum) {
         ResumeDTO resume = documentDAO.selectResume(userNum, resumeNum);
@@ -353,6 +427,12 @@ public class DocumentServiceImpl implements DocumentService {
     private void requireSingleInsert(int insertCount, String documentName) {
         if (insertCount != 1) {
             throw new IllegalStateException(documentName + " 정보를 저장하지 못했습니다.");
+        }
+    }
+
+    private void requireSingleUpdate(int updateCount, String documentName) {
+        if (updateCount != 1) {
+            throw new IllegalStateException(documentName + " 정보를 수정하지 못했습니다.");
         }
     }
 }

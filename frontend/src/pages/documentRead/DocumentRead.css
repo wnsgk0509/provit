@@ -200,6 +200,15 @@
     cursor: not-allowed;
 }
 
+.document-read-edit-link {
+    color: #fff;
+    text-decoration: none;
+}
+
+.document-read-edit-link:hover {
+    color: #fff;
+}
+
 .document-read-status {
     display: flex;
     min-height: 280px;

@@ -324,13 +324,33 @@
 .document-form-actions {
     display: flex;
     justify-content: flex-end;
+    gap: 10px;
     padding-top: 28px;
 }
 
+.document-secondary-button,
 .document-primary-button {
     min-height: 44px;
-    border: 1px solid #4d67be;
     padding: 0 22px;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.document-secondary-button {
+    border: 1px solid #cfd5df;
+    color: #4b5563;
+    background: #fff;
+}
+
+.document-secondary-button:hover {
+    border-color: #aeb7c5;
+    background: #f8fafc;
+}
+
+.document-primary-button {
+    border: 1px solid #4d67be;
     color: #fff;
     background: #4d67be;
 }
@@ -339,10 +359,15 @@
     background: #4059a9;
 }
 
+.document-secondary-button:disabled,
+.document-primary-button:disabled {
+    cursor: not-allowed;
+    opacity: .65;
+}
+
 .document-primary-button:disabled {
     border-color: #aeb7d4;
     background: #aeb7d4;
-    cursor: not-allowed;
 }
 
 .document-save-message {
@@ -380,8 +405,13 @@
     }
 
     .document-add-button,
+    .document-secondary-button,
     .document-primary-button {
         width: 100%;
+    }
+
+    .document-form-actions {
+        flex-direction: column-reverse;
     }
 
     .document-file-upload {

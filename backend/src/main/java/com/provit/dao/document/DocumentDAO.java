@@ -28,6 +28,16 @@ public interface DocumentDAO {
 
     int insertCoverLetter(CoverLetterDTO coverLetter);
 
+    int updateResume(ResumeDTO resume);
+
+    int deleteEducationList(int resumeNum);
+
+    int deleteCareerList(int resumeNum);
+
+    int deleteCertificationList(int resumeNum);
+
+    int updateCoverLetter(CoverLetterDTO coverLetter);
+
     ResumeDTO selectResume(int userNum, int resumeNum);
 
     List<EducationDTO> selectEducationList(int resumeNum);

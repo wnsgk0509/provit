@@ -1,3 +1,5 @@
+import { Pencil } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { DocumentDate } from './ResumeRead';
 
 const coverLetterFields = [
@@ -32,6 +34,15 @@ function CoverLetterRead({ document }) {
                     ))}
                 </dl>
             </section>
+
+            <div className="document-form-actions">
+                <Link
+                    className="document-primary-button document-read-edit-link"
+                    to={`/documents/cover-letter/${document.letterNum}/edit`}
+                >
+                    <Pencil size={17} /> 자기소개서 수정
+                </Link>
+            </div>
         </article>
     );
 }

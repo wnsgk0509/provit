@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Award, BriefcaseBusiness, GraduationCap, Plus, Trash2 } from 'lucide-react';
-import { createResume } from '../../../api/documentApi';
+import { createResume, updateResume } from '../../../api/documentApi';
 
 const emptyResume = {
     resumeTitle: '', highestLevel: '', educationCode: '', motivation: '',
@@ -12,11 +12,20 @@ const emptyEducation = {
 const emptyCareer = { companyName: '', joinDate: '', resignDate: '', mainDuty: '' };
 const emptyCertification = { certName: '', certGrade: '', issueDate: '' };
 
-function ResumeWrite() {
-    const [resume, setResume] = useState({ ...emptyResume });
-    const [educations, setEducations] = useState([{ ...emptyEducation }]);
-    const [careers, setCareers] = useState([]);
-    const [certifications, setCertifications] = useState([]);
+function ResumeWrite({ initialData = null, onSaved, onCancel }) {
+    const isEditMode = Boolean(initialData?.resume?.resumeNum);
+    const [resume, setResume] = useState(() => normalizeFormItem(emptyResume, initialData?.resume));
+    const [educations, setEducations] = useState(() => (
+        initialData
+            ? normalizeFormList(emptyEducation, initialData.educationList)
+            : [{ ...emptyEducation }]
+    ));
+    const [careers, setCareers] = useState(() => (
+        normalizeFormList(emptyCareer, initialData?.careerList)
+    ));
+    const [certifications, setCertifications] = useState(() => (
+        normalizeFormList(emptyCertification, initialData?.certificationList)
+    ));
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
 
@@ -65,8 +74,14 @@ function ResumeWrite() {
         };
 
         try {
-            const savedResume = await createResume(payload);
+            const savedResume = isEditMode
+                ? await updateResume(initialData.resume.resumeNum, payload)
+                : await createResume(payload);
             const resumeNum = savedResume?.resume?.resumeNum;
+            if (isEditMode) {
+                onSaved?.(savedResume);
+                return;
+            }
             setResume({ ...emptyResume });
             setEducations([{ ...emptyEducation }]);
             setCareers([]);
@@ -83,7 +98,7 @@ function ResumeWrite() {
                 type: 'error',
                 text: responseData?.data
                     || responseData?.responseCode?.message
-                    || '이력서를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+                    || `이력서를 ${isEditMode ? '수정' : '저장'}하지 못했습니다. 잠시 후 다시 시도해 주세요.`,
             });
         } finally {
             setIsSaving(false);
@@ -94,8 +109,8 @@ function ResumeWrite() {
         <form className="document-form" onSubmit={handleSubmit}>
             <div className="document-form-heading">
                 <span>RESUME</span>
-                <h2>이력서 작성</h2>
-                <p>기본 정보와 학력, 경력, 자격증을 입력해 이력서를 구성하세요.</p>
+                <h2>이력서 {isEditMode ? '수정' : '작성'}</h2>
+                <p>기본 정보와 학력, 경력, 자격증을 {isEditMode ? '수정' : '입력'}해 이력서를 구성하세요.</p>
             </div>
 
             <section className="document-form-section" aria-labelledby="resume-basic-title">
@@ -250,8 +265,13 @@ function ResumeWrite() {
             </RepeatSection>
 
             <div className="document-form-actions">
+                {onCancel && (
+                    <button type="button" className="document-secondary-button" onClick={onCancel} disabled={isSaving}>
+                        취소
+                    </button>
+                )}
                 <button type="submit" className="document-primary-button" disabled={isSaving}>
-                    {isSaving ? '저장 중...' : '이력서 저장'}
+                    {isSaving ? '저장 중...' : `이력서 ${isEditMode ? '수정' : '저장'}`}
                 </button>
             </div>
             {saveMessage.text && (
@@ -261,6 +281,17 @@ function ResumeWrite() {
             )}
         </form>
     );
+}
+
+function normalizeFormItem(template, item) {
+    return Object.keys(template).reduce((normalized, key) => ({
+        ...normalized,
+        [key]: item?.[key] ?? '',
+    }), {});
+}
+
+function normalizeFormList(template, items) {
+    return (items || []).map((item) => normalizeFormItem(template, item));
 }
 
 function RepeatSection({ title, description, icon, items, addLabel, onAdd, onRemove, children }) {

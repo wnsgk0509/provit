@@ -103,6 +103,35 @@
         )
     </insert>
 
+    <update id="updateResume" parameterType="com.provit.dto.document.ResumeDTO">
+        UPDATE T_RESUME
+        SET
+            RESUME_TITLE = #{resumeTitle},
+            HIGHEST_LEVEL = #{highestLevel},
+            EDUCATION_CODE = #{educationCode},
+            MOTIVATION = #{motivation, jdbcType=CLOB},
+            DESIRED_LOCATION = #{desiredLocation, jdbcType=VARCHAR},
+            DESIRED_WORK_TYPE = #{desiredWorkType, jdbcType=VARCHAR},
+            UPDATED_AT = SYSDATE
+        WHERE RESUME_NUM = #{resumeNum}
+          AND USER_NUM = #{userNum}
+    </update>
+
+    <delete id="deleteEducationList" parameterType="int">
+        DELETE FROM T_EDUCATION
+        WHERE RESUME_NUM = #{resumeNum}
+    </delete>
+
+    <delete id="deleteCareerList" parameterType="int">
+        DELETE FROM T_CAREER
+        WHERE RESUME_NUM = #{resumeNum}
+    </delete>
+
+    <delete id="deleteCertificationList" parameterType="int">
+        DELETE FROM T_CERTIFICATION
+        WHERE RESUME_NUM = #{resumeNum}
+    </delete>
+
     <select id="selectResume" resultType="com.provit.dto.document.ResumeDTO">
         SELECT
             R.RESUME_NUM,

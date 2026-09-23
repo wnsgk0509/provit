@@ -1,4 +1,5 @@
-import { Award, BriefcaseBusiness, GraduationCap } from 'lucide-react';
+import { Award, BriefcaseBusiness, GraduationCap, Pencil } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 function ResumeRead({ document }) {
     const { resume, educationList = [], careerList = [], certificationList = [] } = document;
@@ -59,6 +60,15 @@ function ResumeRead({ document }) {
                     </dl>
                 )}
             </ReadListSection>
+
+            <div className="document-form-actions">
+                <Link
+                    className="document-primary-button document-read-edit-link"
+                    to={`/documents/resume/${resume.resumeNum}/edit`}
+                >
+                    <Pencil size={17} /> 이력서 수정
+                </Link>
+            </div>
         </article>
     );
 }
