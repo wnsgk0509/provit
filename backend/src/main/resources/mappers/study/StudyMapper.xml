@@ -14,6 +14,7 @@
             U.USER_NICKNAME AS userNickname,
             S.STUDY_NAME AS studyName,
             S.STUDY_EXPLAIN AS studyExplain,
+            S.MAX_MEMBERS AS maxMembers,
             TO_CHAR(S.STUDY_CREATE_DATE, 'YYYY-MM-DD HH24:MI:SS') AS studyCreateDate,
             (SELECT COUNT(*) FROM T_STUDY_MEMBER M WHERE M.STUDY_NUM = S.STUDY_NUM) AS memberCount,
             <if test="value != null">
@@ -41,6 +42,7 @@
             U.USER_NICKNAME AS userNickname,
             S.STUDY_NAME AS studyName,
             S.STUDY_EXPLAIN AS studyExplain,
+            S.MAX_MEMBERS AS maxMembers,
             TO_CHAR(S.STUDY_CREATE_DATE, 'YYYY-MM-DD HH24:MI:SS') AS studyCreateDate,
             (SELECT COUNT(*) FROM T_STUDY_MEMBER M WHERE M.STUDY_NUM = S.STUDY_NUM) AS memberCount
         FROM 
@@ -60,12 +62,14 @@
             STUDY_NUM,
             USER_NUM,
             STUDY_NAME,
-            STUDY_EXPLAIN
+            STUDY_EXPLAIN,
+            MAX_MEMBERS
         ) VALUES (
             #{studyNum},
             #{userNum},
             #{studyName},
-            #{studyExplain}
+            #{studyExplain},
+            #{maxMembers}
         )
     </insert>
 
@@ -80,7 +84,8 @@
         UPDATE T_STUDY
         SET 
             STUDY_NAME = #{studyName},
-            STUDY_EXPLAIN = #{studyExplain}
+            STUDY_EXPLAIN = #{studyExplain},
+            MAX_MEMBERS = #{maxMembers}
         WHERE 
             STUDY_NUM = #{studyNum} AND USER_NUM = #{userNum}
     </update>
