@@ -33,6 +33,7 @@ import com.provit.dto.interview.LlmInterviewContextDTO;
 import com.provit.dto.interview.LlmQuestionRequestDTO;
 import com.provit.service.interview.InterviewService;
 import com.provit.service.interview.InterviewPersistenceService;
+import com.provit.service.interview.InterviewDocumentInputBuilder;
 import com.provit.service.interview.generator.InterviewGenerator;
 
 @Service
@@ -45,16 +46,19 @@ public class InterviewServiceImpl implements InterviewService {
     private final InterviewDAO interviewDAO;
     private final InterviewGenerator interviewGenerator;
     private final InterviewPersistenceService persistenceService;
+    private final InterviewDocumentInputBuilder documentInputBuilder;
     private final Map<Integer, InterviewSession> sessions = new ConcurrentHashMap<>();
 
     @Autowired
     public InterviewServiceImpl(
             InterviewDAO interviewDAO,
             InterviewGenerator interviewGenerator,
-            InterviewPersistenceService persistenceService) {
+            InterviewPersistenceService persistenceService,
+            InterviewDocumentInputBuilder documentInputBuilder) {
         this.interviewDAO = interviewDAO;
         this.interviewGenerator = interviewGenerator;
         this.persistenceService = persistenceService;
+        this.documentInputBuilder = documentInputBuilder;
     }
 
     @Override
@@ -97,6 +101,7 @@ public class InterviewServiceImpl implements InterviewService {
         }
         context.setCoverLetter(interviewDAO.selectCoverLetterByLetterNumAndUserNum(letterNum, userNum));
         validateSelectedDocuments(context, portfolioNum);
+        documentInputBuilder.prepare(context);
 
         return context;
     }

@@ -15,4 +15,5 @@ public class LlmInterviewContextDTO {
     private PortfolioDTO portfolio;
     private String portfolioContent;
     private CoverLetterDTO coverLetter;
+    private String documentText;
 }
