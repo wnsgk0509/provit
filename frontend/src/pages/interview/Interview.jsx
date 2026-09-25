@@ -60,6 +60,12 @@ function Interview() {
             setErrorMessage('면접에 사용할 이력서를 선택해 주세요.');
             return;
         }
+        if (!documents?.coverLetterList?.some(
+            (coverLetter) => String(coverLetter.documentNum) === settings.letterNum,
+        )) {
+            setErrorMessage('면접에 사용할 자기소개서를 선택해 주세요.');
+            return;
+        }
         setIsLoading(true);
         setErrorMessage('');
 
