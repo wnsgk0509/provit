@@ -2,8 +2,6 @@ package com.provit.service.interview.generator;
 
 import java.util.List;
 
-import org.springframework.stereotype.Component;
-
 import com.provit.dto.interview.InterviewQuestionAnswerDTO;
 import com.provit.dto.interview.InterviewQuestionDTO;
 import com.provit.dto.interview.InterviewResultDTO;
@@ -11,15 +9,26 @@ import com.provit.dto.interview.LlmEvaluationRequestDTO;
 import com.provit.dto.interview.LlmEvaluationResponseDTO;
 import com.provit.dto.interview.LlmFollowUpRequestDTO;
 import com.provit.dto.interview.LlmQuestionRequestDTO;
+import com.provit.dto.interview.LlmQuestionResponseDTO;
 
-@Component
 public class DummyInterviewGenerator implements InterviewGenerator {
 
     @Override
-    public InterviewQuestionDTO generateDocumentQuestion(int questionOrder, LlmQuestionRequestDTO request) {
+    public LlmQuestionResponseDTO generateDocumentQuestions(LlmQuestionRequestDTO request) {
+        LlmQuestionResponseDTO response = new LlmQuestionResponseDTO();
+        response.setQuestions(List.of(
+                documentQuestion(1, request),
+                documentQuestion(2, request),
+                documentQuestion(3, request)));
+        return response;
+    }
+
+    private InterviewQuestionDTO documentQuestion(int questionOrder, LlmQuestionRequestDTO request) {
         String questionText;
         if (questionOrder == 1) {
-            questionText = "포트폴리오에서 가장 주도적으로 참여한 프로젝트와 본인이 담당한 역할을 설명해 주세요.";
+            questionText = request.getContext().getPortfolio() == null
+                    ? "이력서에서 지원 직무와 가장 관련 있는 경험과 본인의 역할을 설명해 주세요."
+                    : "포트폴리오에서 가장 주도적으로 참여한 프로젝트와 본인이 담당한 역할을 설명해 주세요.";
         } else if (questionOrder == 2) {
             questionText = "자기소개서에 작성한 기술적 문제를 해결하는 과정에서 가장 중요하게 판단한 기준은 무엇인가요?";
         } else if (questionOrder == 3) {

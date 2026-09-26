@@ -31,7 +31,9 @@ import com.provit.dto.interview.LlmEvaluationResponseDTO;
 import com.provit.dto.interview.LlmFollowUpRequestDTO;
 import com.provit.dto.interview.LlmInterviewContextDTO;
 import com.provit.dto.interview.LlmQuestionRequestDTO;
+import com.provit.dto.interview.LlmQuestionResponseDTO;
 import com.provit.service.interview.InterviewService;
+import com.provit.service.interview.InterviewProcessingException;
 import com.provit.service.interview.InterviewPersistenceService;
 import com.provit.service.interview.InterviewDocumentInputBuilder;
 import com.provit.service.interview.generator.InterviewGenerator;
@@ -41,6 +43,7 @@ public class InterviewServiceImpl implements InterviewService {
 
     private static final Logger log = LoggerFactory.getLogger(InterviewServiceImpl.class);
     private static final int ANSWER_TIME_LIMIT_SECONDS = 120;
+    private static final int MAX_GENERATOR_CALLS = 4;
     private static final long SESSION_TIMEOUT_MILLIS = TimeUnit.MINUTES.toMillis(30);
 
     private final InterviewDAO interviewDAO;
@@ -48,6 +51,7 @@ public class InterviewServiceImpl implements InterviewService {
     private final InterviewPersistenceService persistenceService;
     private final InterviewDocumentInputBuilder documentInputBuilder;
     private final Map<Integer, InterviewSession> sessions = new ConcurrentHashMap<>();
+    private final Map<String, StartAttempt> starts = new ConcurrentHashMap<>();
 
     @Autowired
     public InterviewServiceImpl(
@@ -109,6 +113,35 @@ public class InterviewServiceImpl implements InterviewService {
     @Override
     public InterviewStartResponseDTO startInterview(int userNum, InterviewStartRequestDTO request) {
         validateStartRequest(request);
+        if (request.getRequestId() == null) return createSession(userNum, request);
+        if (!request.getRequestId().matches("[a-fA-F0-9-]{36}")) {
+            throw new IllegalArgumentException("면접 시작 요청 번호가 올바르지 않습니다.");
+        }
+        String key = userNum + ":" + request.getRequestId();
+        StartAttempt attempt = starts.computeIfAbsent(key, ignored -> new StartAttempt(request));
+        synchronized (attempt) {
+            if (!attempt.fingerprint.equals(startFingerprint(request))) {
+                throw new IllegalArgumentException("같은 요청 번호로 면접 설정을 변경할 수 없습니다.");
+            }
+            if (attempt.response != null) {
+                InterviewSession session = sessions.get(attempt.response.getHistoryNum());
+                if (session == null || session.isInactive(System.currentTimeMillis())) {
+                    throw new InterviewProcessingException("면접이 만료되었습니다. 새 면접을 시작해 주세요.", true, false);
+                }
+                return attempt.response;
+            }
+            if (attempt.failure != null) throw attempt.failure;
+            try {
+                attempt.response = createSession(userNum, request);
+                return attempt.response;
+            } catch (RuntimeException exception) {
+                attempt.failure = exception;
+                throw exception;
+            }
+        }
+    }
+
+    private InterviewStartResponseDTO createSession(int userNum, InterviewStartRequestDTO request) {
         LlmInterviewContextDTO context = getLlmInterviewContext(
                 userNum, request.getResumeNum(), request.getPortfolioNum(), request.getLetterNum());
 
@@ -118,15 +151,16 @@ public class InterviewServiceImpl implements InterviewService {
         questionRequest.setInterviewDifficulty(request.getInterviewDifficulty());
         questionRequest.setQuestionAnswers(Collections.emptyList());
 
-        InterviewQuestionDTO firstQuestion = interviewGenerator.generateDocumentQuestion(1, questionRequest);
+        LlmQuestionResponseDTO generated = interviewGenerator.generateDocumentQuestions(questionRequest);
+        List<InterviewQuestionDTO> documentQuestions = validateDocumentQuestions(generated);
         int historyNum = interviewDAO.selectNextHistoryNum();
         InterviewSession session = new InterviewSession(userNum, request, context);
-        session.questions.add(firstQuestion);
+        session.questions.addAll(documentQuestions);
         sessions.put(historyNum, session);
 
         InterviewStartResponseDTO response = new InterviewStartResponseDTO();
         response.setHistoryNum(historyNum);
-        response.setQuestions(List.of(firstQuestion));
+        response.setQuestions(List.of(documentQuestions.get(0)));
         response.setAnswerTimeLimitSeconds(ANSWER_TIME_LIMIT_SECONDS);
         return response;
     }
@@ -136,15 +170,28 @@ public class InterviewServiceImpl implements InterviewService {
             int userNum, int historyNum, InterviewAnswerRequestDTO request) {
         InterviewSession session = sessions.get(historyNum);
         if (session == null || session.userNum != userNum) {
-            throw new IllegalArgumentException("진행 중인 면접을 찾을 수 없습니다.");
+            throw new InterviewProcessingException("진행 중인 면접을 찾을 수 없습니다. 새 면접을 시작해 주세요.", true, false);
         }
 
         synchronized (session) {
             if (session.isInactive(System.currentTimeMillis())) {
                 sessions.remove(historyNum, session);
-                throw new IllegalArgumentException("진행 중인 면접이 만료되었습니다. 새 면접을 시작해 주세요.");
+                throw new InterviewProcessingException("진행 중인 면접이 만료되었습니다. 새 면접을 시작해 주세요.", true, false);
             }
             session.touch();
+
+            if (request != null && request.getQuestionOrder() > 0
+                    && request.getQuestionOrder() <= session.questionAnswers.size()) {
+                int answeredIndex = request.getQuestionOrder() - 1;
+                String submittedAnswer = request.getAnswer() == null ? "" : request.getAnswer();
+                if (!session.questionAnswers.get(answeredIndex).getAnswer().equals(submittedAnswer)) {
+                    throw new IllegalArgumentException("이미 제출한 답변은 변경할 수 없습니다.");
+                }
+                return session.responses.get(answeredIndex);
+            }
+            if (session.failed) {
+                throw new InterviewProcessingException("면접 처리에 실패했습니다. 새 면접을 시작해 주세요.", true, false);
+            }
 
             int expectedOrder = session.questionAnswers.size() + 1;
             if (request != null) {
@@ -153,26 +200,59 @@ public class InterviewServiceImpl implements InterviewService {
             validateAnswerRequest(request, expectedOrder);
 
             InterviewQuestionDTO currentQuestion = session.questions.get(expectedOrder - 1);
-            session.questionAnswers.add(createQuestionAnswer(currentQuestion, request));
+            InterviewQuestionAnswerDTO currentAnswer = createQuestionAnswer(currentQuestion, request);
+            if (session.evaluatedAnswer != null && !session.evaluatedAnswer.getAnswer().equals(currentAnswer.getAnswer())) {
+                throw new InterviewProcessingException("평가가 완료된 답변은 변경할 수 없습니다. 기존 답변으로 다시 저장해 주세요.", false, true);
+            }
 
             InterviewAnswerResponseDTO response = new InterviewAnswerResponseDTO();
             if (expectedOrder < 5) {
-                InterviewQuestionDTO nextQuestion = generateNextQuestion(session, expectedOrder + 1);
-                session.questions.add(nextQuestion);
+                InterviewQuestionDTO nextQuestion;
+                if (expectedOrder < 3) {
+                    nextQuestion = session.questions.get(expectedOrder);
+                } else {
+                    reserveGeneratorCall(session);
+                    try {
+                        nextQuestion = generateFollowUpQuestion(session, expectedOrder + 1, currentAnswer);
+                        validateFollowUpQuestion(nextQuestion, expectedOrder + 1);
+                    } catch (RuntimeException exception) {
+                        session.failed = true;
+                        throw generationFailure(exception);
+                    }
+                    session.questions.add(nextQuestion);
+                }
+                session.questionAnswers.add(currentAnswer);
                 session.restartAnswerTimer();
                 response.setCompleted(false);
                 response.setNextQuestion(nextQuestion);
+                session.responses.add(response);
                 return response;
             }
 
-            LlmEvaluationResponseDTO evaluation = evaluate(session, userNum);
+            if (session.evaluation == null) {
+                reserveGeneratorCall(session);
+                try {
+                    session.evaluation = evaluate(session, userNum, currentAnswer);
+                    session.evaluatedAnswer = currentAnswer;
+                } catch (RuntimeException exception) {
+                    session.failed = true;
+                    throw generationFailure(exception);
+                }
+            }
             InterviewHistoryDTO history = createHistory(historyNum, userNum, session);
-            InterviewResultDTO result = createResult(historyNum, userNum, evaluation);
-            saveInterview(history, result);
-            sessions.remove(historyNum);
+            setHistoryQuestionAnswer(history, session.evaluatedAnswer);
+            InterviewResultDTO result = createResult(historyNum, userNum, session.evaluation);
+            try {
+                saveInterview(history, result);
+            } catch (RuntimeException exception) {
+                log.warn("Interview history={} save failed type={}", historyNum, exception.getClass().getSimpleName());
+                throw new InterviewProcessingException("평가는 완료됐지만 결과를 저장하지 못했습니다. 같은 답변으로 다시 제출해 주세요.", false, true);
+            }
 
+            session.questionAnswers.add(session.evaluatedAnswer);
             response.setCompleted(true);
-            response.setResult(createResultResponse(historyNum, evaluation));
+            response.setResult(createResultResponse(historyNum, session.evaluation));
+            session.responses.add(response);
             return response;
         }
     }
@@ -224,32 +304,53 @@ public class InterviewServiceImpl implements InterviewService {
         if (removedCount > 0) {
             log.info("30분 이상 미응답인 면접 세션 {}건을 정리했습니다.", removedCount);
         }
+        for (var entry : starts.entrySet()) {
+            StartAttempt attempt = entry.getValue();
+            synchronized (attempt) {
+                if (now - attempt.createdAt >= SESSION_TIMEOUT_MILLIS
+                        && (attempt.response == null || !sessions.containsKey(attempt.response.getHistoryNum()))) {
+                    starts.remove(entry.getKey(), attempt);
+                }
+            }
+        }
     }
 
-    private InterviewQuestionDTO generateNextQuestion(InterviewSession session, int questionOrder) {
-        if (questionOrder <= 3) {
-            LlmQuestionRequestDTO request = new LlmQuestionRequestDTO();
-            request.setContext(session.context);
-            request.setInterviewStyle(session.settings.getInterviewStyle());
-            request.setInterviewDifficulty(session.settings.getInterviewDifficulty());
-            request.setQuestionAnswers(List.copyOf(session.questionAnswers));
-            return interviewGenerator.generateDocumentQuestion(questionOrder, request);
-        }
+    private InterviewProcessingException generationFailure(RuntimeException exception) {
+        String message = exception instanceof InterviewProcessingException
+                ? exception.getMessage() : "AI 면접 처리에 실패했습니다. 새 면접을 시작해 주세요.";
+        return new InterviewProcessingException(message, true, false);
+    }
 
+    private static String startFingerprint(InterviewStartRequestDTO request) {
+        return request.getResumeNum() + ":" + request.getPortfolioNum() + ":" + request.getLetterNum()
+                + ":" + request.getInterviewStyle() + ":" + request.getInterviewDifficulty();
+    }
+
+    private static class StartAttempt {
+        private final long createdAt = System.currentTimeMillis();
+        private final String fingerprint;
+        private InterviewStartResponseDTO response;
+        private RuntimeException failure;
+        private StartAttempt(InterviewStartRequestDTO request) { fingerprint = startFingerprint(request); }
+    }
+
+    private InterviewQuestionDTO generateFollowUpQuestion(
+            InterviewSession session, int questionOrder, InterviewQuestionAnswerDTO currentAnswer) {
         LlmFollowUpRequestDTO request = new LlmFollowUpRequestDTO();
         request.setContext(session.context);
         request.setInterviewStyle(session.settings.getInterviewStyle());
         request.setInterviewDifficulty(session.settings.getInterviewDifficulty());
-        request.setQuestionAnswers(List.copyOf(session.questionAnswers));
+        request.setQuestionAnswers(answersIncluding(session, currentAnswer));
         return interviewGenerator.generateFollowUpQuestion(questionOrder, request);
     }
 
-    private LlmEvaluationResponseDTO evaluate(InterviewSession session, int userNum) {
+    private LlmEvaluationResponseDTO evaluate(
+            InterviewSession session, int userNum, InterviewQuestionAnswerDTO currentAnswer) {
         LlmEvaluationRequestDTO request = new LlmEvaluationRequestDTO();
         request.setContext(session.context);
         request.setInterviewStyle(session.settings.getInterviewStyle());
         request.setInterviewDifficulty(session.settings.getInterviewDifficulty());
-        request.setQuestionAnswers(List.copyOf(session.questionAnswers));
+        request.setQuestionAnswers(answersIncluding(session, currentAnswer));
         request.setPreviousResult(interviewDAO.selectLatestInterviewResultByUserNum(userNum));
         LlmEvaluationResponseDTO evaluation = interviewGenerator.evaluate(request);
         validateEvaluation(evaluation);
@@ -260,6 +361,20 @@ public class InterviewServiceImpl implements InterviewService {
                 + evaluation.getLogicScore()
                 + evaluation.getDeliveryScore()) / 5.0 * 10.0) / 10.0);
         return evaluation;
+    }
+
+    private List<InterviewQuestionAnswerDTO> answersIncluding(
+            InterviewSession session, InterviewQuestionAnswerDTO currentAnswer) {
+        List<InterviewQuestionAnswerDTO> answers = new ArrayList<>(session.questionAnswers);
+        answers.add(currentAnswer);
+        return List.copyOf(answers);
+    }
+
+    private void reserveGeneratorCall(InterviewSession session) {
+        if (session.generatorCalls >= MAX_GENERATOR_CALLS) {
+            throw new IllegalStateException("면접의 질문 생성 호출 한도를 초과했습니다.");
+        }
+        session.generatorCalls++;
     }
 
     private InterviewQuestionAnswerDTO createQuestionAnswer(
@@ -342,6 +457,10 @@ public class InterviewServiceImpl implements InterviewService {
                 || request.getInterviewDifficulty() == null || request.getInterviewDifficulty().isBlank()) {
             throw new IllegalArgumentException("면접 방식과 난이도를 선택해 주세요.");
         }
+        if (!List.of("RANDOM", "ONE_TO_ONE", "PANEL", "GROUP").contains(request.getInterviewStyle())
+                || !List.of("EASY", "NORMAL", "HARD").contains(request.getInterviewDifficulty())) {
+            throw new IllegalArgumentException("면접 방식 또는 난이도가 올바르지 않습니다.");
+        }
     }
 
     private void validateDocumentNumbers(int resumeNum, int portfolioNum, int letterNum) {
@@ -359,6 +478,30 @@ public class InterviewServiceImpl implements InterviewService {
         }
         if (context.getCoverLetter() == null) {
             throw new IllegalArgumentException("선택한 자기소개서를 찾을 수 없습니다.");
+        }
+    }
+
+    private List<InterviewQuestionDTO> validateDocumentQuestions(LlmQuestionResponseDTO response) {
+        if (response == null || response.getQuestions() == null || response.getQuestions().size() != 3) {
+            throw new IllegalStateException("서류 질문은 정확히 3개여야 합니다.");
+        }
+        List<InterviewQuestionDTO> questions = response.getQuestions();
+        for (int index = 0; index < questions.size(); index++) {
+            validateQuestion(questions.get(index), index + 1, "DOCUMENT");
+        }
+        return List.copyOf(questions);
+    }
+
+    private void validateFollowUpQuestion(InterviewQuestionDTO question, int order) {
+        validateQuestion(question, order, "FOLLOW_UP");
+    }
+
+    private void validateQuestion(InterviewQuestionDTO question, int order, String type) {
+        if (question == null || question.getQuestionOrder() != order
+                || !type.equals(question.getQuestionType())
+                || question.getQuestionText() == null || question.getQuestionText().isBlank()
+                || question.getQuestionText().length() > 1000) {
+            throw new IllegalStateException("면접 질문 형식이 올바르지 않습니다.");
         }
     }
 
@@ -408,6 +551,11 @@ public class InterviewServiceImpl implements InterviewService {
         private final LlmInterviewContextDTO context;
         private final List<InterviewQuestionDTO> questions = new ArrayList<>();
         private final List<InterviewQuestionAnswerDTO> questionAnswers = new ArrayList<>();
+        private final List<InterviewAnswerResponseDTO> responses = new ArrayList<>();
+        private LlmEvaluationResponseDTO evaluation;
+        private InterviewQuestionAnswerDTO evaluatedAnswer;
+        private int generatorCalls = 1;
+        private boolean failed;
         private volatile long lastActivityAtMillis;
         private long questionStartedAtNanos;
 

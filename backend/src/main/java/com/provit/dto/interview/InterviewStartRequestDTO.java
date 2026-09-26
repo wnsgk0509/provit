@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class InterviewStartRequestDTO {
 
+    private String requestId;
     private int resumeNum;
     private int portfolioNum;
     private int letterNum;

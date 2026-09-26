@@ -5,10 +5,11 @@ import com.provit.dto.interview.LlmEvaluationRequestDTO;
 import com.provit.dto.interview.LlmEvaluationResponseDTO;
 import com.provit.dto.interview.LlmFollowUpRequestDTO;
 import com.provit.dto.interview.LlmQuestionRequestDTO;
+import com.provit.dto.interview.LlmQuestionResponseDTO;
 
 public interface InterviewGenerator {
 
-    InterviewQuestionDTO generateDocumentQuestion(int questionOrder, LlmQuestionRequestDTO request);
+    LlmQuestionResponseDTO generateDocumentQuestions(LlmQuestionRequestDTO request);
 
     InterviewQuestionDTO generateFollowUpQuestion(int questionOrder, LlmFollowUpRequestDTO request);
 

@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import com.provit.common.ResponseCode;
 import com.provit.dto.response.ApiResponse;
+import com.provit.service.interview.InterviewProcessingException;
 
 /**
  * 전역 예외 처리기 (new 생성자 방식으로 ApiResponse 및 ResponseEntity 반환)
@@ -21,6 +22,18 @@ import com.provit.dto.response.ApiResponse;
 public class GlobalExceptionHandler {
 
 	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(InterviewProcessingException.class)
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> handleInterviewProcessing(
+            InterviewProcessingException exception) {
+        log.warn("면접 처리 오류: {}", exception.getMessage());
+        var detail = java.util.Map.<String, Object>of(
+                "message", exception.getMessage(),
+                "restartRequired", exception.isRestartRequired(),
+                "answerLocked", exception.isAnswerLocked());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse<>(ResponseCode.BAD_REQUEST, detail));
+    }
 
 	/**
 	 * 잘못된 파라미터 / 유효성 검사 실패 예외 (400 Bad Request)

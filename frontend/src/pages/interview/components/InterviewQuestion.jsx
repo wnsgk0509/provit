@@ -26,6 +26,8 @@ function InterviewQuestion({
     totalQuestions,
     settings,
     isSubmitting,
+    restartRequired,
+    answerLocked,
     submittedAnswerCount,
     timeLimitSeconds,
     onSubmit,
@@ -33,6 +35,7 @@ function InterviewQuestion({
     const [answer, setAnswer] = useState('');
     const [timeLeft, setTimeLeft] = useState(timeLimitSeconds);
     const submittingRef = useRef(false);
+    const timeoutSubmittedRef = useRef(false);
     const questionNumber = currentQuestionIndex + 1;
     const isLastQuestion = questionNumber === totalQuestions;
     const questionProgress = (submittedAnswerCount / totalQuestions) * 100;
@@ -42,18 +45,19 @@ function InterviewQuestion({
     const submitCurrentAnswer = useCallback(async (timedOut) => {
         const trimmedAnswer = answer.trim();
 
-        if (submittingRef.current || isSubmitting || (!timedOut && !trimmedAnswer)) {
+        if (submittingRef.current || isSubmitting || restartRequired || (!timedOut && !trimmedAnswer)) {
             return;
         }
 
         submittingRef.current = true;
+        timeoutSubmittedRef.current = true;
 
         try {
             await onSubmit(answer, timedOut);
         } catch {
             submittingRef.current = false;
         }
-    }, [answer, isSubmitting, onSubmit]);
+    }, [answer, isSubmitting, restartRequired, onSubmit]);
 
     useEffect(() => {
         const deadline = Date.now() + timeLimitSeconds * 1000;
@@ -71,10 +75,11 @@ function InterviewQuestion({
     }, [timeLimitSeconds]);
 
     useEffect(() => {
-        if (hasTimedOut) {
+        if (hasTimedOut && !timeoutSubmittedRef.current && !isSubmitting && !restartRequired) {
+            timeoutSubmittedRef.current = true;
             void submitCurrentAnswer(true);
         }
-    }, [hasTimedOut, submitCurrentAnswer]);
+    }, [hasTimedOut, isSubmitting, restartRequired, submitCurrentAnswer]);
 
     const handleAnswerChange = (event) => {
         setAnswer(event.target.value);
@@ -146,13 +151,15 @@ function InterviewQuestion({
                     onChange={handleAnswerChange}
                     placeholder="답변을 구체적으로 작성해 주세요."
                     maxLength="1000"
-                    disabled={isSubmitting || hasTimedOut}
+                    disabled={isSubmitting || hasTimedOut || restartRequired || answerLocked}
                     required={!hasTimedOut}
                 />
                 <div className="interview-answer-meta">
                     <span>
-                        {hasTimedOut
-                            ? '제한시간이 종료되어 현재 답변을 제출하고 있습니다.'
+                        {answerLocked
+                            ? '처리한 답변이 달라지지 않도록 입력을 유지합니다. 같은 답변으로 다시 제출해 주세요.'
+                            : hasTimedOut
+                            ? '제한시간이 종료되었습니다. 제출에 실패했다면 다시 제출해 주세요.'
                             : '상황, 행동, 결과를 포함하면 더 정확한 평가를 받을 수 있습니다.'}
                     </span>
                     <span>{answer.length} / 1000</span>
@@ -161,7 +168,7 @@ function InterviewQuestion({
                 <button
                     className="btn btn-primary interview-primary-button"
                     type="submit"
-                    disabled={(!answer.trim() && !hasTimedOut) || isSubmitting}
+                    disabled={(!answer.trim() && !hasTimedOut) || isSubmitting || restartRequired}
                 >
                     {isSubmitting
                         ? '답변 제출 중...'
