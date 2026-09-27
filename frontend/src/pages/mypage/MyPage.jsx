@@ -271,9 +271,7 @@ function MyPage() {
                 <p>면접 성장 기록, 취업 문서와 계정 정보를 관리하세요.</p>
             </header>
 
-            <div className="mypage-content-row">
-                <InterviewDashboard key={user?.userNum || userEmail} />
-
+            <InterviewDashboard key={user?.userNum || userEmail}>
                 <section className="mypage-documents" aria-labelledby="document-management-title">
                     <div className="mypage-section-title">
                         <span>DOCUMENTS</span>
@@ -300,7 +298,7 @@ function MyPage() {
                         ))}
                     </fieldset>
 
-                    <div className="mypage-document-list" aria-live="polite">
+                    <div className="mypage-document-list" aria-live="polite" role="region" aria-label="취업 문서 목록" tabIndex={0}>
                         {isDocumentListLoading && (
                             <div className="mypage-document-state" role="status">
                                 문서 목록을 불러오고 있습니다.
@@ -346,7 +344,7 @@ function MyPage() {
                         </Link>
                     </div>
                 </section>
-            </div>
+            </InterviewDashboard>
 
             <form className="mypage-edit-form" onSubmit={handleSubmit}>
                 <section aria-labelledby="profile-edit-title">
