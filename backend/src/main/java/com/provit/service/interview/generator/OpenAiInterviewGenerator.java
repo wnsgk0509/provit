@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.provit.dto.interview.*;
+import com.provit.service.interview.InterviewProcessingException;
 
 @Component
 public class OpenAiInterviewGenerator implements InterviewGenerator {
@@ -32,15 +33,32 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
         String text = request.getContext().getDocumentText();
         if (text == null || text.isBlank()) throw new IllegalArgumentException("면접에 사용할 서류 내용이 없습니다.");
         if (text.length() > MAX_DOCUMENT_CHARACTERS) {
-            throw new IllegalArgumentException("면접 서류의 합계가 9,000자를 초과합니다. 서류 분량을 줄이거나 포트폴리오 선택을 해제해 주세요.");
+            throw new IllegalArgumentException("이력서·자기소개서와 서류 제목의 합계가 9,000자를 초과합니다. 서류 분량을 줄여 주세요.");
+        }
+        boolean hasPortfolio = request.getContext().getPortfolio() != null;
+        byte[] portfolioPdf = request.getContext().getPortfolioPdf();
+        if (hasPortfolio && (portfolioPdf == null || portfolioPdf.length == 0)) {
+            throw new IllegalArgumentException("면접에 사용할 포트폴리오 PDF가 없습니다.");
         }
         ObjectNode input = questionSettings(request.getContext(), request.getInterviewStyle(), request.getInterviewDifficulty());
         input.put("documentText", text);
+        input.put("hasPortfolio", hasPortfolio);
         ObjectNode schema = object();
         ObjectNode questions = mapper.createObjectNode().put("type", "array").put("minItems", 3).put("maxItems", 3);
         questions.set("items", questionTextSchema());
         property(schema, "questions", questions);
-        JsonNode generated = client.generate("document", common + "\n" + questionRules + "\n" + document, input, schema, 900);
+        JsonNode generated = client.generate("document", common + "\n" + questionRules + "\n" + document,
+                input, schema, 900, hasPortfolio ? portfolioPdf : null);
+        if (hasPortfolio) {
+            boolean includesPortfolioQuestion = false;
+            for (JsonNode question : generated.get("questions")) {
+                if (question.asText().contains("포트폴리오")) includesPortfolioQuestion = true;
+            }
+            if (!includesPortfolioQuestion) {
+                throw new InterviewProcessingException(
+                        "포트폴리오 관련 질문을 생성하지 못했습니다. 새 면접을 시작해 주세요.", true, false);
+            }
+        }
         List<InterviewQuestionDTO> result = new ArrayList<>();
         for (int index = 0; index < 3; index++) {
             result.add(question(index + 1, "DOCUMENT", generated.get("questions").get(index).asText()));

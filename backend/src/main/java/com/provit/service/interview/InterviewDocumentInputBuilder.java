@@ -1,12 +1,10 @@
 package com.provit.service.interview;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.InputStream;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Component;
 
 import com.provit.dto.document.CareerDTO;
@@ -22,7 +20,7 @@ import com.provit.service.document.storage.PortfolioFileStorage;
 @Component
 public class InterviewDocumentInputBuilder {
 
-    private static final long MAX_PORTFOLIO_BYTES = 20L * 1024 * 1024;
+    private static final int MAX_PORTFOLIO_BYTES = 20 * 1024 * 1024;
     private final PortfolioFileStorage portfolioFileStorage;
 
     public InterviewDocumentInputBuilder(PortfolioFileStorage portfolioFileStorage) {
@@ -31,23 +29,25 @@ public class InterviewDocumentInputBuilder {
 
     public void prepare(LlmInterviewContextDTO context) {
         if (context.getPortfolio() != null) {
-            context.setPortfolioContent(readPortfolio(context.getPortfolio()));
+            context.setPortfolioPdf(readPortfolio(context.getPortfolio()));
         }
         context.setDocumentText(buildText(context));
     }
 
-    private String readPortfolio(PortfolioDTO portfolio) {
-        try {
-            Path path = portfolioFileStorage.loadAsResource(portfolio.getFileUrl()).getFile().toPath();
-            if (Files.size(path) > MAX_PORTFOLIO_BYTES) {
+    private byte[] readPortfolio(PortfolioDTO portfolio) {
+        try (InputStream stream = portfolioFileStorage.loadAsResource(portfolio.getFileUrl()).getInputStream()) {
+            byte[] pdf = stream.readNBytes(MAX_PORTFOLIO_BYTES + 1);
+            if (pdf.length > MAX_PORTFOLIO_BYTES) {
                 throw new IllegalArgumentException("포트폴리오 PDF가 20MB를 초과합니다.");
             }
-            try (PDDocument document = Loader.loadPDF(path.toFile())) {
-                String text = clean(new PDFTextStripper().getText(document));
-                if (text.isEmpty()) {
-                    throw new IllegalArgumentException("포트폴리오 PDF에서 글자를 읽을 수 없습니다.");
+            try (PDDocument document = Loader.loadPDF(pdf)) {
+                if (document.isEncrypted()) {
+                    throw new IllegalArgumentException("암호화되지 않은 포트폴리오 PDF를 첨부해 주세요.");
                 }
-                return text;
+                if (document.getNumberOfPages() == 0) {
+                    throw new IllegalArgumentException("포트폴리오 PDF에 페이지가 없습니다.");
+                }
+                return pdf;
             }
         } catch (IOException exception) {
             throw new IllegalArgumentException("포트폴리오 PDF를 읽을 수 없습니다.", exception);
@@ -95,7 +95,7 @@ public class InterviewDocumentInputBuilder {
         if (context.getPortfolio() != null) {
             text.append("[포트폴리오]\n");
             append(text, "제목", context.getPortfolio().getPortfolioTitle());
-            append(text, "본문", context.getPortfolioContent());
+            text.append("본문과 이미지는 함께 첨부한 portfolio.pdf 원본을 확인하세요.\n");
         }
         return text.toString().trim();
     }

@@ -9,6 +9,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Iterator;
+import java.util.Base64;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,11 @@ public class OpenAiInterviewClient {
 
     public JsonNode generate(String stage, String instructions, ObjectNode input,
             ObjectNode schema, int maxOutputTokens) {
+        return generate(stage, instructions, input, schema, maxOutputTokens, null);
+    }
+
+    public JsonNode generate(String stage, String instructions, ObjectNode input,
+            ObjectNode schema, int maxOutputTokens, byte[] portfolioPdf) {
         if (!apiKey.startsWith("sk-") || apiKey.chars().anyMatch(Character::isWhitespace)
                 || apiKey.contains("입력") || apiKey.contains("발급")) {
             throw new InterviewProcessingException(
@@ -61,7 +67,15 @@ public class OpenAiInterviewClient {
             ObjectNode body = mapper.createObjectNode();
             body.put("model", MODEL);
             body.put("instructions", instructions);
-            body.put("input", mapper.writeValueAsString(input));
+            if (portfolioPdf == null) {
+                body.put("input", mapper.writeValueAsString(input));
+            } else {
+                var content = body.putArray("input").addObject().put("role", "user").putArray("content");
+                content.addObject().put("type", "input_text").put("text", mapper.writeValueAsString(input));
+                content.addObject().put("type", "input_file").put("filename", "portfolio.pdf")
+                        .put("file_data", "data:application/pdf;base64," + Base64.getEncoder().encodeToString(portfolioPdf))
+                        .put("detail", "high");
+            }
             body.putObject("reasoning").put("effort", "medium");
             body.put("max_output_tokens", maxOutputTokens);
             body.put("store", false);

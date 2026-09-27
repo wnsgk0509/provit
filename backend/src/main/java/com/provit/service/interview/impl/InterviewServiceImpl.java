@@ -150,7 +150,13 @@ public class InterviewServiceImpl implements InterviewService {
         questionRequest.setInterviewDifficulty(request.getInterviewDifficulty());
         questionRequest.setQuestionAnswers(Collections.emptyList());
 
-        LlmQuestionResponseDTO generated = interviewGenerator.generateDocumentQuestions(questionRequest);
+        LlmQuestionResponseDTO generated;
+        try {
+            generated = interviewGenerator.generateDocumentQuestions(questionRequest);
+        } finally {
+            // Only the initial request needs the PDF; do not retain it in the interview session.
+            context.setPortfolioPdf(null);
+        }
         List<InterviewQuestionDTO> documentQuestions = validateDocumentQuestions(generated);
         int historyNum = interviewDAO.selectNextHistoryNum();
         InterviewSession session = new InterviewSession(userNum, request, context);

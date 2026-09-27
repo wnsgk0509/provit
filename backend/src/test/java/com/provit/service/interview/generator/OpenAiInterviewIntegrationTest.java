@@ -7,6 +7,8 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.io.ByteArrayOutputStream;
+import java.util.Base64;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -14,6 +16,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,11 +29,13 @@ import com.sun.net.httpserver.HttpServer;
 import com.provit.dao.interview.InterviewDAO;
 import com.provit.dto.document.CoverLetterDTO;
 import com.provit.dto.document.ResumeDTO;
+import com.provit.dto.document.PortfolioDTO;
 import com.provit.dto.interview.*;
 import com.provit.service.interview.InterviewDocumentInputBuilder;
 import com.provit.service.interview.InterviewPersistenceService;
 import com.provit.service.interview.InterviewProcessingException;
 import com.provit.service.interview.impl.InterviewServiceImpl;
+import com.provit.service.document.storage.PortfolioFileStorage;
 
 public class OpenAiInterviewIntegrationTest {
     private final ObjectMapper mapper = new ObjectMapper();
@@ -45,7 +54,8 @@ public class OpenAiInterviewIntegrationTest {
             requests.add(request);
             String stage = request.path("text").path("format").path("name").asText();
             String generated = switch (stage) {
-                case "interview_document" -> "{\"questions\":[\"고객 분석에서 본인의 역할은 무엇인가요?\","
+                case "interview_document" -> "{\"questions\":[\""
+                        + (request.path("input").isArray() ? "포트폴리오의 고객 분석에서 본인의 역할은 무엇인가요?" : "고객 분석에서 본인의 역할은 무엇인가요?") + "\","
                         + "\"분석 기준을 선택한 이유는 무엇인가요?\",\"분석 결과를 입증할 근거는 무엇인가요?\"]}";
                 case "interview_follow_up_4", "interview_follow_up_5" ->
                         "{\"questionText\":\"고객 분석에서 본인의 판단을 설명해 주세요.\"}";
@@ -150,6 +160,158 @@ public class OpenAiInterviewIntegrationTest {
         }
         assertTrue(requests.get(1).path("instructions").asText().contains("전체를 검토"));
         assertTrue(requests.get(2).path("instructions").asText().contains("4번 답변을 중심"));
+    }
+
+    @Test
+    public void portfolioInterviewSendsOriginalPdfOnceAndReleasesSessionBytes() throws Exception {
+        byte[] pdf = portfolioPdf();
+        LlmInterviewContextDTO[] prepared = new LlmInterviewContextDTO[1];
+        InterviewDocumentInputBuilder builder = new InterviewDocumentInputBuilder(storage(pdf)) {
+            @Override
+            public void prepare(LlmInterviewContextDTO context) {
+                super.prepare(context);
+                prepared[0] = context;
+            }
+        };
+        AtomicInteger saves = new AtomicInteger();
+        InterviewDAO dao = dao(saves, portfolio());
+        var service = new InterviewServiceImpl(dao, generator("sk-local-test-only"),
+                new InterviewPersistenceService(dao), builder);
+        var settings = new InterviewStartRequestDTO();
+        settings.setResumeNum(1);
+        settings.setLetterNum(2);
+        settings.setPortfolioNum(3);
+        settings.setInterviewStyle("ONE_TO_ONE");
+        settings.setInterviewDifficulty("NORMAL");
+        settings.setRequestId("feea354e-64fe-4fb1-af81-05cf18f21c43");
+        var started = service.startInterview(7, settings);
+        assertTrue(started.getQuestions().get(0).getQuestionText().contains("포트폴리오"));
+        assertNull(prepared[0].getPortfolioPdf());
+        assertSame(started, service.startInterview(7, settings));
+        for (int order = 1; order <= 5; order++) {
+            var answer = new InterviewAnswerRequestDTO();
+            answer.setQuestionOrder(order);
+            answer.setAnswer("답변 " + order);
+            service.submitAnswer(7, started.getHistoryNum(), answer);
+        }
+        assertEquals(4, requests.size());
+        assertEquals(1, saves.get());
+        JsonNode first = requests.get(0);
+        JsonNode content = first.path("input").get(0).path("content");
+        assertEquals("user", first.path("input").get(0).path("role").asText());
+        assertEquals(2, content.size());
+        assertEquals("input_text", content.get(0).path("type").asText());
+        JsonNode input = mapper.readTree(content.get(0).path("text").asText());
+        assertTrue(input.path("hasPortfolio").asBoolean());
+        assertTrue(input.path("documentText").asText().contains("서비스 프로젝트"));
+        assertFalse(input.toString().contains("private/path"));
+        assertFalse(input.has("portfolioPdf"));
+        JsonNode file = content.get(1);
+        assertEquals("input_file", file.path("type").asText());
+        assertEquals("portfolio.pdf", file.path("filename").asText());
+        assertEquals("high", file.path("detail").asText());
+        String prefix = "data:application/pdf;base64,";
+        assertTrue(file.path("file_data").asText().startsWith(prefix));
+        assertArrayEquals(pdf, Base64.getDecoder().decode(file.path("file_data").asText().substring(prefix.length())));
+        assertTrue(first.path("instructions").asText().contains("최소 1개는 반드시 포트폴리오"));
+        assertTrue(first.path("instructions").asText().contains("첨부 PDF의 텍스트·이미지"));
+        for (int index = 0; index < requests.size(); index++) {
+            assertEquals("gpt-6-sol", requests.get(index).path("model").asText());
+            assertEquals("medium", requests.get(index).path("reasoning").path("effort").asText());
+            assertFalse(requests.get(index).path("store").asBoolean());
+            if (index > 0) {
+                assertTrue(requests.get(index).path("input").isTextual());
+                assertFalse(requests.get(index).path("input").asText().contains("base64"));
+                assertFalse(requests.get(index).path("input").asText().contains("documentText"));
+            }
+        }
+    }
+
+    @Test
+    public void portfolioQuestionCanAppearAtAnyOfTheFirstThreePositions() throws Exception {
+        for (int position = 0; position < 3; position++) {
+            ObjectNode generated = mapper.createObjectNode();
+            var questions = generated.putArray("questions");
+            for (int index = 0; index < 3; index++) {
+                questions.add(index == position ? "포트폴리오의 고객 분석에서 본인의 역할은 무엇인가요?" : "판단 근거는 무엇인가요?");
+            }
+            overrideResponse = documentResponse(generated);
+            var request = documentRequest();
+            request.getContext().setPortfolio(portfolio());
+            request.getContext().setPortfolioPdf(portfolioPdf());
+            var result = generator("sk-local-test-only").generateDocumentQuestions(request);
+            assertTrue(result.getQuestions().get(position).getQuestionText().contains("포트폴리오"));
+            assertEquals(3, result.getQuestions().size());
+        }
+    }
+
+    @Test
+    public void missingPortfolioQuestionIsRejectedWithoutAutomaticRetry() throws Exception {
+        ObjectNode generated = mapper.createObjectNode();
+        generated.putArray("questions").add("본인의 역할은 무엇인가요?")
+                .add("판단 근거는 무엇인가요?").add("결과를 입증할 근거는 무엇인가요?");
+        overrideResponse = documentResponse(generated);
+        LlmInterviewContextDTO[] prepared = new LlmInterviewContextDTO[1];
+        var builder = new InterviewDocumentInputBuilder(storage(portfolioPdf())) {
+            @Override
+            public void prepare(LlmInterviewContextDTO context) {
+                super.prepare(context);
+                prepared[0] = context;
+            }
+        };
+        InterviewDAO dao = dao(new AtomicInteger(), portfolio());
+        var service = new InterviewServiceImpl(dao, generator("sk-local-test-only"), new InterviewPersistenceService(dao), builder);
+        var settings = new InterviewStartRequestDTO();
+        settings.setResumeNum(1);
+        settings.setLetterNum(2);
+        settings.setPortfolioNum(3);
+        settings.setInterviewStyle("ONE_TO_ONE");
+        settings.setInterviewDifficulty("NORMAL");
+        settings.setRequestId("feea354e-64fe-4fb1-af81-05cf18f21c43");
+        var exception = assertThrows(InterviewProcessingException.class, () -> service.startInterview(7, settings));
+        assertTrue(exception.getMessage().contains("포트폴리오 관련 질문"));
+        assertTrue(exception.isRestartRequired());
+        assertNull(prepared[0].getPortfolioPdf());
+        assertSame(exception, assertThrows(InterviewProcessingException.class, () -> service.startInterview(7, settings)));
+        assertEquals(1, requests.size());
+    }
+
+    @Test
+    public void selectedPortfolioWithoutPdfFailsBeforeAnyHttpCall() {
+        var request = documentRequest();
+        request.getContext().setPortfolio(portfolio());
+        assertThrows(IllegalArgumentException.class, () -> generator("sk-local-test-only").generateDocumentQuestions(request));
+        assertEquals(0, requests.size());
+    }
+
+    private String documentResponse(ObjectNode generated) throws Exception {
+        ObjectNode response = mapper.createObjectNode().put("status", "completed");
+        response.putArray("output").addObject().put("type", "message").putArray("content")
+                .addObject().put("type", "output_text").put("text", mapper.writeValueAsString(generated));
+        return mapper.writeValueAsString(response);
+    }
+
+    private byte[] portfolioPdf() throws Exception {
+        try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            document.addPage(new PDPage());
+            document.save(output);
+            return output.toByteArray();
+        }
+    }
+
+    private PortfolioDTO portfolio() {
+        var portfolio = new PortfolioDTO();
+        portfolio.setPortfolioTitle("서비스 프로젝트");
+        portfolio.setFileUrl("private/path/portfolio.pdf");
+        return portfolio;
+    }
+
+    private PortfolioFileStorage storage(byte[] pdf) {
+        return new PortfolioFileStorage() {
+            public String store(int portfolioNum, MultipartFile file) { throw new UnsupportedOperationException(); }
+            public void deleteIfExists(String fileUrl) { throw new UnsupportedOperationException(); }
+            public Resource loadAsResource(String fileUrl) { return new ByteArrayResource(pdf); }
+        };
     }
 
     @Test
@@ -267,6 +429,10 @@ public class OpenAiInterviewIntegrationTest {
     }
 
     private InterviewDAO dao(AtomicInteger saves) {
+        return dao(saves, null);
+    }
+
+    private InterviewDAO dao(AtomicInteger saves, PortfolioDTO portfolio) {
         ResumeDTO resume = new ResumeDTO();
         resume.setResumeTitle("마케팅 지원 이력서");
         resume.setOccupationCode("14");
@@ -282,6 +448,7 @@ public class OpenAiInterviewIntegrationTest {
                 new Class<?>[] {InterviewDAO.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "selectResumeByResumeNumAndUserNum" -> resume;
                     case "selectCoverLetterByLetterNumAndUserNum" -> letter;
+                    case "selectPortfolioByPortfolioNumAndUserNum" -> portfolio;
                     case "selectEducationListByResumeNum", "selectCareerListByResumeNum", "selectCertificationListByResumeNum" -> List.of();
                     case "selectNextHistoryNum" -> 17;
                     case "selectLatestInterviewResultByUserNum" -> previous;

@@ -2,7 +2,12 @@ package com.provit.service.interview;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -11,8 +16,12 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
+import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
+import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 import org.junit.Test;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,6 +31,7 @@ import com.provit.dto.document.ResumeDTO;
 import com.provit.dto.document.ResumeDetailDTO;
 import com.provit.dto.interview.LlmInterviewContextDTO;
 import com.provit.service.document.storage.PortfolioFileStorage;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class InterviewDocumentInputBuilderTest {
 
@@ -41,10 +51,11 @@ public class InterviewDocumentInputBuilderTest {
         assertTrue(context.getDocumentText().contains("[자기소개서]"));
         assertTrue(context.getDocumentText().contains("문제 해결 경험: 병목을 분석하고 개선"));
         assertFalse(context.getDocumentText().contains("[포트폴리오]"));
+        assertNull(context.getPortfolioPdf());
     }
 
     @Test
-    public void selectedPortfolioPdfIsIncludedAsText() throws Exception {
+    public void selectedPortfolioPdfIsPreservedWithoutDuplicatingItsText() throws Exception {
         Path pdf = Files.createTempFile("interview-document-", ".pdf");
         try {
             try (PDDocument document = new PDDocument()) {
@@ -67,13 +78,74 @@ public class InterviewDocumentInputBuilderTest {
 
             new InterviewDocumentInputBuilder(storage(pdf)).prepare(context);
 
-            assertTrue(context.getPortfolioContent().contains("Reduced API latency"));
+            assertArrayEquals(Files.readAllBytes(pdf), context.getPortfolioPdf());
             assertTrue(context.getDocumentText().contains("[포트폴리오]"));
-            assertTrue(context.getDocumentText().contains("Reduced API latency by 30 percent"));
+            assertTrue(context.getDocumentText().contains("서비스 프로젝트"));
+            assertFalse(context.getDocumentText().contains("Reduced API latency by 30 percent"));
             assertFalse(context.getDocumentText().contains(pdf.toString()));
+            assertFalse(new ObjectMapper().valueToTree(context).has("portfolioPdf"));
+            assertFalse(context.toString().contains("portfolioPdf"));
         } finally {
             Files.deleteIfExists(pdf);
         }
+    }
+
+    @Test
+    public void imageOnlyPdfCanBePrepared() throws Exception {
+        byte[] pdf;
+        try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            PDPage page = new PDPage();
+            document.addPage(page);
+            try (PDPageContentStream content = new PDPageContentStream(document, page)) {
+                content.drawImage(LosslessFactory.createFromImage(document, new BufferedImage(64, 64, BufferedImage.TYPE_INT_RGB)),
+                        50, 50, 200, 200);
+            }
+            document.save(output);
+            pdf = output.toByteArray();
+        }
+        LlmInterviewContextDTO context = portfolioContext();
+        new InterviewDocumentInputBuilder(resourceStorage(new ByteArrayResource(pdf))).prepare(context);
+        assertArrayEquals(pdf, context.getPortfolioPdf());
+    }
+
+    @Test
+    public void invalidAndOversizedPdfsFailBeforeGeneration() {
+        byte[][] invalidFiles = {new byte[0], "not a PDF".getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                new byte[20 * 1024 * 1024 + 1]};
+        for (byte[] pdf : invalidFiles) {
+            LlmInterviewContextDTO context = portfolioContext();
+            assertThrows(IllegalArgumentException.class,
+                    () -> new InterviewDocumentInputBuilder(resourceStorage(new ByteArrayResource(pdf))).prepare(context));
+            assertNull(context.getPortfolioPdf());
+        }
+    }
+
+    @Test
+    public void emptyAndEncryptedPdfsFailBeforeGeneration() throws Exception {
+        for (boolean encrypted : new boolean[] {false, true}) {
+            byte[] pdf;
+            try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                if (encrypted) {
+                    document.addPage(new PDPage());
+                    document.protect(new StandardProtectionPolicy("owner-password", "", new AccessPermission()));
+                }
+                document.save(output);
+                pdf = output.toByteArray();
+            }
+            LlmInterviewContextDTO context = portfolioContext();
+            assertThrows(IllegalArgumentException.class,
+                    () -> new InterviewDocumentInputBuilder(resourceStorage(new ByteArrayResource(pdf))).prepare(context));
+            assertNull(context.getPortfolioPdf());
+        }
+    }
+
+    private LlmInterviewContextDTO portfolioContext() {
+        LlmInterviewContextDTO context = requiredContext();
+        PortfolioDTO portfolio = new PortfolioDTO();
+        portfolio.setPortfolioTitle("서비스 프로젝트");
+        portfolio.setFileUrl("private/path/portfolio.pdf");
+        context.setPortfolio(portfolio);
+        return context;
     }
 
     private LlmInterviewContextDTO requiredContext() {
@@ -95,6 +167,10 @@ public class InterviewDocumentInputBuilderTest {
     }
 
     private PortfolioFileStorage storage(Path pdf) {
+        return resourceStorage(pdf == null ? null : new FileSystemResource(pdf));
+    }
+
+    private PortfolioFileStorage resourceStorage(Resource pdf) {
         return new PortfolioFileStorage() {
             @Override
             public String store(int portfolioNum, MultipartFile file) {
@@ -111,7 +187,7 @@ public class InterviewDocumentInputBuilderTest {
                 if (pdf == null) {
                     throw new AssertionError("포트폴리오를 선택하지 않았는데 파일을 읽었습니다.");
                 }
-                return new FileSystemResource(pdf);
+                return pdf;
             }
         };
     }
