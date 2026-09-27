@@ -45,10 +45,10 @@ public class OpenAiInterviewIntegrationTest {
             requests.add(request);
             String stage = request.path("text").path("format").path("name").asText();
             String generated = switch (stage) {
-                case "interview_document" -> "{\"questions\":[" + question(1, "DOCUMENT") + ","
-                        + question(2, "DOCUMENT") + "," + question(3, "DOCUMENT") + "]}";
-                case "interview_follow_up_4" -> question(4, "FOLLOW_UP");
-                case "interview_follow_up_5" -> question(5, "FOLLOW_UP");
+                case "interview_document" -> "{\"questions\":[\"고객 분석에서 본인의 역할은 무엇인가요?\","
+                        + "\"분석 기준을 선택한 이유는 무엇인가요?\",\"분석 결과를 입증할 근거는 무엇인가요?\"]}";
+                case "interview_follow_up_4", "interview_follow_up_5" ->
+                        "{\"questionText\":\"고객 분석에서 본인의 판단을 설명해 주세요.\"}";
                 default -> "{\"confidenceScore\":70,\"persistenceScore\":75,\"expertiseScore\":80,"
                         + "\"logicScore\":85,\"deliveryScore\":90,\"strengths\":\"1번에서 기여를 설명했습니다.\","
                         + "\"weaknesses\":\"3번의 성과 근거가 부족합니다.\",\"improvements\":\"성과 비교 조건을 설명하세요.\","
@@ -84,6 +84,8 @@ public class OpenAiInterviewIntegrationTest {
         settings.setInterviewDifficulty("NORMAL");
         settings.setRequestId("feea354e-64fe-4fb1-af81-05cf18f21c43");
         var started = service.startInterview(7, settings);
+        assertEquals(1, started.getQuestions().get(0).getQuestionOrder());
+        assertEquals("DOCUMENT", started.getQuestions().get(0).getQuestionType());
         assertSame(started, service.startInterview(7, settings));
         assertEquals(1, requests.size());
         for (int order = 1; order <= 5; order++) {
@@ -93,6 +95,10 @@ public class OpenAiInterviewIntegrationTest {
             var response = service.submitAnswer(7, started.getHistoryNum(), answer);
             assertSame(response, service.submitAnswer(7, started.getHistoryNum(), answer));
             if (order == 5) assertEquals(80.0, response.getResult().getTotalScore(), 0.001);
+            else {
+                assertEquals(order + 1, response.getNextQuestion().getQuestionOrder());
+                assertEquals(order < 3 ? "DOCUMENT" : "FOLLOW_UP", response.getNextQuestion().getQuestionType());
+            }
         }
         assertEquals(4, requests.size());
         assertEquals(1, saves.get());
@@ -113,8 +119,25 @@ public class OpenAiInterviewIntegrationTest {
                 assertFalse(input.has("documentText"));
                 assertFalse(input.has("context"));
                 assertEquals(index + 2, input.path("questionAnswers").size());
+                for (int answerIndex = 0; answerIndex < input.path("questionAnswers").size(); answerIndex++) {
+                    JsonNode item = input.path("questionAnswers").get(answerIndex);
+                    assertEquals("답변 " + (answerIndex + 1), item.path("answer").asText());
+                    assertFalse(item.path("question").asText().isBlank());
+                    assertFalse(item.has("questionOrder"));
+                    assertFalse(item.has("questionType"));
+                    assertFalse(item.has("timedOut"));
+                }
+            }
+            if (index < 3) {
+                assertEquals("직접적인 대화체", input.path("styleGuide").asText());
+                assertEquals("판단 근거와 결과를 검증", input.path("difficultyGuide").asText());
+                assertTrue(request.path("instructions").asText().contains("핵심 검증 지점 하나"));
             }
             if (index == 3) {
+                assertFalse(input.has("styleGuide"));
+                assertFalse(request.path("instructions").asText().contains("핵심 검증 지점 하나"));
+                assertTrue(request.path("instructions").asText().contains("짧다는 이유만으로 감점하지"));
+                assertTrue(request.path("instructions").asText().contains("이번 답변을 독립적으로 채점"));
                 assertEquals(60.0, input.path("previousResult").path("totalScore").asDouble(), 0.001);
                 assertEquals("성과 근거 부족", input.path("previousResult").path("weaknesses").asText());
                 assertFalse(input.path("previousResult").has("userNum"));
@@ -122,6 +145,56 @@ public class OpenAiInterviewIntegrationTest {
         }
         assertTrue(requests.get(1).path("instructions").asText().contains("전체를 검토"));
         assertTrue(requests.get(2).path("instructions").asText().contains("4번 답변을 중심"));
+    }
+
+    @Test
+    public void compactInputsPreserveRawTextAndTimeoutEvidence() throws Exception {
+        var generator = generator("sk-local-test-only");
+        var initial = documentRequest();
+        String document = "[이력서]\n본인 기여 30% · 고객 분석 😀\r\n[자기소개서] \"근거\"와 한계";
+        initial.getContext().setDocumentText(document);
+        generator.generateDocumentQuestions(initial);
+        assertEquals(document, mapper.readTree(requests.get(0).path("input").asText()).path("documentText").asText());
+
+        var follow = new LlmFollowUpRequestDTO();
+        follow.setContext(initial.getContext());
+        follow.setInterviewStyle("GROUP");
+        follow.setInterviewDifficulty("HARD");
+        List<InterviewQuestionAnswerDTO> answers = new ArrayList<>();
+        for (int index = 1; index <= 3; index++) {
+            var answer = new InterviewQuestionAnswerDTO();
+            answer.setQuestionOrder(index);
+            answer.setQuestionType("DOCUMENT");
+            answer.setQuestion("질문 " + index + "\n성과 근거는 무엇인가요?");
+            answer.setAnswer(index == 3 ? "" : "  답변 " + index + "\r\n\"비교 조건\" 😀  ");
+            answer.setTimedOut(index == 3);
+            answers.add(answer);
+        }
+        follow.setQuestionAnswers(answers);
+        generator.generateFollowUpQuestion(4, follow);
+        JsonNode input = mapper.readTree(requests.get(1).path("input").asText());
+        assertEquals("협업에서의 본인 역할을 반영", input.path("styleGuide").asText());
+        assertEquals("모순과 대안 및 한계를 더 깊게 검증", input.path("difficultyGuide").asText());
+        for (int index = 0; index < 3; index++) {
+            JsonNode item = input.path("questionAnswers").get(index);
+            assertEquals(answers.get(index).getQuestion(), item.path("question").asText());
+            assertEquals(answers.get(index).getAnswer(), item.path("answer").asText());
+            assertEquals(answers.get(index).isTimedOut(), item.path("timedOut").asBoolean());
+        }
+        assertTrue(input.path("questionAnswers").get(2).path("timedOut").asBoolean());
+        assertTrue(mapper.writeValueAsString(input.path("questionAnswers")).length()
+                < mapper.writeValueAsString(answers).length());
+        answers.get(0).setQuestionOrder(2);
+        assertThrows(IllegalArgumentException.class, () -> generator.generateFollowUpQuestion(4, follow));
+        assertEquals(2, requests.size());
+    }
+
+    @Test
+    public void costEstimateCountsEachTokenCategoryOnce() {
+        assertEquals(0, new java.math.BigDecimal("0.00257")
+                .compareTo(OpenAiInterviewClient.estimateCost(1000, 600, 100, 160)));
+        assertEquals(0, new java.math.BigDecimal("0.0036")
+                .compareTo(OpenAiInterviewClient.estimateCost(1000, 0, 0, 160)));
     }
 
     @Test
@@ -209,8 +282,4 @@ public class OpenAiInterviewIntegrationTest {
                 });
     }
 
-    private String question(int order, String type) {
-        return "{\"questionOrder\":" + order + ",\"questionType\":\"" + type
-                + "\",\"questionText\":\"고객 분석에서 본인의 판단을 설명해 주세요.\"}";
-    }
 }

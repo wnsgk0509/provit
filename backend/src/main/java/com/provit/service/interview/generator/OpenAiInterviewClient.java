@@ -127,11 +127,22 @@ public class OpenAiInterviewClient {
         long input = usage.path("input_tokens").asLong();
         long output = usage.path("output_tokens").asLong();
         long cached = usage.path("input_tokens_details").path("cached_tokens").asLong();
-        BigDecimal estimated = BigDecimal.valueOf(input - cached).multiply(new BigDecimal("0.000002"))
+        JsonNode writes = usage.path("input_tokens_details").path("cache_write_tokens");
+        long cacheWrite = writes.asLong();
+        JsonNode reasoning = usage.path("output_tokens_details").path("reasoning_tokens");
+        BigDecimal estimated = estimateCost(input, cached, cacheWrite, output);
+        log.info("Interview OpenAI stage={} model={} inputTokens={} cachedTokens={} cacheWriteTokens={} "
+                        + "cacheWriteReported={} outputTokens={} reasoningTokens={} estimatedUSD={}",
+                stage, MODEL, input, cached, cacheWrite, writes.isNumber(), output,
+                reasoning.isNumber() ? reasoning.asText() : "unknown", estimated.toPlainString());
+    }
+
+    // Cached reads and writes are subsets of input; reasoning is already included in output.
+    static BigDecimal estimateCost(long input, long cached, long cacheWrite, long output) {
+        return BigDecimal.valueOf(input - cached - cacheWrite).multiply(new BigDecimal("0.000002"))
                 .add(BigDecimal.valueOf(cached).multiply(new BigDecimal("0.0000002")))
+                .add(BigDecimal.valueOf(cacheWrite).multiply(new BigDecimal("0.0000025")))
                 .add(BigDecimal.valueOf(output).multiply(new BigDecimal("0.00001")));
-        log.info("Interview OpenAI stage={} model={} inputTokens={} cachedTokens={} outputTokens={} estimatedUSD={}",
-                stage, MODEL, input, cached, output, estimated.toPlainString());
     }
 
     private void validate(JsonNode value, JsonNode schema) {

@@ -2,6 +2,8 @@ package com.provit.service.interview.generator;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.stereotype.Component;
 
@@ -16,6 +18,8 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
     private final ObjectMapper mapper = new ObjectMapper();
     private final OpenAiInterviewClient client;
     private final String common = prompt("common");
+    private final String questionRules = prompt("question-rules");
+    private final String answerFormat = prompt("answer-format");
     private final String document = prompt("document");
     private final String followUp4 = prompt("follow-up-4");
     private final String followUp5 = prompt("follow-up-5");
@@ -30,28 +34,39 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
         if (text.length() > MAX_DOCUMENT_CHARACTERS) {
             throw new IllegalArgumentException("면접 서류의 합계가 9,000자를 초과합니다. 서류 분량을 줄이거나 포트폴리오 선택을 해제해 주세요.");
         }
-        ObjectNode input = settings(request.getContext(), request.getInterviewStyle(), request.getInterviewDifficulty());
+        ObjectNode input = questionSettings(request.getContext(), request.getInterviewStyle(), request.getInterviewDifficulty());
         input.put("documentText", text);
         ObjectNode schema = object();
         ObjectNode questions = mapper.createObjectNode().put("type", "array").put("minItems", 3).put("maxItems", 3);
-        questions.set("items", questionSchema(1, 3, "DOCUMENT"));
+        questions.set("items", questionTextSchema());
         property(schema, "questions", questions);
-        return convert(client.generate("document", common + "\n" + document, input, schema, 900), LlmQuestionResponseDTO.class);
+        JsonNode generated = client.generate("document", common + "\n" + questionRules + "\n" + document, input, schema, 900);
+        List<InterviewQuestionDTO> result = new ArrayList<>();
+        for (int index = 0; index < 3; index++) {
+            result.add(question(index + 1, "DOCUMENT", generated.get("questions").get(index).asText()));
+        }
+        LlmQuestionResponseDTO response = new LlmQuestionResponseDTO();
+        response.setQuestions(result);
+        return response;
     }
 
     @Override
     public InterviewQuestionDTO generateFollowUpQuestion(int order, LlmFollowUpRequestDTO request) {
         if (order != 4 && order != 5) throw new IllegalArgumentException("후속 질문 순서가 올바르지 않습니다.");
-        ObjectNode input = settings(request.getContext(), request.getInterviewStyle(), request.getInterviewDifficulty());
-        input.set("questionAnswers", mapper.valueToTree(request.getQuestionAnswers()));
-        return convert(client.generate("follow_up_" + order, common + "\n" + (order == 4 ? followUp4 : followUp5),
-                input, questionSchema(order, order, "FOLLOW_UP"), 600), InterviewQuestionDTO.class);
+        ObjectNode input = questionSettings(request.getContext(), request.getInterviewStyle(), request.getInterviewDifficulty());
+        input.set("questionAnswers", answers(request.getQuestionAnswers()));
+        ObjectNode schema = object();
+        property(schema, "questionText", questionTextSchema());
+        JsonNode generated = client.generate("follow_up_" + order,
+                common + "\n" + questionRules + "\n" + answerFormat + "\n" + (order == 4 ? followUp4 : followUp5),
+                input, schema, 600);
+        return question(order, "FOLLOW_UP", generated.get("questionText").asText());
     }
 
     @Override
     public LlmEvaluationResponseDTO evaluate(LlmEvaluationRequestDTO request) {
         ObjectNode input = settings(request.getContext(), request.getInterviewStyle(), request.getInterviewDifficulty());
-        input.set("questionAnswers", mapper.valueToTree(request.getQuestionAnswers()));
+        input.set("questionAnswers", answers(request.getQuestionAnswers()));
         if (request.getPreviousResult() == null) {
             input.putNull("previousResult");
         } else {
@@ -77,7 +92,8 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
         for (String feedback : new String[] {"strengths", "weaknesses", "improvements", "comparison"}) {
             property(schema, feedback, mapper.createObjectNode().put("type", "string").put("minLength", 1).put("maxLength", 250));
         }
-        return convert(client.generate("evaluation", common + "\n" + evaluation, input, schema, 1400), LlmEvaluationResponseDTO.class);
+        return convert(client.generate("evaluation", common + "\n" + answerFormat + "\n" + evaluation,
+                input, schema, 1400), LlmEvaluationResponseDTO.class);
     }
 
     private ObjectNode settings(LlmInterviewContextDTO context, String style, String difficulty) {
@@ -91,16 +107,49 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
         return input;
     }
 
-    private ObjectNode questionSchema(int minimum, int maximum, String type) {
-        ObjectNode schema = object();
-        property(schema, "questionOrder", mapper.createObjectNode().put("type", "integer")
-                .put("minimum", minimum).put("maximum", maximum));
-        ObjectNode questionType = mapper.createObjectNode().put("type", "string");
-        questionType.putArray("enum").add(type);
-        property(schema, "questionType", questionType);
-        property(schema, "questionText", mapper.createObjectNode().put("type", "string")
-                .put("minLength", 1).put("maxLength", 120));
-        return schema;
+    private ObjectNode questionSettings(LlmInterviewContextDTO context, String style, String difficulty) {
+        ObjectNode input = settings(context, style, difficulty);
+        input.put("styleGuide", switch (style) {
+            case "ONE_TO_ONE" -> "직접적인 대화체";
+            case "PANEL" -> "실무·협업·성과 관점의 다양성";
+            case "GROUP" -> "협업에서의 본인 역할을 반영";
+            case "RANDOM" -> "적합한 관점을 선택";
+            default -> throw new IllegalArgumentException("면접 방식이 올바르지 않습니다.");
+        });
+        input.put("difficultyGuide", switch (difficulty) {
+            case "EASY" -> "기본적인 역할과 행동을 검증";
+            case "NORMAL" -> "판단 근거와 결과를 검증";
+            case "HARD" -> "모순과 대안 및 한계를 더 깊게 검증";
+            default -> throw new IllegalArgumentException("면접 난이도가 올바르지 않습니다.");
+        });
+        return input;
+    }
+
+    private com.fasterxml.jackson.databind.node.ArrayNode answers(List<InterviewQuestionAnswerDTO> answers) {
+        var compact = mapper.createArrayNode();
+        for (int index = 0; index < answers.size(); index++) {
+            InterviewQuestionAnswerDTO answer = answers.get(index);
+            if (answer.getQuestionOrder() != index + 1) {
+                throw new IllegalArgumentException("질문·답변의 순서가 올바르지 않습니다.");
+            }
+            ObjectNode item = compact.addObject();
+            item.put("question", answer.getQuestion());
+            item.put("answer", answer.getAnswer());
+            if (answer.isTimedOut()) item.put("timedOut", true);
+        }
+        return compact;
+    }
+
+    private ObjectNode questionTextSchema() {
+        return mapper.createObjectNode().put("type", "string").put("minLength", 1).put("maxLength", 120);
+    }
+
+    private InterviewQuestionDTO question(int order, String type, String text) {
+        InterviewQuestionDTO question = new InterviewQuestionDTO();
+        question.setQuestionOrder(order);
+        question.setQuestionType(type);
+        question.setQuestionText(text);
+        return question;
     }
 
     private ObjectNode object() {

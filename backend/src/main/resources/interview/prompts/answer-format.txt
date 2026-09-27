@@ -1,0 +1,1 @@
+questionAnswers는 1번부터 질문 번호순입니다. 1~3번은 서류 질문, 4~5번은 꼬리질문입니다. question과 answer는 원문이고 timedOut 생략은 false입니다.
