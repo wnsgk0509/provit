@@ -1,5 +1,5 @@
 .mypage-page {
-    max-width: 820px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 16px 0 40px;
     color: #1f2937;
@@ -7,6 +7,24 @@
 
 .mypage-intro {
     margin-bottom: 28px;
+}
+
+.mypage-content-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.mypage-content-row > .mypage-interviews {
+    flex: 2 1 620px;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.mypage-content-row > .mypage-documents {
+    flex: 1 1 340px;
+    min-width: 0;
 }
 
 .mypage-intro>span,

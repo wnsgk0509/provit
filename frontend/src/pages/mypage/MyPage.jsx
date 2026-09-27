@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import client from '../../api/client';
 import { getCoverLetterList, getPortfolioList, getResumeList } from '../../api/documentApi';
 import './MyPage.css';
+import InterviewDashboard from './components/InterviewDashboard';
 
 // 회원가입과 동일한 비밀번호 규칙: 8자 이상, 영문 대/소문자·숫자·특수문자 포함
 const PASSWORD_PATTERN = /^(?=\S{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).*$/;
@@ -267,81 +268,85 @@ function MyPage() {
             <header className="mypage-intro">
                 <span>MY PAGE</span>
                 <h1>마이페이지</h1>
-                <p>자소서 첨삭과 계정 정보를 관리하세요.</p>
+                <p>면접 성장 기록, 취업 문서와 계정 정보를 관리하세요.</p>
             </header>
 
-            <section className="mypage-documents" aria-labelledby="document-management-title">
-                <div className="mypage-section-title">
-                    <span>DOCUMENTS</span>
-                    <h2 id="document-management-title">취업 문서 관리</h2>
-                    <p>작성한 이력서, 자기소개서와 포트폴리오를 확인하세요.</p>
-                </div>
+            <div className="mypage-content-row">
+                <InterviewDashboard key={user?.userNum || userEmail} />
 
-                <fieldset className="mypage-document-types">
-                    <legend>조회할 문서 종류</legend>
-                    {DOCUMENT_OPTIONS.map((option) => (
-                        <label
-                            className={selectedDocumentType === option.value ? 'is-selected' : ''}
-                            key={option.value}
-                        >
-                            <input
-                                type="radio"
-                                name="documentType"
-                                value={option.value}
-                                checked={selectedDocumentType === option.value}
-                                onChange={handleDocumentTypeChange}
-                            />
-                            <span>{option.label}</span>
-                        </label>
-                    ))}
-                </fieldset>
+                <section className="mypage-documents" aria-labelledby="document-management-title">
+                    <div className="mypage-section-title">
+                        <span>DOCUMENTS</span>
+                        <h2 id="document-management-title">취업 문서 관리</h2>
+                        <p>작성한 이력서, 자기소개서와 포트폴리오를 확인하세요.</p>
+                    </div>
 
-                <div className="mypage-document-list" aria-live="polite">
-                    {isDocumentListLoading && (
-                        <div className="mypage-document-state" role="status">
-                            문서 목록을 불러오고 있습니다.
-                        </div>
-                    )}
+                    <fieldset className="mypage-document-types">
+                        <legend>조회할 문서 종류</legend>
+                        {DOCUMENT_OPTIONS.map((option) => (
+                            <label
+                                className={selectedDocumentType === option.value ? 'is-selected' : ''}
+                                key={option.value}
+                            >
+                                <input
+                                    type="radio"
+                                    name="documentType"
+                                    value={option.value}
+                                    checked={selectedDocumentType === option.value}
+                                    onChange={handleDocumentTypeChange}
+                                />
+                                <span>{option.label}</span>
+                            </label>
+                        ))}
+                    </fieldset>
 
-                    {!isDocumentListLoading && documentListError && (
-                        <div className="mypage-document-state is-error" role="alert">
-                            {documentListError}
-                        </div>
-                    )}
+                    <div className="mypage-document-list" aria-live="polite">
+                        {isDocumentListLoading && (
+                            <div className="mypage-document-state" role="status">
+                                문서 목록을 불러오고 있습니다.
+                            </div>
+                        )}
 
-                    {!isDocumentListLoading && !documentListError && documentList.length === 0 && (
-                        <div className="mypage-document-state">
-                            등록된 {DOCUMENT_OPTIONS.find((option) => option.value === selectedDocumentType)?.label}가 없습니다.
-                        </div>
-                    )}
+                        {!isDocumentListLoading && documentListError && (
+                            <div className="mypage-document-state is-error" role="alert">
+                                {documentListError}
+                            </div>
+                        )}
 
-                    {!isDocumentListLoading && !documentListError && documentList.map((documentItem) => (
+                        {!isDocumentListLoading && !documentListError && documentList.length === 0 && (
+                            <div className="mypage-document-state">
+                                등록된 {DOCUMENT_OPTIONS.find((option) => option.value === selectedDocumentType)?.label}가 없습니다.
+                            </div>
+                        )}
+
+                        {!isDocumentListLoading && !documentListError && documentList.map((documentItem) => (
+                            <Link
+                                className="mypage-document-item"
+                                to={`/documents/${selectedDocumentType}/${documentItem.documentNum}`}
+                                key={documentItem.documentNum}
+                            >
+                                <span className="mypage-document-icon" aria-hidden="true">
+                                    <FileText size={20} />
+                                </span>
+                                <span className="mypage-document-info">
+                                    <strong>{documentItem.documentTitle || '제목 없음'}</strong>
+                                    <span>작성일 {formatDocumentDate(documentItem.createdAt)}</span>
+                                </span>
+                                <ChevronRight size={19} aria-hidden="true" />
+                            </Link>
+                        ))}
+                    </div>
+
+                    <div className="mypage-document-write-action">
                         <Link
-                            className="mypage-document-item"
-                            to={`/documents/${selectedDocumentType}/${documentItem.documentNum}`}
-                            key={documentItem.documentNum}
+                            className="mypage-document-write-link"
+                            to={`/documents/write?type=${selectedDocumentType}`}
                         >
-                            <span className="mypage-document-icon" aria-hidden="true">
-                                <FileText size={20} />
-                            </span>
-                            <span className="mypage-document-info">
-                                <strong>{documentItem.documentTitle || '제목 없음'}</strong>
-                                <span>작성일 {formatDocumentDate(documentItem.createdAt)}</span>
-                            </span>
-                            <ChevronRight size={19} aria-hidden="true" />
+                            문서 작성하기
                         </Link>
-                    ))}
-                </div>
-
-                <div className="mypage-document-write-action">
-                    <Link
-                        className="mypage-document-write-link"
-                        to={`/documents/write?type=${selectedDocumentType}`}
-                    >
-                        문서 작성하기
-                    </Link>
-                </div>
-            </section>
+                    </div>
+                </section>
+            </div>
 
             <form className="mypage-edit-form" onSubmit={handleSubmit}>
                 <section aria-labelledby="profile-edit-title">

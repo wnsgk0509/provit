@@ -1,5 +1,7 @@
 package com.provit.controller.interview;
 
+import java.util.List;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpStatus;
@@ -19,6 +21,9 @@ import com.provit.dto.interview.InterviewAnswerResponseDTO;
 import com.provit.dto.interview.InterviewStartRequestDTO;
 import com.provit.dto.interview.InterviewStartResponseDTO;
 import com.provit.dto.interview.LlmInterviewContextDTO;
+import com.provit.dto.interview.InterviewHistoryDTO;
+import com.provit.dto.interview.InterviewResultDTO;
+import com.provit.dto.interview.InterviewRecordDTO;
 import com.provit.dto.response.ApiResponse;
 import com.provit.service.interview.InterviewService;
 import com.provit.util.jwt.JwtProvider;
@@ -90,6 +95,29 @@ public class InterviewController {
     }
 
 
+
+    @GetMapping("/results")
+    public ResponseEntity<ApiResponse<List<InterviewResultDTO>>> getResults(@LoginUser Long userNum) {
+        if (userNum == null) return unauthorizedResponse();
+        return ResponseEntity.ok(ApiResponse.success(
+                interviewService.getInterviewResultList(Math.toIntExact(userNum))));
+    }
+
+    @GetMapping("/{historyNum}/record")
+    public ResponseEntity<ApiResponse<InterviewRecordDTO>> getRecord(
+            @LoginUser Long userNum, @PathVariable("historyNum") int historyNum) {
+        if (userNum == null) return unauthorizedResponse();
+        int owner = Math.toIntExact(userNum);
+        InterviewHistoryDTO history = interviewService.getInterviewHistory(historyNum, owner);
+        InterviewResultDTO result = interviewService.getInterviewResult(historyNum, owner);
+        if (history == null || result == null) {
+            return new ResponseEntity<>(new ApiResponse<>(ResponseCode.NOT_FOUND, null), HttpStatus.NOT_FOUND);
+        }
+        InterviewRecordDTO record = new InterviewRecordDTO();
+        record.setHistory(history);
+        record.setResult(result);
+        return ResponseEntity.ok(ApiResponse.success(record));
+    }
 
     private <T> ResponseEntity<ApiResponse<T>> unauthorizedResponse() {
         return new ResponseEntity<>(
