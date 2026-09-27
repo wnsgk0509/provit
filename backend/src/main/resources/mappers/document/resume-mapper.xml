@@ -5,6 +5,14 @@
 
 <mapper namespace="com.provit.mapper.document.ResumeMapper">
 
+    <select id="selectResumeJob" resultType="com.provit.dto.document.ResumeDTO">
+        SELECT O.OCCUPATION_CODE, O.OCCUPATION_NAME, J.JOB_CODE, J.JOB_NAME
+        FROM T_JOB J
+        JOIN T_OCCUPATION O ON O.OCCUPATION_CODE = J.OCCUPATION_CODE
+        WHERE O.OCCUPATION_CODE = #{occupationCode}
+          AND J.JOB_CODE = #{jobCode}
+    </select>
+
     <select id="countEducationCode" parameterType="int" resultType="int">
         SELECT COUNT(*)
         FROM T_EDUCODE
@@ -19,6 +27,8 @@
             RESUME_NUM,
             USER_NUM,
             RESUME_TITLE,
+            OCCUPATION_CODE,
+            JOB_CODE,
             HIGHEST_LEVEL,
             EDUCATION_CODE,
             MOTIVATION,
@@ -30,6 +40,8 @@
             #{resumeNum},
             #{userNum},
             #{resumeTitle},
+            #{occupationCode, jdbcType=VARCHAR},
+            #{jobCode, jdbcType=VARCHAR},
             #{highestLevel},
             #{educationCode},
             #{motivation, jdbcType=CLOB},
@@ -107,6 +119,8 @@
         UPDATE T_RESUME
         SET
             RESUME_TITLE = #{resumeTitle},
+            OCCUPATION_CODE = #{occupationCode, jdbcType=VARCHAR},
+            JOB_CODE = #{jobCode, jdbcType=VARCHAR},
             HIGHEST_LEVEL = #{highestLevel},
             EDUCATION_CODE = #{educationCode},
             MOTIVATION = #{motivation, jdbcType=CLOB},
@@ -143,6 +157,10 @@
             R.RESUME_NUM,
             R.USER_NUM,
             R.RESUME_TITLE,
+            R.OCCUPATION_CODE,
+            O.OCCUPATION_NAME,
+            R.JOB_CODE,
+            J.JOB_NAME,
             R.HIGHEST_LEVEL,
             R.EDUCATION_CODE,
             E.EDUCATION_NAME,
@@ -153,6 +171,8 @@
             R.UPDATED_AT
         FROM T_RESUME R
         JOIN T_EDUCODE E ON E.EDUCATION_CODE = R.EDUCATION_CODE
+        LEFT JOIN T_OCCUPATION O ON O.OCCUPATION_CODE = R.OCCUPATION_CODE
+        LEFT JOIN T_JOB J ON J.JOB_CODE = R.JOB_CODE AND J.OCCUPATION_CODE = R.OCCUPATION_CODE
         WHERE R.RESUME_NUM = #{resumeNum}
           AND R.USER_NUM = #{userNum}
     </select>

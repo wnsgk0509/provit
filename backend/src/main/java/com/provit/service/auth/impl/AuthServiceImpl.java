@@ -298,8 +298,6 @@ public class AuthServiceImpl implements AuthService {
                 .userPw(encodedPassword)
                 .userBirthDate(birthDate)
                 .userType("USER")
-                .jobCode(requestDTO.getJobCode())
-                .occupationCode(requestDTO.getOccupationCode())
                 .userIsDeleted(0)
                 .build();
 

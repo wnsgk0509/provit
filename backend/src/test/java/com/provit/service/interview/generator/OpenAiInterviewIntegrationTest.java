@@ -112,6 +112,11 @@ public class OpenAiInterviewIntegrationTest {
             assertEquals(limits[index], request.path("max_output_tokens").asInt());
             assertTrue(request.path("text").path("format").path("strict").asBoolean());
             JsonNode input = mapper.readTree(request.path("input").asText());
+            assertEquals("14", input.path("occupationCode").asText());
+            assertEquals("마케팅·홍보·조사", input.path("occupation").asText());
+            assertEquals("310", input.path("jobCode").asText());
+            assertEquals("콘텐츠마케팅", input.path("job").asText());
+            assertTrue(request.path("instructions").asText().contains("선택한 이력서의 1차 직군"));
             assertFalse(input.has("userNum"));
             if (index == 0) {
                 assertTrue(input.path("documentText").asText().contains("[자기소개서]"));
@@ -264,6 +269,10 @@ public class OpenAiInterviewIntegrationTest {
     private InterviewDAO dao(AtomicInteger saves) {
         ResumeDTO resume = new ResumeDTO();
         resume.setResumeTitle("마케팅 지원 이력서");
+        resume.setOccupationCode("14");
+        resume.setOccupationName("마케팅·홍보·조사");
+        resume.setJobCode("310");
+        resume.setJobName("콘텐츠마케팅");
         CoverLetterDTO letter = new CoverLetterDTO();
         letter.setProblemSolvingExperience("고객 설문을 분석해 콘텐츠 변경");
         InterviewResultDTO previous = new InterviewResultDTO();

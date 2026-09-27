@@ -98,7 +98,6 @@ public class InterviewServiceImpl implements InterviewService {
         validateDocumentNumbers(resumeNum, portfolioNum, letterNum);
 
         LlmInterviewContextDTO context = new LlmInterviewContextDTO();
-        context.setJobPreference(interviewDAO.selectUserJobPreferenceByUserNum(userNum));
         context.setResumeDetail(getResumeDetail(userNum, resumeNum));
         if (portfolioNum > 0) {
             context.setPortfolio(interviewDAO.selectPortfolioByPortfolioNumAndUserNum(portfolioNum, userNum));

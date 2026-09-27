@@ -98,9 +98,12 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
 
     private ObjectNode settings(LlmInterviewContextDTO context, String style, String difficulty) {
         ObjectNode input = mapper.createObjectNode();
-        if (context.getJobPreference() != null) {
-            input.put("occupation", context.getJobPreference().getOccupationName());
-            input.put("job", context.getJobPreference().getJobName());
+        if (context.getResumeDetail() != null && context.getResumeDetail().getResume() != null) {
+            var resume = context.getResumeDetail().getResume();
+            input.put("occupationCode", resume.getOccupationCode());
+            input.put("occupation", resume.getOccupationName());
+            input.put("jobCode", resume.getJobCode());
+            input.put("job", resume.getJobName());
         }
         input.put("interviewStyle", style);
         input.put("interviewDifficulty", difficulty);

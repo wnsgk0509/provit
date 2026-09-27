@@ -33,6 +33,10 @@ public class InterviewDocumentInputBuilderTest {
         new InterviewDocumentInputBuilder(unusedStorage).prepare(context);
 
         assertTrue(context.getDocumentText().contains("[이력서]"));
+        assertTrue(context.getDocumentText().contains("지원 직군: IT개발·데이터"));
+        assertTrue(context.getDocumentText().contains("지원 직군 코드: 2"));
+        assertTrue(context.getDocumentText().contains("지원 직무: 백엔드/서버개발"));
+        assertTrue(context.getDocumentText().contains("지원 직무 코드: 84"));
         assertTrue(context.getDocumentText().contains("지원 동기: 서버 개발 경험"));
         assertTrue(context.getDocumentText().contains("[자기소개서]"));
         assertTrue(context.getDocumentText().contains("문제 해결 경험: 병목을 분석하고 개선"));
@@ -75,6 +79,10 @@ public class InterviewDocumentInputBuilderTest {
     private LlmInterviewContextDTO requiredContext() {
         ResumeDTO resume = new ResumeDTO();
         resume.setResumeTitle("백엔드 이력서");
+        resume.setOccupationCode("2");
+        resume.setOccupationName("IT개발·데이터");
+        resume.setJobCode("84");
+        resume.setJobName("백엔드/서버개발");
         resume.setMotivation("서버\n개발  경험");
         ResumeDetailDTO resumeDetail = new ResumeDetailDTO();
         resumeDetail.setResume(resume);

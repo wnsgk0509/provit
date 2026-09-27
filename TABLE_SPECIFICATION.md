@@ -90,9 +90,7 @@
 | 6 | USER_PW | 비밀번호 | VARCHAR2 | 255 | | NOT NULL | | 암호화된 비밀번호 해시 | | BCrypt 단방향 암호화 |
 | 7 | USER_REGISTER_DATE | 가입일시 | DATE | | | NOT NULL | SYSDATE | 최초 회원가입 일시 | | |
 | 8 | USER_TYPE | 권한 구분 | VARCHAR2 | 30 | | | 'USER' | 계정 권한 구분 | | 'USER', 'ADMIN' |
-| 9 | JOB_CODE | 희망 직무 코드 | VARCHAR2 | 20 | | | | 회원이 희망하는 소분류 직무 | T_JOB(JOB_CODE) | ON DELETE SET NULL |
-| 10 | OCCUPATION_CODE | 희망 직군 코드 | VARCHAR2 | 20 | | | | 회원이 희망하는 대분류 직군 | T_OCCUPATION(OCCUPATION_CODE) | ON DELETE SET NULL |
-| 11 | USER_IS_DELETED | 탈퇴 여부 | NUMBER | 1 | | NOT NULL | 0 | 회원 탈퇴 플래그 | | 0: 정상, 1: 탈퇴 |
+| 9 | USER_IS_DELETED | 탈퇴 여부 | NUMBER | 1 | | NOT NULL | 0 | 회원 탈퇴 플래그 | | 0: 정상, 1: 탈퇴 |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|
@@ -139,6 +137,8 @@
 | 8 | DESIRED_WORK_TYPE | 희망 고용형태 | VARCHAR2 | 100 | | | | 희망 고용 형태 | | 정규직, 계약직 등 |
 | 9 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 이력서 최초 작성 일시 | | |
 | 10 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 이력서 최종 수정 일시 | | |
+| 11 | OCCUPATION_CODE | 지원 직군 코드 | VARCHAR2 | 20 | | | | 이력서에서 선택한 1차 직군 | T_OCCUPATION(OCCUPATION_CODE) | ON DELETE SET NULL, 작성/수정 API에서 필수 |
+| 12 | JOB_CODE | 지원 직무 코드 | VARCHAR2 | 20 | | | | 선택한 직군에 속한 2차 직무 | T_JOB(JOB_CODE) | ON DELETE SET NULL, 작성/수정 API에서 소속 직군 검증 |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|

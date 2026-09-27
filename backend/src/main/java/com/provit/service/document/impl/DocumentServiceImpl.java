@@ -57,6 +57,7 @@ public class DocumentServiceImpl implements DocumentService {
         resume.setCreatedAt(null);
         resume.setUpdatedAt(null);
         trimResume(resume);
+        resolveResumeJob(resume);
 
         if (documentDAO.countEducationCode(resume.getEducationCode()) != 1) {
             throw new IllegalArgumentException("유효하지 않은 학력 구분입니다.");
@@ -148,6 +149,7 @@ public class DocumentServiceImpl implements DocumentService {
         resume.setCreatedAt(null);
         resume.setUpdatedAt(null);
         trimResume(resume);
+        resolveResumeJob(resume);
 
         if (documentDAO.countEducationCode(resume.getEducationCode()) != 1) {
             throw new IllegalArgumentException("유효하지 않은 학력 구분입니다.");
@@ -365,6 +367,8 @@ public class DocumentServiceImpl implements DocumentService {
 
         ResumeDTO resume = resumeDetail.getResume();
         validateRequiredText(resume.getResumeTitle(), 200, "이력서 제목");
+        validateRequiredText(resume.getOccupationCode(), 20, "지원 직군");
+        validateRequiredText(resume.getJobCode(), 20, "지원 직무");
         validateRequiredText(resume.getHighestLevel(), 20, "최종 학력");
         validateOptionalText(resume.getDesiredLocation(), 200, "희망 근무 지역");
         validateOptionalText(resume.getDesiredWorkType(), 100, "희망 근무 형태");
@@ -403,6 +407,17 @@ public class DocumentServiceImpl implements DocumentService {
 
     private <T> List<T> safeList(List<T> list) {
         return list == null ? Collections.emptyList() : list;
+    }
+
+    private void resolveResumeJob(ResumeDTO resume) {
+        resume.setOccupationCode(resume.getOccupationCode().trim());
+        resume.setJobCode(resume.getJobCode().trim());
+        ResumeDTO selectedJob = documentDAO.selectResumeJob(resume.getOccupationCode(), resume.getJobCode());
+        if (selectedJob == null) {
+            throw new IllegalArgumentException("선택한 직군에 속하는 유효한 직무를 선택해 주세요.");
+        }
+        resume.setOccupationName(selectedJob.getOccupationName());
+        resume.setJobName(selectedJob.getJobName());
     }
 
     private void validateRequiredText(String value, int maxLength, String fieldName) {

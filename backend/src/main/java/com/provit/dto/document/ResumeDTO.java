@@ -12,6 +12,10 @@ public class ResumeDTO {
     private int resumeNum;
     private int userNum;
     private String resumeTitle;
+    private String occupationCode;
+    private String occupationName;
+    private String jobCode;
+    private String jobName;
     private String highestLevel;
     private int educationCode;
     private String educationName;

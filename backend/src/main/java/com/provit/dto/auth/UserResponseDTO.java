@@ -22,8 +22,6 @@ public class UserResponseDTO {
     private String userEmail;
     private Date userRegisterDate;
     private String userType;
-    private String jobCode;
-    private String occupationCode;
 
     public static UserResponseDTO from(UserDTO userDTO) {
         if (userDTO == null) {
@@ -37,8 +35,6 @@ public class UserResponseDTO {
                 .userEmail(userDTO.getUserEmail())
                 .userRegisterDate(userDTO.getUserRegisterDate())
                 .userType(userDTO.getUserType())
-                .jobCode(userDTO.getJobCode())
-                .occupationCode(userDTO.getOccupationCode())
                 .build();
     }
 }

@@ -14,6 +14,8 @@ public interface DocumentDAO {
 
     int countEducationCode(int educationCode);
 
+    ResumeDTO selectResumeJob(String occupationCode, String jobCode);
+
     int insertResume(ResumeDTO resume);
 
     int insertEducation(EducationDTO education);

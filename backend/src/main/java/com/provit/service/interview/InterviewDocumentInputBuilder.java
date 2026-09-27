@@ -56,14 +56,14 @@ public class InterviewDocumentInputBuilder {
 
     private String buildText(LlmInterviewContextDTO context) {
         StringBuilder text = new StringBuilder();
-        if (context.getJobPreference() != null) {
-            append(text, "지원 직군", context.getJobPreference().getOccupationName());
-            append(text, "지원 직무", context.getJobPreference().getJobName());
-        }
 
         text.append("[이력서]\n");
         ResumeDetailDTO detail = context.getResumeDetail();
         ResumeDTO resume = detail.getResume();
+        append(text, "지원 직군", resume.getOccupationName());
+        append(text, "지원 직군 코드", resume.getOccupationCode());
+        append(text, "지원 직무", resume.getJobName());
+        append(text, "지원 직무 코드", resume.getJobCode());
         append(text, "제목", resume.getResumeTitle());
         append(text, "최종 학력", resume.getHighestLevel());
         append(text, "지원 동기", resume.getMotivation());

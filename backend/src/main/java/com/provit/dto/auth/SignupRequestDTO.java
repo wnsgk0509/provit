@@ -19,7 +19,5 @@ public class SignupRequestDTO {
     private String userPw;
     private String confirmPw;
     private String userBirthDate;
-    private String jobCode;
-    private String occupationCode;
     private String verificationToken;
 }
