@@ -11,7 +11,7 @@ const DIFFICULTIES = [
     { value: 'EASY', label: '일반면접' },
 ];
 
-function InterviewCustom({ settings, documents, isLoading, onSettingChange, onStart }) {
+function InterviewCustom({ settings, documents, isLoading, startDisabled = false, onSettingChange, onStart }) {
     const handleSubmit = (event) => {
         event.preventDefault();
         onStart();
@@ -121,7 +121,7 @@ function InterviewCustom({ settings, documents, isLoading, onSettingChange, onSt
                 <button
                     className="btn btn-primary interview-primary-button"
                     type="submit"
-                    disabled={isLoading
+                    disabled={isLoading || startDisabled
                         || !documents?.resumeList?.length
                         || !documents?.coverLetterList?.length}
                 >

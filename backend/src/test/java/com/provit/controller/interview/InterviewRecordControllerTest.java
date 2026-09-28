@@ -12,14 +12,27 @@ import org.springframework.http.HttpStatus;
 import com.provit.dto.interview.InterviewHistoryDTO;
 import com.provit.dto.interview.InterviewResultDTO;
 import com.provit.service.interview.InterviewService;
+import com.provit.common.GlobalExceptionHandler;
+import com.provit.service.interview.InterviewMaintenanceException;
 
 public class InterviewRecordControllerTest {
+    @Test
+    public void maintenanceResponseTellsTheBrowserToBlockAndDiscardProgress() {
+        var response = new GlobalExceptionHandler().handleInterviewMaintenance(new InterviewMaintenanceException());
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        assertEquals(true, response.getBody().getData().get("maintenance"));
+        assertEquals(true, response.getBody().getData().get("restartRequired"));
+        assertTrue(response.getBody().getData().get("message").toString().contains("23:55~00:00"));
+    }
+
     @Test
     public void anonymousRequestsAreRejectedBeforeAccessingRecords() {
         InterviewService unusedService = fakeService((name, args) -> { throw new AssertionError("인증 전에 기록을 조회했습니다."); });
         InterviewController controller = new InterviewController(unusedService, null);
         assertEquals(HttpStatus.UNAUTHORIZED, controller.getResults(null).getStatusCode());
         assertEquals(HttpStatus.UNAUTHORIZED, controller.getRecord(null, 17).getStatusCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, controller.getSession(null, 17).getStatusCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, controller.discardSession(null, 17).getStatusCode());
     }
 
     @Test

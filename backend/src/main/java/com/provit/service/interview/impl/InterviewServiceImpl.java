@@ -7,6 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -33,10 +37,13 @@ import com.provit.dto.interview.LlmFollowUpRequestDTO;
 import com.provit.dto.interview.LlmInterviewContextDTO;
 import com.provit.dto.interview.LlmQuestionRequestDTO;
 import com.provit.dto.interview.LlmQuestionResponseDTO;
+import com.provit.dto.interview.InterviewAvailabilityDTO;
+import com.provit.dto.interview.InterviewSessionResponseDTO;
 import com.provit.service.interview.InterviewService;
 import com.provit.service.interview.InterviewProcessingException;
 import com.provit.service.interview.InterviewPersistenceService;
 import com.provit.service.interview.InterviewDocumentInputBuilder;
+import com.provit.service.interview.InterviewMaintenanceException;
 import com.provit.service.interview.generator.InterviewGenerator;
 
 @Service
@@ -45,12 +52,14 @@ public class InterviewServiceImpl implements InterviewService {
     private static final Logger log = LoggerFactory.getLogger(InterviewServiceImpl.class);
     private static final int ANSWER_TIME_LIMIT_SECONDS = 120;
     private static final int MAX_GENERATOR_CALLS = 4;
-    private static final long SESSION_TIMEOUT_MILLIS = TimeUnit.MINUTES.toMillis(30);
+    private static final ZoneId INTERVIEW_ZONE = ZoneId.of("Asia/Seoul");
+    private static final LocalTime MAINTENANCE_START = LocalTime.of(23, 55);
 
     private final InterviewDAO interviewDAO;
     private final InterviewGenerator interviewGenerator;
     private final InterviewPersistenceService persistenceService;
     private final InterviewDocumentInputBuilder documentInputBuilder;
+    private final Clock clock;
     private final Map<Integer, InterviewSession> sessions = new ConcurrentHashMap<>();
     private final Map<String, StartAttempt> starts = new ConcurrentHashMap<>();
 
@@ -60,14 +69,95 @@ public class InterviewServiceImpl implements InterviewService {
             InterviewGenerator interviewGenerator,
             InterviewPersistenceService persistenceService,
             InterviewDocumentInputBuilder documentInputBuilder) {
+        this(interviewDAO, interviewGenerator, persistenceService, documentInputBuilder, Clock.systemUTC());
+    }
+
+    public InterviewServiceImpl(
+            InterviewDAO interviewDAO, InterviewGenerator interviewGenerator,
+            InterviewPersistenceService persistenceService,
+            InterviewDocumentInputBuilder documentInputBuilder, Clock clock) {
         this.interviewDAO = interviewDAO;
         this.interviewGenerator = interviewGenerator;
         this.persistenceService = persistenceService;
         this.documentInputBuilder = documentInputBuilder;
+        this.clock = clock;
+    }
+
+    @Override
+    public InterviewAvailabilityDTO getAvailability() {
+        long now = clock.millis();
+        var local = Instant.ofEpochMilli(now).atZone(INTERVIEW_ZONE);
+        boolean maintenance = !local.toLocalTime().isBefore(MAINTENANCE_START);
+        var response = new InterviewAvailabilityDTO();
+        response.setMaintenance(maintenance);
+        response.setServerTime(now);
+        response.setNextChangeAt(maintenance
+                ? local.toLocalDate().plusDays(1).atStartOfDay(INTERVIEW_ZONE).toInstant().toEpochMilli()
+                : expirationAt(now));
+        return response;
+    }
+
+    private static long expirationAt(long now) {
+        return Instant.ofEpochMilli(now).atZone(INTERVIEW_ZONE).toLocalDate()
+                .atTime(MAINTENANCE_START).atZone(INTERVIEW_ZONE).toInstant().toEpochMilli();
+    }
+
+    private void ensureAvailable() {
+        if (getAvailability().isMaintenance()) throw new InterviewMaintenanceException();
+    }
+
+    private void ensureActive(InterviewSession session, int historyNum) {
+        ensureAvailable();
+        if (session.isExpired(clock.millis()) || sessions.get(historyNum) != session) {
+            sessions.remove(historyNum, session);
+            throw new InterviewProcessingException("진행 중인 면접이 만료되었습니다. 새 면접을 시작해 주세요.", true, false);
+        }
+    }
+
+    @Override
+    public InterviewSessionResponseDTO getSession(int userNum, int historyNum) {
+        ensureAvailable();
+        InterviewSession session = sessions.get(historyNum);
+        if (session == null || session.userNum != userNum) {
+            throw new InterviewProcessingException("이전 면접을 찾을 수 없습니다. 만료되었거나 서버가 재시작되었습니다.", true, false);
+        }
+        synchronized (session) {
+            ensureActive(session, historyNum);
+            if (session.failed) throw new InterviewProcessingException("이전 면접 처리에 실패했습니다. 새 면접을 시작해 주세요.", true, false);
+            boolean completed = session.questionAnswers.size() == 5;
+            var response = new InterviewSessionResponseDTO();
+            response.setHistoryNum(historyNum);
+            response.setSettings(session.settings);
+            // 현재 답변할 문항까지만 공개한다.
+            response.setQuestions(List.copyOf(session.questions.subList(0,
+                    Math.min(session.questionAnswers.size() + 1, session.questions.size()))));
+            response.setAnswers(List.copyOf(session.questionAnswers));
+            response.setCompleted(completed);
+            response.setAnswerLocked(!completed && session.evaluatedAnswer != null);
+            response.setPendingAnswer(session.evaluatedAnswer == null ? null : session.evaluatedAnswer.getAnswer());
+            if (completed) response.setResult(createResultResponse(historyNum, session.evaluation));
+            response.setAnswerTimeLimitSeconds(ANSWER_TIME_LIMIT_SECONDS);
+            response.setQuestionDeadline(session.questionDeadline);
+            response.setExpiresAt(session.expiresAt);
+            response.setServerTime(clock.millis());
+            return response;
+        }
+    }
+
+    @Override
+    public void discardSession(int userNum, int historyNum) {
+        ensureAvailable();
+        InterviewSession session = sessions.get(historyNum);
+        if (session == null) return;
+        if (session.userNum != userNum) throw new IllegalArgumentException("해당 면접에 접근할 수 없습니다.");
+        synchronized (session) { sessions.remove(historyNum, session); }
+        starts.entrySet().removeIf(entry -> entry.getValue().response != null
+                && entry.getValue().response.getHistoryNum() == historyNum);
     }
 
     @Override
     public InterviewDocumentResponseDTO getInterviewDocuments(int userNum) {
+        ensureAvailable();
         InterviewDocumentResponseDTO response = new InterviewDocumentResponseDTO();
         response.setPortfolioList(interviewDAO.selectPortfolioListByUserNum(userNum));
         response.setCoverLetterList(interviewDAO.selectCoverLetterListByUserNum(userNum));
@@ -96,6 +186,7 @@ public class InterviewServiceImpl implements InterviewService {
             int resumeNum,
             int portfolioNum,
             int letterNum) {
+        ensureAvailable();
         validateDocumentNumbers(resumeNum, portfolioNum, letterNum);
 
         LlmInterviewContextDTO context = new LlmInterviewContextDTO();
@@ -112,22 +203,25 @@ public class InterviewServiceImpl implements InterviewService {
 
     @Override
     public InterviewStartResponseDTO startInterview(int userNum, InterviewStartRequestDTO request) {
+        ensureAvailable();
         validateStartRequest(request);
         if (request.getRequestId() == null) return createSession(userNum, request);
         if (!request.getRequestId().matches("[a-fA-F0-9-]{36}")) {
             throw new IllegalArgumentException("면접 시작 요청 번호가 올바르지 않습니다.");
         }
         String key = userNum + ":" + request.getRequestId();
-        StartAttempt attempt = starts.computeIfAbsent(key, ignored -> new StartAttempt(request));
+        StartAttempt attempt = starts.computeIfAbsent(key, ignored -> new StartAttempt(request, expirationAt(clock.millis())));
         synchronized (attempt) {
+            ensureAvailable();
             if (!attempt.fingerprint.equals(startFingerprint(request))) {
                 throw new IllegalArgumentException("같은 요청 번호로 면접 설정을 변경할 수 없습니다.");
             }
             if (attempt.response != null) {
                 InterviewSession session = sessions.get(attempt.response.getHistoryNum());
-                if (session == null || session.isInactive(System.currentTimeMillis())) {
+                if (session == null || session.isExpired(clock.millis())) {
                     throw new InterviewProcessingException("면접이 만료되었습니다. 새 면접을 시작해 주세요.", true, false);
                 }
+                attempt.response.setServerTime(clock.millis());
                 return attempt.response;
             }
             if (attempt.failure != null) throw attempt.failure;
@@ -142,6 +236,7 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     private InterviewStartResponseDTO createSession(int userNum, InterviewStartRequestDTO request) {
+        long expiresAt = expirationAt(clock.millis());
         LlmInterviewContextDTO context = getLlmInterviewContext(
                 userNum, request.getResumeNum(), request.getPortfolioNum(), request.getLetterNum());
         context.setRecruitment(request.getRecruitment());
@@ -160,32 +255,43 @@ public class InterviewServiceImpl implements InterviewService {
             context.setPortfolioPdf(null);
         }
         List<InterviewQuestionDTO> documentQuestions = validateDocumentQuestions(generated);
+        ensureAvailable();
+        if (clock.millis() >= expiresAt) {
+            throw new InterviewProcessingException("면접 준비 중 보관 기한이 만료되었습니다. 새 면접을 시작해 주세요.", true, false);
+        }
         int historyNum = interviewDAO.selectNextHistoryNum();
-        InterviewSession session = new InterviewSession(userNum, request, context);
+        InterviewSession session = new InterviewSession(userNum, request, context, expiresAt, clock.millis());
         session.questions.addAll(documentQuestions);
         sessions.put(historyNum, session);
+        // 번호 발급이 지연되거나 정리 작업과 겹쳐도 만료된 세션을 공개하지 않는다.
+        try {
+            ensureActive(session, historyNum);
+        } catch (RuntimeException exception) {
+            sessions.remove(historyNum, session);
+            throw exception;
+        }
 
         InterviewStartResponseDTO response = new InterviewStartResponseDTO();
         response.setHistoryNum(historyNum);
         response.setQuestions(List.of(documentQuestions.get(0)));
         response.setAnswerTimeLimitSeconds(ANSWER_TIME_LIMIT_SECONDS);
+        response.setQuestionDeadline(session.questionDeadline);
+        response.setExpiresAt(session.expiresAt);
+        response.setServerTime(clock.millis());
         return response;
     }
 
     @Override
     public InterviewAnswerResponseDTO submitAnswer(
             int userNum, int historyNum, InterviewAnswerRequestDTO request) {
+        ensureAvailable();
         InterviewSession session = sessions.get(historyNum);
         if (session == null || session.userNum != userNum) {
             throw new InterviewProcessingException("진행 중인 면접을 찾을 수 없습니다. 새 면접을 시작해 주세요.", true, false);
         }
 
         synchronized (session) {
-            if (session.isInactive(System.currentTimeMillis())) {
-                sessions.remove(historyNum, session);
-                throw new InterviewProcessingException("진행 중인 면접이 만료되었습니다. 새 면접을 시작해 주세요.", true, false);
-            }
-            session.touch();
+            ensureActive(session, historyNum);
 
             if (request != null && request.getQuestionOrder() > 0
                     && request.getQuestionOrder() <= session.questionAnswers.size()) {
@@ -194,7 +300,9 @@ public class InterviewServiceImpl implements InterviewService {
                 if (!session.questionAnswers.get(answeredIndex).getAnswer().equals(submittedAnswer)) {
                     throw new IllegalArgumentException("이미 제출한 답변은 변경할 수 없습니다.");
                 }
-                return session.responses.get(answeredIndex);
+                InterviewAnswerResponseDTO cached = session.responses.get(answeredIndex);
+                stampResponse(cached, session);
+                return cached;
             }
             if (session.failed) {
                 throw new InterviewProcessingException("면접 처리에 실패했습니다. 새 면접을 시작해 주세요.", true, false);
@@ -202,7 +310,7 @@ public class InterviewServiceImpl implements InterviewService {
 
             int expectedOrder = session.questionAnswers.size() + 1;
             if (request != null) {
-                request.setTimedOut(session.hasAnswerExpired());
+                request.setTimedOut(session.hasAnswerExpired(clock.millis()));
             }
             validateAnswerRequest(request, expectedOrder);
 
@@ -226,13 +334,15 @@ public class InterviewServiceImpl implements InterviewService {
                         session.failed = true;
                         throw generationFailure(exception);
                     }
+                    ensureActive(session, historyNum);
                     session.questions.add(nextQuestion);
                 }
                 session.questionAnswers.add(currentAnswer);
-                session.restartAnswerTimer();
+                session.restartAnswerTimer(clock.millis());
                 response.setCompleted(false);
                 response.setNextQuestion(nextQuestion);
                 session.responses.add(response);
+                stampResponse(response, session);
                 return response;
             }
 
@@ -247,6 +357,7 @@ public class InterviewServiceImpl implements InterviewService {
                 }
             }
             InterviewHistoryDTO history = createHistory(historyNum, userNum, session);
+            ensureActive(session, historyNum);
             setHistoryQuestionAnswer(history, session.evaluatedAnswer);
             InterviewResultDTO result = createResult(historyNum, userNum, session.evaluation);
             try {
@@ -260,6 +371,7 @@ public class InterviewServiceImpl implements InterviewService {
             response.setCompleted(true);
             response.setResult(createResultResponse(historyNum, session.evaluation));
             session.responses.add(response);
+            stampResponse(response, session);
             return response;
         }
     }
@@ -294,30 +406,34 @@ public class InterviewServiceImpl implements InterviewService {
         return interviewDAO.selectLatestInterviewResultByUserNum(userNum);
     }
 
-    @Scheduled(fixedDelay = 300000)
+    private void stampResponse(InterviewAnswerResponseDTO response, InterviewSession session) {
+        response.setQuestionDeadline(session.questionDeadline);
+        response.setExpiresAt(session.expiresAt);
+        response.setServerTime(clock.millis());
+    }
+
+    @Scheduled(cron = "0 55 23 * * *", zone = "Asia/Seoul")
+    public void expireDailySessions() { removeInactiveSessions(); }
+
+    @Scheduled(fixedDelay = 60000)
     public void removeInactiveSessions() {
-        long now = System.currentTimeMillis();
+        long now = clock.millis();
         int removedCount = 0;
 
         for (Map.Entry<Integer, InterviewSession> entry : sessions.entrySet()) {
             InterviewSession session = entry.getValue();
-            synchronized (session) {
-                if (session.isInactive(now) && sessions.remove(entry.getKey(), session)) {
-                    removedCount++;
-                }
+            if (session.isExpired(now) && sessions.remove(entry.getKey(), session)) {
+                removedCount++;
             }
         }
 
         if (removedCount > 0) {
-            log.info("30분 이상 미응답인 면접 세션 {}건을 정리했습니다.", removedCount);
+            log.info("보관 기한이 만료된 면접 세션 {}건을 정리했습니다.", removedCount);
         }
         for (var entry : starts.entrySet()) {
             StartAttempt attempt = entry.getValue();
-            synchronized (attempt) {
-                if (now - attempt.createdAt >= SESSION_TIMEOUT_MILLIS
-                        && (attempt.response == null || !sessions.containsKey(attempt.response.getHistoryNum()))) {
-                    starts.remove(entry.getKey(), attempt);
-                }
+            if (now >= attempt.expiresAt) {
+                starts.remove(entry.getKey(), attempt);
             }
         }
     }
@@ -341,11 +457,14 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     private static class StartAttempt {
-        private final long createdAt = System.currentTimeMillis();
+        private final long expiresAt;
         private final List<Object> fingerprint;
-        private InterviewStartResponseDTO response;
+        private volatile InterviewStartResponseDTO response;
         private RuntimeException failure;
-        private StartAttempt(InterviewStartRequestDTO request) { fingerprint = startFingerprint(request); }
+        private StartAttempt(InterviewStartRequestDTO request, long expiresAt) {
+            fingerprint = startFingerprint(request);
+            this.expiresAt = expiresAt;
+        }
     }
 
     private InterviewQuestionDTO generateFollowUpQuestion(
@@ -587,33 +706,29 @@ public class InterviewServiceImpl implements InterviewService {
         private InterviewQuestionAnswerDTO evaluatedAnswer;
         private int generatorCalls = 1;
         private boolean failed;
-        private volatile long lastActivityAtMillis;
-        private long questionStartedAtNanos;
+        private final long expiresAt;
+        private long questionDeadline;
 
         private InterviewSession(
-                int userNum, InterviewStartRequestDTO settings, LlmInterviewContextDTO context) {
+                int userNum, InterviewStartRequestDTO settings, LlmInterviewContextDTO context,
+                long expiresAt, long now) {
             this.userNum = userNum;
             this.settings = settings;
             this.context = context;
-            this.lastActivityAtMillis = System.currentTimeMillis();
-            this.questionStartedAtNanos = System.nanoTime();
+            this.expiresAt = expiresAt;
+            restartAnswerTimer(now);
         }
 
-        private void touch() {
-            lastActivityAtMillis = System.currentTimeMillis();
+        private boolean isExpired(long now) {
+            return now >= expiresAt;
         }
 
-        private boolean isInactive(long now) {
-            return now - lastActivityAtMillis >= SESSION_TIMEOUT_MILLIS;
+        private boolean hasAnswerExpired(long now) {
+            return now >= questionDeadline;
         }
 
-        private boolean hasAnswerExpired() {
-            return System.nanoTime() - questionStartedAtNanos
-                    >= TimeUnit.SECONDS.toNanos(ANSWER_TIME_LIMIT_SECONDS);
-        }
-
-        private void restartAnswerTimer() {
-            questionStartedAtNanos = System.nanoTime();
+        private void restartAnswerTimer(long now) {
+            questionDeadline = now + TimeUnit.SECONDS.toMillis(ANSWER_TIME_LIMIT_SECONDS);
         }
     }
 

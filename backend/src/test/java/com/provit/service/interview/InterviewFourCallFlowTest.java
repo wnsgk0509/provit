@@ -9,6 +9,10 @@ import static org.junit.Assert.assertTrue;
 import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 import org.junit.Test;
 
@@ -63,6 +67,11 @@ public class InterviewFourCallFlowTest {
         assertEquals(2, generator.followUpCalls);
         assertEquals(1, generator.evaluationCalls);
         assertEquals(1, savedHistories.get());
+        var restoredResult = service.getSession(7, historyNum);
+        assertTrue(restoredResult.isCompleted());
+        assertEquals(5, restoredResult.getAnswers().size());
+        assertEquals(80.0, restoredResult.getResult().getTotalScore(), 0.001);
+        assertEquals(1, generator.evaluationCalls);
     }
 
     @Test
@@ -108,6 +117,10 @@ public class InterviewFourCallFlowTest {
         }
 
         assertThrows(IllegalStateException.class, () -> service.submitAnswer(7, historyNum, answer(5)));
+        var resumed = service.getSession(7, historyNum);
+        assertTrue(resumed.isAnswerLocked());
+        assertEquals("답변 5", resumed.getPendingAnswer());
+        assertEquals(4, resumed.getAnswers().size());
         InterviewAnswerRequestDTO changed = answer(5);
         changed.setAnswer("변경한 답변");
         assertThrows(IllegalStateException.class, () -> service.submitAnswer(7, historyNum, changed));
@@ -117,7 +130,206 @@ public class InterviewFourCallFlowTest {
 
     private InterviewServiceImpl service(
             InterviewDAO dao, InterviewGenerator generator, InterviewPersistenceService persistence) {
-        return new InterviewServiceImpl(dao, generator, persistence, new InterviewDocumentInputBuilder(null));
+        return service(dao, generator, persistence,
+                Clock.fixed(Instant.parse("2026-09-28T03:00:00Z"), ZoneOffset.UTC));
+    }
+
+    private InterviewServiceImpl service(InterviewDAO dao, InterviewGenerator generator,
+            InterviewPersistenceService persistence, Clock clock) {
+        return new InterviewServiceImpl(dao, generator, persistence, new InterviewDocumentInputBuilder(null), clock);
+    }
+
+    @Test
+    public void resumeAfterLongAbsencePreservesProgressWithoutGeneratingAgain() {
+        var clock = new MutableClock("2026-09-28T03:00:00Z");
+        var generator = new RecordingGenerator();
+        var dao = fakeDao(new AtomicInteger());
+        var service = service(dao, generator, new InterviewPersistenceService(dao), clock);
+        var request = settings();
+        var recruitment = new InterviewRecruitmentDTO();
+        recruitment.setCompanyName("지원 회사");
+        request.setRecruitment(recruitment);
+        int id = service.startInterview(7, request).getHistoryNum();
+        service.submitAnswer(7, id, answer(1));
+        var before = service.getSession(7, id);
+        clock.set("2026-09-28T05:00:00Z");
+        service.removeInactiveSessions();
+        var resumed = service.getSession(7, id);
+        assertEquals(1, resumed.getAnswers().size());
+        assertEquals("답변 1", resumed.getAnswers().get(0).getAnswer());
+        assertEquals(2, resumed.getQuestions().size());
+        assertEquals(before.getQuestionDeadline(), resumed.getQuestionDeadline());
+        assertEquals("지원 회사", resumed.getSettings().getRecruitment().getCompanyName());
+        assertEquals(Instant.parse("2026-09-28T14:55:00Z").toEpochMilli(), resumed.getExpiresAt());
+        assertEquals(1, generator.batchCalls);
+        assertEquals(0, generator.followUpCalls);
+        var timedOut = answer(2);
+        timedOut.setTimedOut(false);
+        service.submitAnswer(7, id, timedOut);
+        assertTrue(service.getSession(7, id).getAnswers().get(1).isTimedOut());
+    }
+
+    @Test
+    public void otherUserCannotResumeOrDiscardAndFutureQuestionsAreHidden() {
+        var generator = new RecordingGenerator();
+        var dao = fakeDao(new AtomicInteger());
+        var service = service(dao, generator, new InterviewPersistenceService(dao));
+        int id = service.startInterview(7, settings()).getHistoryNum();
+        assertEquals(1, service.getSession(7, id).getQuestions().size());
+        assertThrows(InterviewProcessingException.class, () -> service.getSession(8, id));
+        assertThrows(IllegalArgumentException.class, () -> service.discardSession(8, id));
+        assertEquals(1, service.getSession(7, id).getQuestions().size());
+        service.discardSession(7, id);
+        service.discardSession(7, id);
+        assertThrows(InterviewProcessingException.class, () -> service.getSession(7, id));
+    }
+
+    @Test
+    public void maintenanceUsesKoreanTimeWithInclusiveStartAndExclusiveMidnight() {
+        var clock = new MutableClock("2026-09-28T14:54:59.999Z");
+        var dao = fakeDao(new AtomicInteger());
+        var service = service(dao, new RecordingGenerator(), new InterviewPersistenceService(dao), clock);
+        assertFalse(service.getAvailability().isMaintenance());
+        assertEquals(Instant.parse("2026-09-28T14:55:00Z").toEpochMilli(), service.getAvailability().getNextChangeAt());
+        clock.set("2026-09-28T14:55:00Z");
+        assertTrue(service.getAvailability().isMaintenance());
+        assertEquals(Instant.parse("2026-09-28T15:00:00Z").toEpochMilli(), service.getAvailability().getNextChangeAt());
+        clock.set("2026-09-28T14:59:59.999Z");
+        assertTrue(service.getAvailability().isMaintenance());
+        clock.set("2026-09-28T15:00:00Z");
+        assertFalse(service.getAvailability().isMaintenance());
+    }
+
+    @Test
+    public void maintenanceBlocksSessionAndGenerationApisAndDailyCleanupClearsMemory() {
+        var clock = new MutableClock("2026-09-28T14:54:00Z");
+        var generator = new RecordingGenerator();
+        var saves = new AtomicInteger();
+        var dao = fakeDao(saves);
+        var service = service(dao, generator, new InterviewPersistenceService(dao), clock);
+        var request = settings();
+        request.setRequestId("feea354e-64fe-4fb1-af81-05cf18f21c43");
+        int id = service.startInterview(7, request).getHistoryNum();
+        clock.set("2026-09-28T14:55:00Z");
+        assertThrows(InterviewMaintenanceException.class, () -> service.startInterview(7, request));
+        assertThrows(InterviewMaintenanceException.class, () -> service.getInterviewDocuments(7));
+        assertThrows(InterviewMaintenanceException.class, () -> service.getLlmInterviewContext(7, 1, 0, 2));
+        assertThrows(InterviewMaintenanceException.class, () -> service.getSession(7, id));
+        assertThrows(InterviewMaintenanceException.class, () -> service.submitAnswer(7, id, answer(1)));
+        assertThrows(InterviewMaintenanceException.class, () -> service.discardSession(7, id));
+        service.expireDailySessions();
+        clock.set("2026-09-28T15:00:00Z");
+        assertThrows(InterviewProcessingException.class, () -> service.getSession(7, id));
+        assertEquals(0, saves.get());
+        service.startInterview(7, request);
+        assertEquals(2, generator.batchCalls);
+    }
+
+    @Test
+    public void missedCleanupDoesNotAllowExpiredProgressOnNextDay() {
+        var clock = new MutableClock("2026-09-28T14:54:00Z");
+        var dao = fakeDao(new AtomicInteger());
+        var generator = new RecordingGenerator();
+        var service = service(dao, generator, new InterviewPersistenceService(dao), clock);
+        int id = service.startInterview(7, settings()).getHistoryNum();
+        clock.set("2026-09-28T15:01:00Z");
+        assertThrows(InterviewProcessingException.class, () -> service.getSession(7, id));
+        assertThrows(InterviewProcessingException.class, () -> service.submitAnswer(7, id, answer(1)));
+        assertEquals(1, generator.batchCalls);
+    }
+
+    @Test
+    public void generationFinishingAfterMaintenanceCannotPublishAnExpiredSession() {
+        var clock = new MutableClock("2026-09-28T14:54:59Z");
+        RecordingGenerator generator = new RecordingGenerator() {
+            @Override
+            public LlmQuestionResponseDTO generateDocumentQuestions(LlmQuestionRequestDTO request) {
+                var result = super.generateDocumentQuestions(request);
+                clock.set("2026-09-28T15:00:01Z");
+                return result;
+            }
+        };
+        var dao = fakeDao(new AtomicInteger());
+        var service = service(dao, generator, new InterviewPersistenceService(dao), clock);
+        assertThrows(InterviewProcessingException.class, () -> service.startInterview(7, settings()));
+        assertThrows(InterviewProcessingException.class, () -> service.getSession(7, 17));
+    }
+
+    @Test
+    public void restartedServerHasNoResumableMemory() {
+        var generator = new RecordingGenerator();
+        var dao = fakeDao(new AtomicInteger());
+        int id = service(dao, generator, new InterviewPersistenceService(dao))
+                .startInterview(7, settings()).getHistoryNum();
+        var restarted = service(dao, generator, new InterviewPersistenceService(dao));
+        assertThrows(InterviewProcessingException.class, () -> restarted.getSession(7, id));
+    }
+
+    @Test
+    public void delayedNumberAllocationCannotResurrectProgressAfterDailyCleanup() {
+        var clock = new MutableClock("2026-09-28T14:54:59Z");
+        var delegate = fakeDao(new AtomicInteger());
+        var dao = (InterviewDAO) Proxy.newProxyInstance(InterviewDAO.class.getClassLoader(),
+                new Class<?>[] { InterviewDAO.class }, (proxy, method, args) -> {
+                    if (method.getName().equals("selectNextHistoryNum")) clock.set("2026-09-28T15:00:01Z");
+                    return method.invoke(delegate, args);
+                });
+        var service = service(dao, new RecordingGenerator(), new InterviewPersistenceService(dao), clock);
+        assertThrows(InterviewProcessingException.class, () -> service.startInterview(7, settings()));
+        assertThrows(InterviewProcessingException.class, () -> service.getSession(7, 17));
+    }
+
+    @Test
+    public void followUpCompletingDuringMaintenanceIsDiscarded() {
+        var clock = new MutableClock("2026-09-28T14:54:59Z");
+        var generator = new RecordingGenerator() {
+            @Override
+            public InterviewQuestionDTO generateFollowUpQuestion(int order, LlmFollowUpRequestDTO request) {
+                var result = super.generateFollowUpQuestion(order, request);
+                clock.set("2026-09-28T14:55:00Z");
+                return result;
+            }
+        };
+        var dao = fakeDao(new AtomicInteger());
+        var service = service(dao, generator, new InterviewPersistenceService(dao), clock);
+        int id = service.startInterview(7, settings()).getHistoryNum();
+        service.submitAnswer(7, id, answer(1));
+        service.submitAnswer(7, id, answer(2));
+        assertThrows(InterviewMaintenanceException.class, () -> service.submitAnswer(7, id, answer(3)));
+        service.expireDailySessions();
+        clock.set("2026-09-28T15:00:00Z");
+        assertThrows(InterviewProcessingException.class, () -> service.getSession(7, id));
+        assertEquals(1, generator.followUpCalls);
+    }
+
+    @Test
+    public void evaluationCompletingAfterExpiryCannotSaveAResult() {
+        var clock = new MutableClock("2026-09-28T14:54:59Z");
+        var generator = new RecordingGenerator() {
+            @Override
+            public LlmEvaluationResponseDTO evaluate(LlmEvaluationRequestDTO request) {
+                var result = super.evaluate(request);
+                clock.set("2026-09-28T15:00:01Z");
+                return result;
+            }
+        };
+        var saves = new AtomicInteger();
+        var dao = fakeDao(saves);
+        var service = service(dao, generator, new InterviewPersistenceService(dao), clock);
+        int id = service.startInterview(7, settings()).getHistoryNum();
+        for (int order = 1; order <= 4; order++) service.submitAnswer(7, id, answer(order));
+        assertThrows(InterviewProcessingException.class, () -> service.submitAnswer(7, id, answer(5)));
+        assertEquals(0, saves.get());
+        assertThrows(InterviewProcessingException.class, () -> service.getSession(7, id));
+    }
+
+    private static class MutableClock extends Clock {
+        private Instant now;
+        MutableClock(String instant) { set(instant); }
+        void set(String instant) { now = Instant.parse(instant); }
+        @Override public ZoneId getZone() { return ZoneOffset.UTC; }
+        @Override public Clock withZone(ZoneId zone) { return Clock.fixed(now, zone); }
+        @Override public Instant instant() { return now; }
     }
 
     @Test

@@ -5,8 +5,10 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +26,8 @@ import com.provit.dto.interview.LlmInterviewContextDTO;
 import com.provit.dto.interview.InterviewHistoryDTO;
 import com.provit.dto.interview.InterviewResultDTO;
 import com.provit.dto.interview.InterviewRecordDTO;
+import com.provit.dto.interview.InterviewAvailabilityDTO;
+import com.provit.dto.interview.InterviewSessionResponseDTO;
 import com.provit.dto.response.ApiResponse;
 import com.provit.service.interview.InterviewService;
 import com.provit.util.jwt.JwtProvider;
@@ -38,6 +42,28 @@ public class InterviewController {
     public InterviewController(InterviewService interviewService, JwtProvider jwtProvider) {
         this.interviewService = interviewService;
         this.jwtProvider = jwtProvider;
+    }
+
+    @GetMapping("/availability")
+    public ResponseEntity<ApiResponse<InterviewAvailabilityDTO>> getAvailability() {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(ApiResponse.success(interviewService.getAvailability()));
+    }
+
+    @GetMapping("/{historyNum}/session")
+    public ResponseEntity<ApiResponse<InterviewSessionResponseDTO>> getSession(
+            @LoginUser Long userNum, @PathVariable("historyNum") int historyNum) {
+        if (userNum == null) return unauthorizedResponse();
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.success(
+                interviewService.getSession(Math.toIntExact(userNum), historyNum)));
+    }
+
+    @DeleteMapping("/{historyNum}/session")
+    public ResponseEntity<ApiResponse<Void>> discardSession(
+            @LoginUser Long userNum, @PathVariable("historyNum") int historyNum) {
+        if (userNum == null) return unauthorizedResponse();
+        interviewService.discardSession(Math.toIntExact(userNum), historyNum);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @GetMapping("/documents")

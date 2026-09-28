@@ -2,6 +2,20 @@ import client from './client.js';
 
 const INTERVIEW_TIMEOUT = 150000;
 
+export async function getInterviewAvailability() {
+    const response = await client.get('/interview/availability');
+    return response.data.data;
+}
+
+export async function getInterviewSession(historyNum) {
+    const response = await client.get(`/interview/${historyNum}/session`, { timeout: INTERVIEW_TIMEOUT });
+    return response.data.data;
+}
+
+export async function discardInterviewSession(historyNum) {
+    await client.delete(`/interview/${historyNum}/session`, { timeout: INTERVIEW_TIMEOUT });
+}
+
 export async function getInterviewResults() {
     const response = await client.get('/interview/results');
     return response.data.data;

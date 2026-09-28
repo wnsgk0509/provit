@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { remainingAnswerSeconds } from '../interviewProgress';
 
 const STYLE_NAMES = {
     RANDOM: '랜덤면접',
@@ -30,12 +31,16 @@ function InterviewQuestion({
     answerLocked,
     submittedAnswerCount,
     timeLimitSeconds,
+    answerDeadline,
+    initialAnswer,
+    onAnswerChange,
+    onPause,
     onSubmit,
 }) {
-    const [answer, setAnswer] = useState('');
-    const [timeLeft, setTimeLeft] = useState(timeLimitSeconds);
+    const [answer, setAnswer] = useState(initialAnswer ?? '');
+    const [timeLeft, setTimeLeft] = useState(() => remainingAnswerSeconds(answerDeadline));
     const submittingRef = useRef(false);
-    const timeoutSubmittedRef = useRef(false);
+    const timeoutSubmittedRef = useRef(answerLocked);
     const questionNumber = currentQuestionIndex + 1;
     const isLastQuestion = questionNumber === totalQuestions;
     const questionProgress = (submittedAnswerCount / totalQuestions) * 100;
@@ -60,19 +65,15 @@ function InterviewQuestion({
     }, [answer, isSubmitting, restartRequired, onSubmit]);
 
     useEffect(() => {
-        const deadline = Date.now() + timeLimitSeconds * 1000;
-
         const updateTimeLeft = () => {
-            const remainingMilliseconds = deadline - Date.now();
-            const remainingSeconds = Math.max(0, Math.ceil(remainingMilliseconds / 1000));
-            setTimeLeft(remainingSeconds);
+            setTimeLeft(remainingAnswerSeconds(answerDeadline));
         };
 
         const intervalId = window.setInterval(updateTimeLeft, 250);
         updateTimeLeft();
 
         return () => window.clearInterval(intervalId);
-    }, [timeLimitSeconds]);
+    }, [answerDeadline]);
 
     useEffect(() => {
         if (hasTimedOut && !timeoutSubmittedRef.current && !isSubmitting && !restartRequired) {
@@ -83,6 +84,7 @@ function InterviewQuestion({
 
     const handleAnswerChange = (event) => {
         setAnswer(event.target.value);
+        onAnswerChange(event.target.value);
     };
 
     const handleSubmit = (event) => {
@@ -176,6 +178,12 @@ function InterviewQuestion({
                             ? '시간 초과 답변 다시 제출'
                             : isLastQuestion ? '답변 제출 및 결과 보기' : '답변 제출'}
                 </button>
+                <button className="btn btn-outline-secondary" type="button" onClick={onPause}
+                    disabled={isSubmitting}>저장하고 나가기</button>
+                <p className="small text-muted mt-2 mb-0">
+                    작성 중인 답변은 자동 저장됩니다. 답변 제한 시간은 나간 뒤에도 흐르며,
+                    이어가기는 오늘 23:55까지 가능합니다.
+                </p>
             </form>
         </section>
     );

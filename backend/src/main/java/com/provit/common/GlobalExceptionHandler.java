@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import com.provit.common.ResponseCode;
 import com.provit.dto.response.ApiResponse;
 import com.provit.service.interview.InterviewProcessingException;
+import com.provit.service.interview.InterviewMaintenanceException;
 
 /**
  * 전역 예외 처리기 (new 생성자 방식으로 ApiResponse 및 ResponseEntity 반환)
@@ -32,6 +33,16 @@ public class GlobalExceptionHandler {
                 "restartRequired", exception.isRestartRequired(),
                 "answerLocked", exception.isAnswerLocked());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse<>(ResponseCode.BAD_REQUEST, detail));
+    }
+
+    @ExceptionHandler(InterviewMaintenanceException.class)
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> handleInterviewMaintenance(
+            InterviewMaintenanceException exception) {
+        var detail = java.util.Map.<String, Object>of(
+                "message", exception.getMessage(), "maintenance", true,
+                "restartRequired", true, "answerLocked", false);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ApiResponse<>(ResponseCode.BAD_REQUEST, detail));
     }
 

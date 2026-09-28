@@ -7,6 +7,9 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
 import java.util.ArrayList;
@@ -99,7 +102,7 @@ public class OpenAiInterviewIntegrationTest {
         AtomicInteger saves = new AtomicInteger();
         InterviewDAO dao = dao(saves);
         var service = new InterviewServiceImpl(dao, generator("sk-local-test-only"),
-                new InterviewPersistenceService(dao), new InterviewDocumentInputBuilder(null));
+                new InterviewPersistenceService(dao), new InterviewDocumentInputBuilder(null), testClock());
         InterviewStartRequestDTO settings = new InterviewStartRequestDTO();
         settings.setResumeNum(1);
         settings.setLetterNum(2);
@@ -206,7 +209,7 @@ public class OpenAiInterviewIntegrationTest {
         AtomicInteger saves = new AtomicInteger();
         InterviewDAO dao = dao(saves, portfolio());
         var service = new InterviewServiceImpl(dao, generator("sk-local-test-only"),
-                new InterviewPersistenceService(dao), builder);
+                new InterviewPersistenceService(dao), builder, testClock());
         var settings = new InterviewStartRequestDTO();
         settings.setResumeNum(1);
         settings.setLetterNum(2);
@@ -290,7 +293,7 @@ public class OpenAiInterviewIntegrationTest {
             }
         };
         InterviewDAO dao = dao(new AtomicInteger(), portfolio());
-        var service = new InterviewServiceImpl(dao, generator("sk-local-test-only"), new InterviewPersistenceService(dao), builder);
+        var service = new InterviewServiceImpl(dao, generator("sk-local-test-only"), new InterviewPersistenceService(dao), builder, testClock());
         var settings = new InterviewStartRequestDTO();
         settings.setResumeNum(1);
         settings.setLetterNum(2);
@@ -456,6 +459,10 @@ public class OpenAiInterviewIntegrationTest {
         request.setInterviewStyle("ONE_TO_ONE");
         request.setInterviewDifficulty("NORMAL");
         return request;
+    }
+
+    private Clock testClock() {
+        return Clock.fixed(Instant.parse("2026-09-28T03:00:00Z"), ZoneOffset.UTC);
     }
 
     private InterviewDAO dao(AtomicInteger saves) {
