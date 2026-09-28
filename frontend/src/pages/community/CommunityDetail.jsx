@@ -100,6 +100,16 @@ function CommunityDetail() {
                 </div>
                 
                 <div className="card-body p-4" style={{ minHeight: '300px', whiteSpace: 'pre-wrap' }}>
+                    {post.postFile && (
+                        <div className="mb-4 text-center">
+                            <img 
+                                src={`/uploads/post_uploadfile/${post.postFile}`} 
+                                alt="첨부 이미지" 
+                                className="img-fluid rounded shadow-sm" 
+                                style={{ maxHeight: '500px' }}
+                            />
+                        </div>
+                    )}
                     {post.postContent}
                 </div>
                 

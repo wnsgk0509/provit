@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
     fetchRecruitments, 
     fetchOccupations, 
     fetchJobsByOccupation, 
     syncRecruitments,
-    toggleJobScrap
+    toggleJobScrap,
+    fetchUserJobRecommendations
 } from '../../api/recruitmentApi';
 import { useAuth } from '../../context/AuthContext';
 import './JobList.css';
@@ -31,9 +32,31 @@ const EXPERIENCES = [
     { value: '경력무관', label: '경력무관' },
 ];
 
+/**
+ * 공고 목록 내 특정 공고의 스크랩 상태를 불변성을 유지하며 갱신하는 순수 헬퍼 함수
+ * @param {Array} list - 공고 리스트
+ * @param {number|string} targetId - 대상 recruitmentNum
+ * @param {boolean|null} forcedStatus - 명시적 확정 상태 (null이면 기존 상태 반전)
+ */
+const updateScrapStatusInList = (list, targetId, forcedStatus = null) => {
+    if (!Array.isArray(list)) return list;
+    return list.map(job => {
+        if (job.recruitmentNum !== targetId) return job;
+        return {
+            ...job,
+            isScrapped: forcedStatus !== null ? forcedStatus : !job.isScrapped
+        };
+    });
+};
+
 function JobList() {
     const navigate = useNavigate();
-    const { isLoggedIn } = useAuth();
+    const { isLoggedIn, user } = useAuth();
+
+    // 0. 회원 직무 맞춤 / 실시간 인기 추천 공고 상태 및 동시성 요청 제어 ref
+    const [recommendation, setRecommendation] = useState(null);
+    const [recommendLoading, setRecommendLoading] = useState(true);
+    const recommendReqIdRef = useRef(0);
 
     // 1. 공고 및 페이징 상태
     const [recruitments, setRecruitments] = useState([]);
@@ -137,6 +160,41 @@ function JobList() {
         loadRecruitments();
     }, [loadRecruitments]);
 
+    // 회원 직무 맞춤 / 실시간 인기 추천 공고 로드
+    const loadRecommendations = useCallback(async () => {
+        const reqId = ++recommendReqIdRef.current;
+        setRecommendLoading(true);
+        // [정합성/보안] 계정 전환 또는 로그아웃 시 이전 사용자 데이터가 화면에 잔류하지 않도록 즉시 초기화
+        setRecommendation(null);
+
+        try {
+            const res = await fetchUserJobRecommendations();
+            // 최신 요청인 경우에만 상태 반영 (네트워크 응답 지연/역전 방어)
+            if (reqId === recommendReqIdRef.current) {
+                if (res && res.data) {
+                    setRecommendation(res.data);
+                } else {
+                    setRecommendation(null);
+                }
+            }
+        } catch (err) {
+            if (reqId === recommendReqIdRef.current) {
+                console.error('맞춤 추천 공고 조회 에러:', err);
+                // API 실패 시에도 이전 사용자의 데이터가 잔류하지 않도록 안전하게 초기화
+                setRecommendation(null);
+            }
+        } finally {
+            if (reqId === recommendReqIdRef.current) {
+                setRecommendLoading(false);
+            }
+        }
+    }, []);
+
+    // 초기 마운트 및 로그인 상태/계정 변경 시 추천 공고 갱신
+    useEffect(() => {
+        loadRecommendations();
+    }, [loadRecommendations, isLoggedIn, user?.userNum]);
+
     // ==========================================
     // 🎯 이벤트 핸들러
     // ==========================================
@@ -179,6 +237,18 @@ function JobList() {
         });
     };
 
+    // 일반 공고 목록과 맞춤 추천 공고의 스크랩 상태를 일괄 동기화하는 헬퍼 함수
+    const updateScrapStatus = useCallback((targetId, forcedStatus = null) => {
+        setRecruitments(prevList => updateScrapStatusInList(prevList, targetId, forcedStatus));
+        setRecommendation(prev => {
+            if (!prev || !prev.recruitments) return prev;
+            return {
+                ...prev,
+                recruitments: updateScrapStatusInList(prev.recruitments, targetId, forcedStatus)
+            };
+        });
+    }, []);
+
     // 관심 공고 스크랩(북마크) 토글 핸들러
     const handleToggleScrap = async (e, recruitmentNum) => {
         e.stopPropagation();
@@ -200,26 +270,14 @@ function JobList() {
         setPendingScraps(prev => new Set(prev).add(recruitmentNum));
 
         // 3. 낙관적 UI 업데이트 (즉시 별 상태 토글로 체감 속도 향상)
-        setRecruitments(prevList =>
-            prevList.map(job =>
-                job.recruitmentNum === recruitmentNum
-                    ? { ...job, isScrapped: !job.isScrapped }
-                    : job
-            )
-        );
+        updateScrapStatus(recruitmentNum);
 
         // 4. 서버 스크랩 토글 API 호출
         try {
             const res = await toggleJobScrap(recruitmentNum);
             if (res && res.data) {
                 // 5. 서버에서 최종 확정된 isScrapped 상태로 UI 정합성 동기화
-                setRecruitments(prevList =>
-                    prevList.map(job =>
-                        job.recruitmentNum === recruitmentNum
-                            ? { ...job, isScrapped: res.data.isScrapped }
-                            : job
-                    )
-                );
+                updateScrapStatus(recruitmentNum, res.data.isScrapped);
 
                 // 만약 스크랩만 모아보기 상태에서 스크랩을 취소했다면 목록 새로고침
                 if (params.scrapOnly && !res.data.isScrapped) {
@@ -228,14 +286,8 @@ function JobList() {
             }
         } catch (error) {
             console.error('스크랩 토글 에러:', error);
-            // 6. 실패 시 이전 상태로 안전하게 롤백
-            setRecruitments(prevList =>
-                prevList.map(job =>
-                    job.recruitmentNum === recruitmentNum
-                        ? { ...job, isScrapped: !job.isScrapped }
-                        : job
-                )
-            );
+            // 6. 실패 시 이전 상태로 안전하게 롤백 (재토글로 원복)
+            updateScrapStatus(recruitmentNum);
             alert('스크랩 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
         } finally {
             // 7. Pending 상태 해제
@@ -275,6 +327,7 @@ function JobList() {
             const res = await syncRecruitments(100);
             alert(res?.data || '동기화가 완료되었습니다.');
             loadRecruitments(); // 목록 새로고침
+            loadRecommendations(); // 추천 공고도 최신 데이터로 새로고침
         } catch (err) {
             alert('동기화 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
         } finally {
@@ -422,6 +475,113 @@ function JobList() {
                     </button>
                 </div>
             </div>
+
+            {/* 1-1. 사용자 직무 맞춤 / 실시간 인기 추천 공고 섹션 */}
+            {!recommendLoading && recommendation && recommendation.recruitments && recommendation.recruitments.length > 0 && (
+                <div className="recommend-section">
+                    <div className="recommend-header">
+                        <div>
+                            <div className="d-flex align-items-center gap-2 mb-1">
+                                {recommendation.recommendType === 'JOB_MATCH' && (
+                                    <span className="recommend-badge">🎯 직무 맞춤 추천</span>
+                                )}
+                                {recommendation.recommendType === 'OCCUPATION_MATCH' && (
+                                    <span className="recommend-badge">📂 직군 맞춤 추천</span>
+                                )}
+                                {recommendation.recommendType === 'POPULAR_FALLBACK' && (
+                                    <span className="recommend-badge bg-danger">🔥 실시간 인기 공고</span>
+                                )}
+                                <h4 className="fw-bold mb-0 text-dark">
+                                    {recommendation.recommendType === 'JOB_MATCH' && (
+                                        <span>
+                                            <strong>{recommendation.userNickname ? `${recommendation.userNickname}님` : '회원님'}</strong>을 위한 
+                                            <span className="text-primary ms-1">[{recommendation.targetJobName}]</span> 맞춤 공고
+                                        </span>
+                                    )}
+                                    {recommendation.recommendType === 'OCCUPATION_MATCH' && (
+                                        <span>
+                                            <strong>{recommendation.userNickname ? `${recommendation.userNickname}님` : '회원님'}</strong>의 관심 분야 
+                                            <span className="text-primary ms-1">[{recommendation.targetJobName}]</span> 추천 공고
+                                        </span>
+                                    )}
+                                    {recommendation.recommendType === 'POPULAR_FALLBACK' && (
+                                        <span>지원자들의 관심이 집중된 실시간 인기 공고</span>
+                                    )}
+                                </h4>
+                            </div>
+                            <p className="text-muted small mb-0">
+                                {recommendation.recommendType === 'JOB_MATCH' || recommendation.recommendType === 'OCCUPATION_MATCH'
+                                    ? '회원님의 관심 직무에 맞춰 엄선한 공고입니다. 원하는 공고로 즉시 AI 1:1 맞춤 모의면접을 시작해 보세요!'
+                                    : '현재 가장 많이 탐색되는 실시간 인기 공고입니다. 원하는 기업의 공고를 선택해 모의면접을 체험해 보세요!'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                        {recommendation.recruitments.map((job) => (
+                            <div key={`rec-${job.recruitmentNum}`} className="col">
+                                <div className="card recommend-card p-3 d-flex flex-column h-100">
+                                    <div className="d-flex justify-content-between align-items-start mb-2">
+                                        <span className="small fw-bold text-truncate text-secondary" style={{ maxWidth: '70%' }}>
+                                            🏢 {job.companyName}
+                                        </span>
+                                        <div className="d-flex align-items-center gap-1">
+                                            {renderDDayBadge(job.expirationDate, job.closeType)}
+                                            <button
+                                                type="button"
+                                                className={`job-scrap-btn ${job.isScrapped ? 'active' : ''}`}
+                                                onClick={(e) => handleToggleScrap(e, job.recruitmentNum)}
+                                                disabled={pendingScraps.has(job.recruitmentNum)}
+                                                title={job.isScrapped ? '관심 공고 스크랩 취소' : '관심 공고 스크랩 등록'}
+                                                aria-label="관심 공고 스크랩"
+                                            >
+                                                {job.isScrapped ? '★' : '☆'}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <h6 className="fw-bold mb-2 text-dark text-truncate" title={job.title} style={{ lineHeight: 1.4 }}>
+                                        {job.title}
+                                    </h6>
+
+                                    <div className="d-flex flex-wrap gap-1 mb-2">
+                                        {job.locationName && (
+                                            <span className="badge bg-light text-secondary border small" style={{ fontSize: '0.7rem' }}>
+                                                📍 {job.locationName}
+                                            </span>
+                                        )}
+                                        {job.experienceLevel && (
+                                            <span className="badge bg-light text-secondary border small" style={{ fontSize: '0.7rem' }}>
+                                                💼 {job.experienceLevel}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-auto pt-2 d-flex gap-2">
+                                        <a
+                                            href={job.jobUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="btn btn-outline-secondary btn-sm flex-fill text-nowrap"
+                                            style={{ fontSize: '0.75rem' }}
+                                        >
+                                            사람인 ↗
+                                        </a>
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary btn-sm flex-fill text-nowrap fw-bold"
+                                            style={{ fontSize: '0.75rem' }}
+                                            onClick={() => handleStartInterview(job)}
+                                        >
+                                            🎙️ 모의면접
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* 2. 스마트 필터 & 검색 카드 */}
             <div className="filter-card">

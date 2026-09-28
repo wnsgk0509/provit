@@ -48,10 +48,12 @@ function Study() {
             if (result && result.responseCode && result.responseCode.code === 200) {
                 loadStudies();
             } else {
-                alert('참여에 실패했습니다.');
+                alert(result?.responseCode?.message || '정원이 가득 찼거나 이미 처리된 요청입니다.');
+                loadStudies(); // 실패 시에도 목록 동기화
             }
         } catch (error) {
-            alert('서버 오류가 발생했습니다.');
+            alert(error.response?.data?.message || '동시 요청으로 인해 참여에 실패했습니다. (이미 모집 마감되었을 수 있습니다.)');
+            loadStudies(); // catch 시에도 최신 목록으로 비동기 리렌더링
         }
     };
 

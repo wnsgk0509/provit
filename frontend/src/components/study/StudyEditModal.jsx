@@ -6,11 +6,13 @@ function StudyEditModal({ show, onClose, onSuccess, initialData }) {
     const { user } = useAuth();
     const [studyName, setStudyName] = useState('');
     const [studyExplain, setStudyExplain] = useState('');
+    const [maxMembers, setMaxMembers] = useState(10);
 
     useEffect(() => {
         if (initialData) {
             setStudyName(initialData.studyName || '');
             setStudyExplain(initialData.studyExplain || '');
+            setMaxMembers(initialData.maxMembers || 10);
         }
     }, [initialData]);
 
@@ -32,7 +34,8 @@ function StudyEditModal({ show, onClose, onSuccess, initialData }) {
             const result = await updateStudy(initialData.studyNum, {
                 userNum: user.userNum,
                 studyName,
-                studyExplain
+                studyExplain,
+                maxMembers
             });
             
             if (result && result.responseCode && result.responseCode.code === 200) {
@@ -43,7 +46,11 @@ function StudyEditModal({ show, onClose, onSuccess, initialData }) {
                 alert('스터디 수정에 실패했습니다.');
             }
         } catch (error) {
-            alert('서버 오류가 발생했습니다.');
+            if (error.response && error.response.data && error.response.data.message) {
+                alert(error.response.data.message);
+            } else {
+                alert('서버 오류가 발생했습니다.');
+            }
         }
     };
 
@@ -67,6 +74,17 @@ function StudyEditModal({ show, onClose, onSuccess, initialData }) {
                                         value={studyName}
                                         onChange={(e) => setStudyName(e.target.value)}
                                         maxLength={100}
+                                    />
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label fw-semibold text-secondary small">최대 참여 인원</label>
+                                    <input 
+                                        type="number" 
+                                        className="form-control" 
+                                        min="2"
+                                        max="100"
+                                        value={maxMembers}
+                                        onChange={(e) => setMaxMembers(parseInt(e.target.value) || 2)}
                                     />
                                 </div>
                                 <div className="mb-3">

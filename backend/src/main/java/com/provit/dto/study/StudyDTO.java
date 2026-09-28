@@ -7,6 +7,8 @@ public class StudyDTO {
     private String studyName;
     private String studyExplain;
     private String studyCreateDate;
+    private int maxMembers; // 최대 참여 인원
+
     
     private int memberCount; // 현재 참여 인원 수
     private boolean isJoined; // 현재 로그인한 유저가 참여 중인지 여부
@@ -73,5 +75,13 @@ public class StudyDTO {
 
     public void setIsJoined(boolean isJoined) {
         this.isJoined = isJoined;
+    }
+
+    public int getMaxMembers() {
+        return maxMembers;
+    }
+
+    public void setMaxMembers(int maxMembers) {
+        this.maxMembers = maxMembers;
     }
 }

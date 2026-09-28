@@ -11,6 +11,7 @@ import com.provit.dto.recruitment.JobDTO;
 import com.provit.dto.recruitment.OccupationDTO;
 import com.provit.dto.recruitment.RecruitmentDTO;
 import com.provit.dto.recruitment.RecruitmentSearchDTO;
+import com.provit.dto.user.UserJobPreferenceDTO;
 
 @Repository
 public class RecruitmentDAOImpl implements RecruitmentDAO {
@@ -78,5 +79,27 @@ public class RecruitmentDAOImpl implements RecruitmentDAO {
 		params.put("userNum", userNum);
 		Integer count = sqlSessionTemplate.selectOne("recruitment_mapper.checkJobScrap", params);
 		return count != null ? count : 0;
+	}
+
+	@Override
+	public UserJobPreferenceDTO selectUserJobPreference(long userNum) {
+		return sqlSessionTemplate.selectOne("recruitment_mapper.selectUserJobPreference", userNum);
+	}
+
+	@Override
+	public List<RecruitmentDTO> selectRecruitmentsByKeyword(String keyword, Long userNum, int limit) {
+		java.util.Map<String, Object> params = new java.util.HashMap<>();
+		params.put("keyword", keyword);
+		params.put("userNum", userNum);
+		params.put("limit", limit);
+		return sqlSessionTemplate.selectList("recruitment_mapper.selectRecruitmentsByKeyword", params);
+	}
+
+	@Override
+	public List<RecruitmentDTO> selectHotRecruitments(Long userNum, int limit) {
+		java.util.Map<String, Object> params = new java.util.HashMap<>();
+		params.put("userNum", userNum);
+		params.put("limit", limit);
+		return sqlSessionTemplate.selectList("recruitment_mapper.selectHotRecruitments", params);
 	}
 }

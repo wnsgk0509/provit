@@ -64,7 +64,7 @@ public enum FileCategory {
     }
 
     /**
-     * 업로드된 파일의 유효성(크기 및 확장자)을 검증합니다.
+     * 업로드된 파일의 유효성(크기, 확장자, 실제 파일 포맷)을 검증합니다.
      */
     public void validate(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -86,6 +86,33 @@ public enum FileCategory {
         String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
         if (!this.allowedExtensions.contains(extension)) {
             throw new IllegalArgumentException(this.formatErrorMessage + " (요청된 파일: ." + extension + ")");
+        }
+
+        // 3. 딥 스캔(Magic Number 검사) - 확장자 위조 방지
+        try (java.io.InputStream is = file.getInputStream()) {
+            if (this == PORTFOLIO) {
+                // PDF 시그니처(%PDF-) 검증 (첫 5바이트)
+                byte[] header = new byte[5];
+                if (is.read(header, 0, 5) != 5) {
+                    throw new IllegalArgumentException("파일을 읽을 수 없습니다.");
+                }
+                String signature = new String(header);
+                if (!signature.equals("%PDF-")) {
+                    throw new IllegalArgumentException("확장자가 위조되었습니다. 올바른 PDF 파일이 아닙니다.");
+                }
+            } else if (this == POST || this == PROFILE) {
+                // 이미지 파일 실제 디코딩 가능 여부 검증
+                javax.imageio.ImageIO.setUseCache(false);
+                java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(is);
+                if (image == null) {
+                    throw new IllegalArgumentException("확장자가 위조되었습니다. 실제 이미지 파일이 아닙니다.");
+                }
+            }
+        } catch (Exception e) {
+            if (e instanceof IllegalArgumentException) {
+                throw (IllegalArgumentException) e;
+            }
+            throw new IllegalArgumentException("파일 보안 검증 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 }

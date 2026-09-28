@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.provit.common.ResponseCode;
 import com.provit.dto.recruitment.RecruitmentDTO;
 import com.provit.dto.recruitment.RecruitmentSearchDTO;
+import com.provit.dto.recruitment.UserRecommendResponseDTO;
 import com.provit.dto.response.ApiResponse;
 import com.provit.dto.response.PageResponse;
 import com.provit.service.recruitment.RecruitmentService;
@@ -57,6 +58,19 @@ public class RecruitmentPostController {
 
 		PageResponse<RecruitmentDTO> pageResult = recruitmentService.getRecruitmentList(searchDTO);
 		return ApiResponse.success(pageResult);
+	}
+
+	/**
+	 * 로그인 회원 직무 기반 맞춤 추천 공고 조회 API (비로그인/직무 미지정 시 실시간 인기 공고 Fallback 반환)
+	 * 예: GET /api/recruitment/recommend/user
+	 */
+	@GetMapping("/recommend/user")
+	public ApiResponse<UserRecommendResponseDTO> getUserJobRecommendations(HttpServletRequest request) {
+		Long authUserNum = getAuthenticatedUserNum(request);
+		log.info(">> [/api/recruitment/recommend/user] 회원 직무 맞춤 추천 공고 요청: userNum={}", authUserNum);
+
+		UserRecommendResponseDTO result = recruitmentService.getUserJobRecommendations(authUserNum);
+		return ApiResponse.success(result);
 	}
 
 	/**
