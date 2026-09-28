@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchPostDetail, updatePost } from '../../api/communityApi';
+import { uploadFile, deleteFile } from '../../api/fileApi';
 import { useAuth } from '../../context/AuthContext';
 
 const CATEGORIES = [
@@ -15,6 +16,10 @@ function CommunityEdit() {
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
+    const [file, setFile] = useState(null); // 추가된 첨부파일 상태
+    const fileInputRef = React.useRef(null);
+    const [deleteExistingFile, setDeleteExistingFile] = useState(false);
+    const [originalPostFile, setOriginalPostFile] = useState('');
 
     const [formData, setFormData] = useState({
         categoryNum: 1,
@@ -22,6 +27,23 @@ function CommunityEdit() {
         postContent: '',
         postFile: ''
     });
+    const [isDirty, setIsDirty] = useState(false); // 폼 수정 여부 추적
+
+    // 브라우저 뒤로가기, 새로고침, 탭 닫기 감지 (Native Event)
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = ''; 
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [isDirty]);
 
     useEffect(() => {
         const loadPost = async () => {
@@ -35,12 +57,14 @@ function CommunityEdit() {
                         navigate('/community');
                         return;
                     }
+                    const currentPostFile = post.postFile || '';
                     setFormData({
                         categoryNum: post.categoryNum,
                         postTitle: post.postTitle,
                         postContent: post.postContent,
-                        postFile: post.postFile || ''
+                        postFile: currentPostFile
                     });
+                    setOriginalPostFile(currentPostFile);
                 } else {
                     alert('게시글 정보를 불러오지 못했습니다.');
                     navigate('/community');
@@ -62,11 +86,36 @@ function CommunityEdit() {
     }, [postNum, user, navigate]);
 
     const handleChange = (e) => {
+        setIsDirty(true);
         const { name, value } = e.target;
         setFormData({
             ...formData,
             [name]: name === 'categoryNum' ? parseInt(value) : value
         });
+    };
+
+    const handleFileChange = (e) => {
+        setIsDirty(true);
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0]);
+        } else {
+            setFile(null);
+        }
+    };
+
+    const handleClearNewFile = () => {
+        setFile(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
+    const handleDeleteExistingFile = () => {
+        if (window.confirm("기존 첨부파일을 삭제하시겠습니까? (수정 완료 시 영구 삭제됩니다)")) {
+            setIsDirty(true);
+            setDeleteExistingFile(true);
+            setFormData({ ...formData, postFile: '' });
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -84,15 +133,42 @@ function CommunityEdit() {
 
         setLoading(true);
         try {
+            let finalPostFile = formData.postFile;
+
+            // 1. 새로운 파일이 선택되었다면 업로드
+            if (file) {
+                const uploadResult = await uploadFile(file, 'post', postNum);
+                finalPostFile = uploadResult.savedFileName;
+                
+                // 새로운 파일 업로드 성공 후, 기존 파일이 있었다면 서버에서 삭제 처리
+                if (originalPostFile) {
+                    try {
+                        await deleteFile('post', originalPostFile);
+                    } catch (deleteError) {
+                        console.error("기존 첨부파일 삭제 실패:", deleteError);
+                    }
+                }
+            } else if (deleteExistingFile && originalPostFile) {
+                // 2. 새로운 파일은 없지만 사용자가 기존 파일을 삭제 요청한 경우
+                finalPostFile = ''; // DB 업데이트 시 null 처리하기 위해 빈 문자열
+                try {
+                    await deleteFile('post', originalPostFile);
+                } catch (e) {
+                    console.error("기존 첨부파일 삭제 실패:", e);
+                }
+            }
+
             const postDto = {
                 ...formData,
                 postNum: postNum, // 수정할 글 번호 필수 포함
+                postFile: finalPostFile, // 업로드된 파일명 (또는 기존 파일명) 덮어쓰기
                 userNum: user.userNum
             };
 
             const result = await updatePost(postDto);
             if (result && result.responseCode && result.responseCode.code === 200) {
                 alert('게시글이 성공적으로 수정되었습니다.');
+                setIsDirty(false); // 서밋 성공 시 경고 해제
                 navigate(`/community/${postNum}`);
             } else {
                 alert(result.message || '수정에 실패했습니다.');
@@ -155,6 +231,38 @@ function CommunityEdit() {
                                 maxLength={100}
                                 required
                             />
+                        </div>
+
+                        <div className="mb-3">
+                            <label htmlFor="postFile" className="form-label fw-semibold">첨부파일(이미지) 수정</label>
+                            {formData.postFile && (
+                                <div className="mb-2 d-flex align-items-center gap-2">
+                                    <span className="text-primary">현재 첨부된 파일: {formData.postFile}</span>
+                                    <button type="button" className="btn btn-sm btn-outline-danger py-0" onClick={handleDeleteExistingFile}>삭제</button>
+                                </div>
+                            )}
+                            <div className="d-flex gap-2 align-items-center">
+                                <input
+                                    type="file"
+                                    className="form-control"
+                                    id="postFile"
+                                    name="postFile"
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                    ref={fileInputRef}
+                                />
+                                {file && (
+                                    <button type="button" className="btn btn-outline-danger btn-sm text-nowrap" onClick={handleClearNewFile}>
+                                        첨부 취소
+                                    </button>
+                                )}
+                            </div>
+                            {file && (
+                                <div className="mt-2 text-success fw-bold">
+                                    ✨ 교체 대기 중인 파일: {file.name}
+                                </div>
+                            )}
+                            <div className="form-text text-muted">새로운 파일을 업로드하면 기존 파일은 대체됩니다. (10MB 이하 .jpg, .png 등)</div>
                         </div>
 
                         <div className="mb-4">
