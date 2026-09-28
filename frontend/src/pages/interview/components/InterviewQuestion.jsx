@@ -1,17 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-const STYLE_NAMES = {
-    RANDOM: '랜덤면접',
-    ONE_TO_ONE: '일대일면접',
-    PANEL: '다대일면접',
-    GROUP: '다대다면접',
-};
-
-const DIFFICULTY_NAMES = {
-    HARD: '압박면접',
-    NORMAL: '심층면접',
-    EASY: '일반면접',
-};
+import { remainingAnswerSeconds } from '../interviewProgress';
+import { DIFFICULTY_NAMES } from '../../../constants/interviewDifficulty';
 
 const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
@@ -26,14 +15,26 @@ function InterviewQuestion({
     totalQuestions,
     settings,
     isSubmitting,
+    restartRequired,
+    answerLocked,
     submittedAnswerCount,
     timeLimitSeconds,
+    answerDeadline,
+    initialAnswer,
+    onAnswerChange,
+    onPause,
     onSubmit,
 }) {
-    const [answer, setAnswer] = useState('');
-    const [timeLeft, setTimeLeft] = useState(timeLimitSeconds);
+    const [answer, setAnswer] = useState(initialAnswer ?? '');
+    const [timeLeft, setTimeLeft] = useState(() => remainingAnswerSeconds(answerDeadline));
     const submittingRef = useRef(false);
+    const timeoutSubmittedRef = useRef(answerLocked);
     const questionNumber = currentQuestionIndex + 1;
+    const questionLabel = questionNumber === 1 ? '자기소개서 질문'
+        : questionNumber === 2 ? (Number(settings.portfolioNum) > 0 ? '포트폴리오 질문' : '자기소개서 질문')
+        : questionNumber === 3 ? '직무 지식 질문'
+        : questionNumber === 4 ? '직무 문제해결 질문'
+        : '꼬리질문';
     const isLastQuestion = questionNumber === totalQuestions;
     const questionProgress = (submittedAnswerCount / totalQuestions) * 100;
     const timerProgress = (timeLeft / timeLimitSeconds) * 100;
@@ -42,42 +43,41 @@ function InterviewQuestion({
     const submitCurrentAnswer = useCallback(async (timedOut) => {
         const trimmedAnswer = answer.trim();
 
-        if (submittingRef.current || isSubmitting || (!timedOut && !trimmedAnswer)) {
+        if (submittingRef.current || isSubmitting || restartRequired || (!timedOut && !trimmedAnswer)) {
             return;
         }
 
         submittingRef.current = true;
+        timeoutSubmittedRef.current = true;
 
         try {
             await onSubmit(answer, timedOut);
         } catch {
             submittingRef.current = false;
         }
-    }, [answer, isSubmitting, onSubmit]);
+    }, [answer, isSubmitting, restartRequired, onSubmit]);
 
     useEffect(() => {
-        const deadline = Date.now() + timeLimitSeconds * 1000;
-
         const updateTimeLeft = () => {
-            const remainingMilliseconds = deadline - Date.now();
-            const remainingSeconds = Math.max(0, Math.ceil(remainingMilliseconds / 1000));
-            setTimeLeft(remainingSeconds);
+            setTimeLeft(remainingAnswerSeconds(answerDeadline));
         };
 
         const intervalId = window.setInterval(updateTimeLeft, 250);
         updateTimeLeft();
 
         return () => window.clearInterval(intervalId);
-    }, [timeLimitSeconds]);
+    }, [answerDeadline]);
 
     useEffect(() => {
-        if (hasTimedOut) {
+        if (hasTimedOut && !timeoutSubmittedRef.current && !isSubmitting && !restartRequired) {
+            timeoutSubmittedRef.current = true;
             void submitCurrentAnswer(true);
         }
-    }, [hasTimedOut, submitCurrentAnswer]);
+    }, [hasTimedOut, isSubmitting, restartRequired, submitCurrentAnswer]);
 
     const handleAnswerChange = (event) => {
         setAnswer(event.target.value);
+        onAnswerChange(event.target.value);
     };
 
     const handleSubmit = (event) => {
@@ -95,7 +95,7 @@ function InterviewQuestion({
         <section className="interview-question">
             <div className="interview-question-top">
                 <span className={`interview-question-type ${question.questionType.toLowerCase()}`}>
-                    {question.questionType === 'DOCUMENT' ? '서류 질문' : '후속 질문'}
+                    {questionLabel}
                 </span>
                 <span className="interview-question-count">{questionNumber} / {totalQuestions}</span>
             </div>
@@ -129,7 +129,7 @@ function InterviewQuestion({
             </div>
 
             <div className="interview-setting-summary">
-                <span>{STYLE_NAMES[settings.interviewStyle]}</span>
+                <span>일대일면접</span>
                 <span>{DIFFICULTY_NAMES[settings.difficulty]}</span>
             </div>
 
@@ -146,13 +146,15 @@ function InterviewQuestion({
                     onChange={handleAnswerChange}
                     placeholder="답변을 구체적으로 작성해 주세요."
                     maxLength="1000"
-                    disabled={isSubmitting || hasTimedOut}
+                    disabled={isSubmitting || hasTimedOut || restartRequired || answerLocked}
                     required={!hasTimedOut}
                 />
                 <div className="interview-answer-meta">
                     <span>
-                        {hasTimedOut
-                            ? '제한시간이 종료되어 현재 답변을 제출하고 있습니다.'
+                        {answerLocked
+                            ? '처리한 답변이 달라지지 않도록 입력을 유지합니다. 같은 답변으로 다시 제출해 주세요.'
+                            : hasTimedOut
+                            ? '제한시간이 종료되었습니다. 제출에 실패했다면 다시 제출해 주세요.'
                             : '상황, 행동, 결과를 포함하면 더 정확한 평가를 받을 수 있습니다.'}
                     </span>
                     <span>{answer.length} / 1000</span>
@@ -161,7 +163,7 @@ function InterviewQuestion({
                 <button
                     className="btn btn-primary interview-primary-button"
                     type="submit"
-                    disabled={(!answer.trim() && !hasTimedOut) || isSubmitting}
+                    disabled={(!answer.trim() && !hasTimedOut) || isSubmitting || restartRequired}
                 >
                     {isSubmitting
                         ? '답변 제출 중...'
@@ -169,6 +171,12 @@ function InterviewQuestion({
                             ? '시간 초과 답변 다시 제출'
                             : isLastQuestion ? '답변 제출 및 결과 보기' : '답변 제출'}
                 </button>
+                <button className="btn btn-outline-secondary" type="button" onClick={onPause}
+                    disabled={isSubmitting}>저장하고 나가기</button>
+                <p className="small text-muted mt-2 mb-0">
+                    작성 중인 답변은 자동 저장됩니다. 답변 제한 시간은 나간 뒤에도 흐르며,
+                    이어가기는 오늘 23:55까지 가능합니다.
+                </p>
             </form>
         </section>
     );

@@ -2,8 +2,6 @@ package com.provit.service.interview.generator;
 
 import java.util.List;
 
-import org.springframework.stereotype.Component;
-
 import com.provit.dto.interview.InterviewQuestionAnswerDTO;
 import com.provit.dto.interview.InterviewQuestionDTO;
 import com.provit.dto.interview.InterviewResultDTO;
@@ -11,19 +9,30 @@ import com.provit.dto.interview.LlmEvaluationRequestDTO;
 import com.provit.dto.interview.LlmEvaluationResponseDTO;
 import com.provit.dto.interview.LlmFollowUpRequestDTO;
 import com.provit.dto.interview.LlmQuestionRequestDTO;
+import com.provit.dto.interview.LlmQuestionResponseDTO;
 
-@Component
 public class DummyInterviewGenerator implements InterviewGenerator {
 
     @Override
-    public InterviewQuestionDTO generateDocumentQuestion(int questionOrder, LlmQuestionRequestDTO request) {
+    public LlmQuestionResponseDTO generateDocumentQuestions(LlmQuestionRequestDTO request) {
+        LlmQuestionResponseDTO response = new LlmQuestionResponseDTO();
+        response.setQuestions(List.of(
+                documentQuestion(1, request),
+                documentQuestion(2, request),
+                documentQuestion(3, request)));
+        return response;
+    }
+
+    private InterviewQuestionDTO documentQuestion(int questionOrder, LlmQuestionRequestDTO request) {
         String questionText;
         if (questionOrder == 1) {
-            questionText = "포트폴리오에서 가장 주도적으로 참여한 프로젝트와 본인이 담당한 역할을 설명해 주세요.";
+            questionText = "자기소개서에서 지원 직무와 가장 관련 있는 경험과 본인의 역할을 설명해 주세요.";
         } else if (questionOrder == 2) {
-            questionText = "자기소개서에 작성한 기술적 문제를 해결하는 과정에서 가장 중요하게 판단한 기준은 무엇인가요?";
+            questionText = request.getContext().getPortfolio() == null
+                    ? "자기소개서에 작성한 지원 동기를 본인의 강점과 연결해 설명해 주세요."
+                    : "포트폴리오에서 가장 주도적으로 참여한 프로젝트와 본인이 담당한 역할을 설명해 주세요.";
         } else if (questionOrder == 3) {
-            questionText = "지원 직무에서 본인의 경험과 기술이 어떤 강점으로 작용할 수 있는지 구체적인 사례와 함께 설명해 주세요.";
+            questionText = "지원 직무의 핵심 개념 하나를 선택해 그 원리를 설명해 주세요.";
         } else {
             throw new IllegalArgumentException("서류 질문 순서가 올바르지 않습니다.");
         }
@@ -35,11 +44,13 @@ public class DummyInterviewGenerator implements InterviewGenerator {
         List<InterviewQuestionAnswerDTO> answers = request.getQuestionAnswers();
         String questionText;
         if (questionOrder == 4) {
-            String latestAnswer = answers.isEmpty() ? "앞선 답변" : summarize(answers.get(answers.size() - 1).getAnswer());
-            questionText = "방금 답변에서 \"" + latestAnswer
-                    + "\"라고 설명했습니다. 해당 경험에서 예상과 다르게 진행된 부분과 대처 방법을 말씀해 주세요.";
+            questionText = "지원 직무의 업무 결과가 목표에 미치지 못하는 상황이라면 원인을 어떻게 파악하시겠습니까?";
         } else if (questionOrder == 5) {
-            questionText = "앞선 답변의 경험을 다시 수행한다면 어떤 부분을 가장 먼저 개선하겠으며, 그 이유는 무엇인가요?";
+            var selected = answers.stream().filter(answer -> answer.getAnswer() != null
+                    && !answer.getAnswer().isBlank()).findFirst();
+            questionText = selected.map(answer -> answer.getQuestionOrder() + "번 답변에서 \""
+                    + summarize(answer.getAnswer()) + "\"라고 설명한 근거는 무엇인가요?")
+                    .orElse("앞선 문제 상황에서 원인을 파악하기 위해 가장 먼저 확인할 정보는 무엇인가요?");
         } else {
             throw new IllegalArgumentException("후속 질문 순서가 올바르지 않습니다.");
         }
@@ -49,11 +60,11 @@ public class DummyInterviewGenerator implements InterviewGenerator {
     @Override
     public LlmEvaluationResponseDTO evaluate(LlmEvaluationRequestDTO request) {
         LlmEvaluationResponseDTO response = new LlmEvaluationResponseDTO();
-        response.setConfidenceScore(84);
-        response.setPersistenceScore(79);
+        response.setDocumentConsistencyScore(84);
+        response.setProblemSolvingScore(79);
         response.setExpertiseScore(86);
         response.setLogicScore(80);
-        response.setDeliveryScore(83);
+        response.setCommunicationScore(83);
         response.setTotalScore(82.4);
         response.setStrengths("프로젝트 경험을 구체적인 상황과 본인의 역할 중심으로 설명해 답변의 신뢰도가 높았습니다.");
         response.setWeaknesses("일부 답변에서 결론이 뒤에 제시되어 핵심 내용을 파악하는 데 시간이 걸렸습니다.");

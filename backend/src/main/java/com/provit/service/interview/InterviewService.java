@@ -11,8 +11,16 @@ import com.provit.dto.interview.InterviewResultDTO;
 import com.provit.dto.interview.InterviewStartRequestDTO;
 import com.provit.dto.interview.InterviewStartResponseDTO;
 import com.provit.dto.interview.LlmInterviewContextDTO;
+import com.provit.dto.interview.InterviewAvailabilityDTO;
+import com.provit.dto.interview.InterviewSessionResponseDTO;
 
 public interface InterviewService {
+
+    InterviewAvailabilityDTO getAvailability();
+
+    InterviewSessionResponseDTO getSession(int userNum, int historyNum);
+
+    void discardSession(int userNum, int historyNum);
 
     InterviewDocumentResponseDTO getInterviewDocuments(int userNum);
 

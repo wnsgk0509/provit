@@ -7,6 +7,7 @@ import Home from './pages/home/Home';
 import JobList from './pages/jobs/JobList';
 import Fortune from './pages/fortune/Fortune';
 import Interview from './pages/interview/Interview';
+import InterviewAccessGate from './pages/interview/components/InterviewAccessGate';
 import CommunityList from './pages/community/CommunityList';
 import CommunityWrite from './pages/community/CommunityWrite';
 import CommunityDetail from './pages/community/CommunityDetail';
@@ -53,9 +54,11 @@ function App() {
             <Route
               path="/interview"
               element={(
-                <RequireAuth alertMessage="로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.">
-                  <Interview />
-                </RequireAuth>
+                <InterviewAccessGate>
+                  <RequireAuth alertMessage="로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.">
+                    <Interview />
+                  </RequireAuth>
+                </InterviewAccessGate>
               )}
             />
             <Route path="/community" element={<CommunityList />} />

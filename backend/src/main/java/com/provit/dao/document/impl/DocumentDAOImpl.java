@@ -42,6 +42,12 @@ public class DocumentDAOImpl implements DocumentDAO {
     }
 
     @Override
+    public ResumeDTO selectResumeJob(String occupationCode, String jobCode) {
+        return sqlSession.selectOne(RESUME_NAMESPACE + ".selectResumeJob",
+                Map.of("occupationCode", occupationCode, "jobCode", jobCode));
+    }
+
+    @Override
     public int insertEducation(EducationDTO education) {
         return sqlSession.insert(RESUME_NAMESPACE + ".insertEducation", education);
     }
@@ -155,6 +161,11 @@ public class DocumentDAOImpl implements DocumentDAO {
         return sqlSession.selectOne(
                 PORTFOLIO_NAMESPACE + ".selectPortfolio",
                 Map.of("userNum", userNum, "portfolioNum", portfolioNum));
+    }
+
+    @Override
+    public PortfolioDTO selectPortfolioByPortfolioNum(int portfolioNum) {
+        return sqlSession.selectOne(PORTFOLIO_NAMESPACE + ".selectPortfolioByPortfolioNum", portfolioNum);
     }
 
     @Override

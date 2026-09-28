@@ -55,6 +55,7 @@ public class FileUploadServiceImpl implements FileUploadService {
             }
 
             for (FileCategory category : FileCategory.values()) {
+                if (category == FileCategory.PORTFOLIO) continue;
                 Path categoryPath = basePath.resolve(category.getSubDirectory());
                 if (!Files.exists(categoryPath)) {
                     Files.createDirectories(categoryPath);
@@ -69,6 +70,8 @@ public class FileUploadServiceImpl implements FileUploadService {
     @Override
     public FileUploadResponseDTO uploadFile(
             MultipartFile file, FileCategory category, long targetId, long userNum, String userRole) {
+
+        requirePublicFileCategory(category);
 
         // 1. 고유 NUM 및 카테고리 유효성 검사
         if (targetId <= 0) {
@@ -127,6 +130,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 
     @Override
     public boolean deleteFile(FileCategory category, String savedFileName, long userNum, String userRole) {
+        requirePublicFileCategory(category);
         if (savedFileName == null || savedFileName.isBlank()) {
             return false;
         }
@@ -157,6 +161,12 @@ public class FileUploadServiceImpl implements FileUploadService {
         } catch (Exception e) {
             log.error(">> [FileUpload] 파일 삭제 처리 중 오류: {}", e.getMessage(), e);
             return false;
+        }
+    }
+
+    private void requirePublicFileCategory(FileCategory category) {
+        if (category == FileCategory.PORTFOLIO) {
+            throw new IllegalArgumentException("포트폴리오는 /api/documents/portfolios API를 이용해 주세요.");
         }
     }
 

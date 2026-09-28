@@ -137,6 +137,35 @@
     padding: 32px 36px;
 }
 
+.interview-recruitment {
+    margin-bottom: 22px;
+    padding: 16px 18px;
+    border: 1px solid #cfe2ff;
+    border-radius: 8px;
+    background-color: #f4f8ff;
+    overflow-wrap: anywhere;
+}
+
+.interview-recruitment > span {
+    color: #0d6efd;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.interview-recruitment h2 {
+    margin: 6px 0;
+    font-size: 1.15rem;
+}
+
+.interview-recruitment p {
+    margin: 0 0 6px;
+    font-size: 0.9rem;
+}
+
+.interview-recruitment small {
+    color: #526174;
+}
+
 .interview-error {
     margin-bottom: 22px;
     padding: 12px 14px;
@@ -218,6 +247,14 @@
 
 .interview-radio-group label {
     cursor: pointer;
+}
+
+.interview-difficulty-description {
+    grid-column: 2;
+    margin: 8px 0 0;
+    color: #596579;
+    font-size: 0.85rem;
+    line-height: 1.5;
 }
 
 .interview-radio-group input {
@@ -549,6 +586,10 @@
     .interview-form-group {
         grid-template-columns: 1fr;
         gap: 8px;
+    }
+
+    .interview-difficulty-description {
+        grid-column: 1;
     }
 
     .interview-radio-group,

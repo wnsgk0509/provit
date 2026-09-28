@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Award, BriefcaseBusiness, GraduationCap, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createResume, updateResume } from '../../../api/documentApi';
+import { fetchOccupations, fetchJobsByOccupation } from '../../../api/recruitmentApi';
 
 const educationCodeOptions = [
     { value: '0', label: '학력무관' },
@@ -19,6 +20,7 @@ const educationCodeOptions = [
 const emptyResume = {
     resumeTitle: '', highestLevel: '', educationCode: '', motivation: '',
     desiredLocation: '', desiredWorkType: '',
+    occupationCode: '', jobCode: '',
 };
 const emptyEducation = {
     schoolName: '', admissionDate: '', graduationDate: '', major: '', educationStatus: '',
@@ -43,9 +45,50 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
     ));
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
+    const [occupations, setOccupations] = useState([]);
+    const [jobOptions, setJobOptions] = useState({ occupationCode: '', items: [] });
+    const [occupationError, setOccupationError] = useState('');
+    const [jobError, setJobError] = useState('');
+    const [retryCount, setRetryCount] = useState(0);
+    const jobsReady = Boolean(resume.occupationCode)
+        && jobOptions.occupationCode === resume.occupationCode;
+    const selectedJobValid = jobsReady && jobOptions.items.some((job) => job.jobCode === resume.jobCode);
+
+    useEffect(() => {
+        let active = true;
+        fetchOccupations().then((response) => {
+            if (!Array.isArray(response?.data)) throw new Error('Invalid occupations');
+            if (active) { setOccupations(response.data); setOccupationError(''); }
+        }).catch(() => {
+            if (active) setOccupationError('직군 목록을 불러오지 못했습니다. 다시 시도해 주세요.');
+        });
+        return () => { active = false; };
+    }, [retryCount]);
+
+    useEffect(() => {
+        if (!resume.occupationCode) return;
+        let active = true;
+        const occupationCode = resume.occupationCode;
+        fetchJobsByOccupation(occupationCode).then((response) => {
+            if (!Array.isArray(response?.data)) throw new Error('Invalid jobs');
+            if (active) {
+                setJobOptions({ occupationCode, items: response.data });
+                setJobError('');
+            }
+        }).catch(() => {
+            if (active) setJobError('직무 목록을 불러오지 못했습니다. 다시 시도해 주세요.');
+        });
+        return () => { active = false; };
+    }, [resume.occupationCode, retryCount]);
 
     const handleResumeChange = (event) => {
         const { name, value } = event.target;
+        if (name === 'occupationCode') {
+            setResume((current) => ({ ...current, occupationCode: value, jobCode: '' }));
+            setJobOptions({ occupationCode: '', items: [] });
+            setJobError('');
+            return;
+        }
         setResume((current) => ({ ...current, [name]: value }));
     };
 
@@ -69,6 +112,10 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+        if (!selectedJobValid || occupationError || jobError) {
+            setSaveMessage({ type: 'error', text: '직군과 해당 직군에 속한 직무를 선택해 주세요.' });
+            return;
+        }
         setIsSaving(true);
         setSaveMessage({ type: '', text: '' });
 
@@ -132,6 +179,30 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
                         <label htmlFor="resumeTitle">이력서 제목 <b>*</b></label>
                         <input id="resumeTitle" name="resumeTitle" value={resume.resumeTitle} onChange={handleResumeChange} maxLength="200" placeholder="예: 백엔드 개발자 지원 이력서" required />
                     </div>
+                    <div className="document-field">
+                        <label htmlFor="occupationCode">지원 직군 (1차 직종) <b>*</b></label>
+                        <select id="occupationCode" name="occupationCode" value={resume.occupationCode} onChange={handleResumeChange} disabled={isSaving || occupations.length === 0} required>
+                            <option value="">직군을 선택해 주세요</option>
+                            {occupations.map((occupation) => (
+                                <option key={occupation.occupationCode} value={occupation.occupationCode}>{occupation.occupationName}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="document-field">
+                        <label htmlFor="jobCode">지원 직무 (2차 직종) <b>*</b></label>
+                        <select id="jobCode" name="jobCode" value={selectedJobValid ? resume.jobCode : ''} onChange={handleResumeChange} disabled={isSaving || !jobsReady || Boolean(jobError)} required>
+                            <option value="">{!resume.occupationCode ? '직군을 먼저 선택해 주세요' : !jobsReady ? '직무 목록 불러오는 중...' : '직무를 선택해 주세요'}</option>
+                            {(jobsReady ? jobOptions.items : []).map((job) => (
+                                <option key={job.jobCode} value={job.jobCode}>{job.jobName}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {(occupationError || jobError) && (
+                        <div className="document-field document-field-wide" role="alert">
+                            <p>{occupationError || jobError}</p>
+                            <button type="button" onClick={() => setRetryCount((count) => count + 1)}>목록 다시 불러오기</button>
+                        </div>
+                    )}
                     <div className="document-field">
                         <label htmlFor="highestLevel">최종 학력 <b>*</b></label>
                         <select id="highestLevel" name="highestLevel" value={resume.highestLevel} onChange={handleResumeChange} required>
@@ -280,7 +351,7 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
                         취소
                     </button>
                 )}
-                <button type="submit" className="document-primary-button" disabled={isSaving}>
+                <button type="submit" className="document-primary-button" disabled={isSaving || !selectedJobValid || Boolean(occupationError || jobError)}>
                     {isSaving ? '저장 중...' : `이력서 ${isEditMode ? '수정' : '저장'}`}
                 </button>
             </div>

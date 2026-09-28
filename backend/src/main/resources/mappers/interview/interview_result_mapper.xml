@@ -8,11 +8,11 @@
     <sql id="interviewResultColumns">
         HISTORY_NUM,
         USER_NUM,
-        CONFIDENCE_SCORE,
-        PERSISTENCE_SCORE,
+        DOCUMENT_CONSISTENCY_SCORE,
         EXPERTISE_SCORE,
+        PROBLEM_SOLVING_SCORE,
         LOGIC_SCORE,
-        DELIVERY_SCORE,
+        COMMUNICATION_SCORE,
         TOTAL_SCORE,
         STRENGTH,
         WEAKNESS,
@@ -24,11 +24,11 @@
     <resultMap id="interviewResultMap" type="com.provit.dto.interview.InterviewResultDTO">
         <id property="historyNum" column="HISTORY_NUM" />
         <id property="userNum" column="USER_NUM" />
-        <result property="confidenceScore" column="CONFIDENCE_SCORE" />
-        <result property="persistenceScore" column="PERSISTENCE_SCORE" />
+        <result property="documentConsistencyScore" column="DOCUMENT_CONSISTENCY_SCORE" />
         <result property="expertiseScore" column="EXPERTISE_SCORE" />
+        <result property="problemSolvingScore" column="PROBLEM_SOLVING_SCORE" />
         <result property="logicScore" column="LOGIC_SCORE" />
-        <result property="deliveryScore" column="DELIVERY_SCORE" />
+        <result property="communicationScore" column="COMMUNICATION_SCORE" />
         <result property="totalScore" column="TOTAL_SCORE" />
         <result property="strengths" column="STRENGTH" />
         <result property="weaknesses" column="WEAKNESS" />
@@ -44,11 +44,11 @@
         ) VALUES (
             #{historyNum},
             #{userNum},
-            #{confidenceScore},
-            #{persistenceScore},
+            #{documentConsistencyScore},
             #{expertiseScore},
+            #{problemSolvingScore},
             #{logicScore},
-            #{deliveryScore},
+            #{communicationScore},
             #{totalScore},
             #{strengths},
             #{weaknesses},

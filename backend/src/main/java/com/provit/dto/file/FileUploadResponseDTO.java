@@ -27,7 +27,7 @@ public class FileUploadResponseDTO {
     /** 디스크에 저장된 고유 파일명 (예: "a1b2c3d4-e5f6-..._내_포트폴리오.pdf") */
     private String savedFileName;
 
-    /** 브라우저에서 접근 가능한 웹 URL (예: "/uploads/portfolio_uploadfile/a1b2c3d4-..._내_포트폴리오.pdf") */
+    /** 브라우저에서 접근 가능한 게시글 이미지 또는 프로필 이미지 URL */
     private String fileUrl;
 
     /** 파일 크기 (bytes) */

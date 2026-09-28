@@ -37,7 +37,8 @@ public enum ResponseCode {
 	AUTH_UNAUTHORIZED(318, "인증 자격 증명이 누락되었거나 유효하지 않습니다."),
 	AUTH_USER_NOT_FOUND(319, "존재하지 않는 회원입니다."),
 	AUTH_MAIL_SEND_FAILED(320, "인증 메일 발송에 실패했습니다. 관리자에게 문의해 주세요."),
-	AUTH_ACCOUNT_DELETED(321, "탈퇴 처리된 계정입니다.");
+	AUTH_ACCOUNT_DELETED(321, "탈퇴 처리된 계정입니다."),
+	AUTH_FORBIDDEN(322, "해당 리소스에 접근할 권한이 없습니다.");
 
 	private final int code;
 	private final String message;

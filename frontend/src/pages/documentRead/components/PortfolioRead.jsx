@@ -19,7 +19,7 @@ function PortfolioRead({ document }) {
             const downloadUrl = URL.createObjectURL(fileBlob);
             const anchor = window.document.createElement('a');
             anchor.href = downloadUrl;
-            anchor.download = `${document.portfolioTitle || `portfolio-${document.portfolioNum}`}.pdf`;
+            anchor.download = document.originalFileName || `${document.portfolioTitle || `portfolio-${document.portfolioNum}`}.pdf`;
             window.document.body.appendChild(anchor);
             anchor.click();
             anchor.remove();
@@ -74,7 +74,7 @@ function PortfolioRead({ document }) {
                 <div className="document-read-file">
                     <span className="document-read-file-icon" aria-hidden="true"><FileText size={30} /></span>
                     <div>
-                        <strong>{document.portfolioTitle || `포트폴리오 ${document.portfolioNum}`}.pdf</strong>
+                        <strong>{document.originalFileName || `${document.portfolioTitle || `포트폴리오 ${document.portfolioNum}`}.pdf`}</strong>
                         <span>포트폴리오 첨부 파일</span>
                     </div>
                     <button type="button" onClick={handleDownload} disabled={isDownloading}>

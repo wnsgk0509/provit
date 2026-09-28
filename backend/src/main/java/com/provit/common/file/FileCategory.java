@@ -16,7 +16,7 @@ public enum FileCategory {
 
     /**
      * 포트폴리오 (PDF 전용, 최대 20MB)
-     * 저장 경로: D:\fileStorage_Provit\portfolio_uploadfile
+     * 포트폴리오는 서류 API와 비공개 저장소에서 관리합니다.
      */
     PORTFOLIO("portfolio_uploadfile", Set.of("pdf"), 20 * 1024 * 1024L, "PDF 파일만 업로드 가능합니다."),
 

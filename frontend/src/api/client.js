@@ -25,6 +25,9 @@ client.interceptors.request.use(
 client.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.data?.data?.maintenance === true) {
+      window.dispatchEvent(new Event('interview:maintenance'));
+    }
     if (error.response && error.response.status === 401) {
       // 만료되거나 위조된 토큰 제거
       localStorage.removeItem('token');

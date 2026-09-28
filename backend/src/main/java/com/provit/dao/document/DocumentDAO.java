@@ -14,6 +14,8 @@ public interface DocumentDAO {
 
     int countEducationCode(int educationCode);
 
+    ResumeDTO selectResumeJob(String occupationCode, String jobCode);
+
     int insertResume(ResumeDTO resume);
 
     int insertEducation(EducationDTO education);
@@ -55,6 +57,8 @@ public interface DocumentDAO {
     CoverLetterDTO selectCoverLetter(int userNum, int letterNum);
 
     PortfolioDTO selectPortfolio(int userNum, int portfolioNum);
+
+    PortfolioDTO selectPortfolioByPortfolioNum(int portfolioNum);
 
     List<DocumentSummaryDTO> selectResumeSummaryList(int userNum);
 

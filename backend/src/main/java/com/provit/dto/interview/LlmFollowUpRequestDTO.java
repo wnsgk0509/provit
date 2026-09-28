@@ -8,7 +8,6 @@ import lombok.Data;
 public class LlmFollowUpRequestDTO {
 
     private LlmInterviewContextDTO context;
-    private String interviewStyle;
     private String interviewDifficulty;
     private List<InterviewQuestionAnswerDTO> questionAnswers;
 }

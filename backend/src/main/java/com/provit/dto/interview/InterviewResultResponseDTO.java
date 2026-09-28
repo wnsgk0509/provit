@@ -7,11 +7,11 @@ import lombok.Data;
 public class InterviewResultResponseDTO {
 
     private int historyNum;
-    private double confidenceScore;
-    private double persistenceScore;
+    private double documentConsistencyScore;
     private double expertiseScore;
+    private double problemSolvingScore;
     private double logicScore;
-    private double deliveryScore;
+    private double communicationScore;
     private double totalScore;
     private String strengths;
     private String weaknesses;

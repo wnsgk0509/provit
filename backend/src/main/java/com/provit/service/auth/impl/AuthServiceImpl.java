@@ -247,6 +247,8 @@ public class AuthServiceImpl implements AuthService {
 
         String email = normalizeEmail(requestDTO.getUserEmail());
         String nickname = requestDTO.getUserNickname().trim();
+        String occupationCode = normalizeOptionalJobCode(requestDTO.getOccupationCode());
+        String jobCode = normalizeOptionalJobCode(requestDTO.getJobCode());
 
         // 2. 이메일 인증 토큰 검증
         String token = requestDTO.getVerificationToken();
@@ -298,8 +300,8 @@ public class AuthServiceImpl implements AuthService {
                 .userPw(encodedPassword)
                 .userBirthDate(birthDate)
                 .userType("USER")
-                .jobCode(requestDTO.getJobCode())
-                .occupationCode(requestDTO.getOccupationCode())
+                .occupationCode(occupationCode)
+                .jobCode(jobCode)
                 .userIsDeleted(0)
                 .build();
 
@@ -312,6 +314,15 @@ public class AuthServiceImpl implements AuthService {
 
         // 비밀번호 및 해시 제외된 응답 DTO 반환
         return UserResponseDTO.from(userDTO);
+    }
+
+    private String normalizeOptionalJobCode(String value) {
+        if (value == null || value.isBlank()) return null;
+        String code = value.trim();
+        if (code.length() > 20) {
+            throw new IllegalArgumentException("직군·직무 코드는 20자 이하로 입력해 주세요.");
+        }
+        return code;
     }
 
     @Override

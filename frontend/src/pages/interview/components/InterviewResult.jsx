@@ -1,23 +1,5 @@
-const STYLE_NAMES = {
-    RANDOM: '랜덤면접',
-    ONE_TO_ONE: '일대일면접',
-    PANEL: '다대일면접',
-    GROUP: '다대다면접',
-};
-
-const DIFFICULTY_NAMES = {
-    HARD: '압박면접',
-    NORMAL: '심층면접',
-    EASY: '일반면접',
-};
-
-const SCORE_ITEMS = [
-    { key: 'confidenceScore', category: 'CONFIDENCE', label: '자신감' },
-    { key: 'persistenceScore', category: 'PERSISTENCE', label: '끈기/열정' },
-    { key: 'expertiseScore', category: 'EXPERTISE', label: '전문성' },
-    { key: 'logicScore', category: 'LOGIC', label: '논리력' },
-    { key: 'deliveryScore', category: 'DELIVERY', label: '전달력' },
-];
+import { SCORE_ITEMS } from '../../../constants/interviewEvaluation';
+import { DIFFICULTY_NAMES } from '../../../constants/interviewDifficulty';
 
 function InterviewResult({ result, settings, onRestart }) {
     return (
@@ -26,7 +8,7 @@ function InterviewResult({ result, settings, onRestart }) {
                 <div>
                     <span>INTERVIEW COMPLETE</span>
                     <h2>면접 결과</h2>
-                    <p>{STYLE_NAMES[settings.interviewStyle]} · {DIFFICULTY_NAMES[settings.difficulty]}</p>
+                    <p>일대일면접 · {DIFFICULTY_NAMES[settings.difficulty]}</p>
                 </div>
                 <div className="interview-total-score">
                     <strong>{result.totalScore}</strong>
@@ -36,9 +18,9 @@ function InterviewResult({ result, settings, onRestart }) {
 
             <div className="interview-score-list">
                 {SCORE_ITEMS.map((scoreItem) => (
-                    <div className="interview-score-item" key={scoreItem.category}>
+                    <div className="interview-score-item" key={scoreItem.key}>
                         <div>
-                            <span>{scoreItem.label}</span>
+                            <span title={scoreItem.description}>{scoreItem.label}</span>
                             <strong>{result[scoreItem.key]}점</strong>
                         </div>
                         <div className="interview-score-bar">

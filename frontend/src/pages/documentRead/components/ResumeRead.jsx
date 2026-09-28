@@ -46,6 +46,8 @@ function ResumeRead({ document }) {
                     <h3 id="resume-read-basic-title">기본 정보</h3>
                 </div>
                 <dl className="document-read-grid">
+                    <ReadValue label="지원 직군" value={resume.occupationName} />
+                    <ReadValue label="지원 직무" value={resume.jobName} />
                     <ReadValue label="최종 학력" value={resume.highestLevel} />
                     <ReadValue label="학력 구분" value={resume.educationName} />
                     <ReadValue label="희망 근무 지역" value={resume.desiredLocation} />
