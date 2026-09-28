@@ -111,7 +111,7 @@
 		#{studyNum},
 		#{userNum}
 		FROM DUAL
-		WHERE (SELECT COUNT(*) FROM T_STUDY_MEMBER WHERE STUDY_NUM = #{studyNum}) <![CDATA[ < ]]>
+		WHERE (SELECT COUNT(*) FROM T_STUDY_MEMBER WHERE STUDY_NUM = #{studyNum}) &lt;
 		(SELECT MAX_MEMBERS FROM T_STUDY WHERE STUDY_NUM = #{studyNum})
 	</insert>
 
