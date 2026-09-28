@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createPost, updatePost } from '../../api/communityApi';
+import { createPost, updatePost, deletePost } from '../../api/communityApi';
 import { uploadFile } from '../../api/fileApi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -15,6 +15,7 @@ function CommunityWrite() {
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [file, setFile] = useState(null); // 첨부파일 상태 추가
+    const fileInputRef = useRef(null);
 
     const [formData, setFormData] = useState({
         categoryNum: 1, // 기본값: 질문
@@ -22,8 +23,26 @@ function CommunityWrite() {
         postContent: '',
         postFile: ''
     });
+    const [isDirty, setIsDirty] = useState(false); // 폼 수정 여부 추적
+
+    // 브라우저 뒤로가기, 새로고침, 탭 닫기 감지 (Native Event)
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = ''; // Chrome 등 모던 브라우저 규격
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [isDirty]);
 
     const handleChange = (e) => {
+        setIsDirty(true);
         const { name, value } = e.target;
         setFormData({
             ...formData,
@@ -32,10 +51,18 @@ function CommunityWrite() {
     };
 
     const handleFileChange = (e) => {
+        setIsDirty(true);
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
         } else {
             setFile(null);
+        }
+    };
+
+    const handleClearFile = () => {
+        setFile(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
         }
     };
 
@@ -82,11 +109,19 @@ function CommunityWrite() {
                         });
                     } catch (uploadError) {
                         console.error("파일 업로드 실패:", uploadError);
-                        alert("게시글은 등록되었으나, 첨부파일 업로드에 실패했습니다.");
+                        // 파일 업로드 실패 시 데이터 불일치 방지를 위해 생성된 게시글 롤백(삭제)
+                        try {
+                            await deletePost(createdPostNum);
+                        } catch (rollbackError) {
+                            console.error("롤백 처리 중 오류:", rollbackError);
+                        }
+                        alert("첨부파일 업로드 중 오류가 발생하여 게시글 등록이 취소되었습니다.");
+                        return; // 함수 강제 종료 (성공 알럿 띄우지 않음)
                     }
                 }
 
                 alert('게시글이 성공적으로 등록되었습니다.');
+                setIsDirty(false); // 서밋 성공 시 경고 해제
                 navigate('/community');
             } else {
                 alert(result.message || '게시글 등록에 실패했습니다.');
@@ -143,14 +178,22 @@ function CommunityWrite() {
 
                         <div className="mb-3">
                             <label htmlFor="postFile" className="form-label fw-semibold">첨부파일(이미지)</label>
-                            <input
-                                type="file"
-                                className="form-control"
-                                id="postFile"
-                                name="postFile"
-                                accept="image/*"
-                                onChange={handleFileChange}
-                            />
+                            <div className="d-flex gap-2 align-items-center">
+                                <input
+                                    type="file"
+                                    className="form-control"
+                                    id="postFile"
+                                    name="postFile"
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                    ref={fileInputRef}
+                                />
+                                {file && (
+                                    <button type="button" className="btn btn-outline-danger btn-sm text-nowrap" onClick={handleClearFile}>
+                                        첨부 취소
+                                    </button>
+                                )}
+                            </div>
                             <div className="form-text text-muted">10MB 이하의 이미지 파일(.jpg, .png 등)만 업로드 가능합니다.</div>
                         </div>
 
