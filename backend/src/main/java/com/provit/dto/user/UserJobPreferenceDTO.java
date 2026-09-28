@@ -6,6 +6,7 @@ import lombok.Data;
 public class UserJobPreferenceDTO {
 
     private int userNum;
+    private String userNickname;
     private String jobCode;
     private String jobName;
     private String occupationCode;

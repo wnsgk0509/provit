@@ -210,4 +210,92 @@
           AND USER_NUM = #{userNum}
     </select>
 
+    <!-- ============================================================== -->
+    <!-- 사용자 맞춤 추천 공고 쿼리 영역                                  -->
+    <!-- ============================================================== -->
+
+    <!-- 8. 회원의 희망 직무 및 닉네임 조회 (T_USER + T_JOB + T_OCCUPATION) -->
+    <select id="selectUserJobPreference" parameterType="long" resultType="com.provit.dto.user.UserJobPreferenceDTO">
+        SELECT
+            U.USER_NUM AS userNum,
+            U.USER_NICKNAME AS userNickname,
+            U.JOB_CODE AS jobCode,
+            J.JOB_NAME AS jobName,
+            U.OCCUPATION_CODE AS occupationCode,
+            O.OCCUPATION_NAME AS occupationName
+        FROM T_USER U
+        LEFT JOIN T_JOB J ON U.JOB_CODE = J.JOB_CODE
+        LEFT JOIN T_OCCUPATION O ON U.OCCUPATION_CODE = O.OCCUPATION_CODE
+        WHERE U.USER_NUM = #{userNum}
+          AND U.USER_IS_DELETED = 0
+    </select>
+
+    <!-- 9. 직무/직군 키워드 매칭 추천 공고 조회 (활성 공고 중 최신순, 스크랩 여부 포함) -->
+    <select id="selectRecruitmentsByKeyword" parameterType="map" resultType="com.provit.dto.recruitment.RecruitmentDTO">
+        SELECT 
+            R.RECRUITMENT_NUM AS recruitmentNum,
+            R.SARAMIN_JOB_ID AS saraminJobId,
+            R.COMPANY_NAME AS companyName,
+            R.TITLE AS title,
+            R.JOB_URL AS jobUrl,
+            R.LOCATION_NAME AS locationName,
+            R.JOB_NAME AS jobName,
+            R.EXPERIENCE_LEVEL AS experienceLevel,
+            R.EXPIRATION_DATE AS expirationDate,
+            R.CLOSE_TYPE AS closeType,
+            R.IS_ACTIVE AS isActive,
+            R.CREATED_AT AS createdAt,
+            <choose>
+                <when test="userNum != null">
+                    CASE WHEN EXISTS (
+                        SELECT 1 FROM T_JOB_SCRAP S 
+                        WHERE S.RECRUITMENT_NUM = R.RECRUITMENT_NUM AND S.USER_NUM = #{userNum}
+                    ) THEN 1 ELSE 0 END AS isScrapped
+                </when>
+                <otherwise>
+                    0 AS isScrapped
+                </otherwise>
+            </choose>
+        FROM T_RECRUITMENT R
+        WHERE R.IS_ACTIVE = 1
+          AND (
+              LOWER(R.JOB_NAME) LIKE '%' || LOWER(#{keyword}) || '%'
+              OR LOWER(R.TITLE) LIKE '%' || LOWER(#{keyword}) || '%'
+          )
+        ORDER BY R.RECRUITMENT_NUM DESC
+        FETCH FIRST #{limit} ROWS ONLY
+    </select>
+
+    <!-- 10. 실시간 인기/최신 공고 조회 (폴백용, 스크랩 여부 포함) -->
+    <select id="selectHotRecruitments" parameterType="map" resultType="com.provit.dto.recruitment.RecruitmentDTO">
+        SELECT 
+            R.RECRUITMENT_NUM AS recruitmentNum,
+            R.SARAMIN_JOB_ID AS saraminJobId,
+            R.COMPANY_NAME AS companyName,
+            R.TITLE AS title,
+            R.JOB_URL AS jobUrl,
+            R.LOCATION_NAME AS locationName,
+            R.JOB_NAME AS jobName,
+            R.EXPERIENCE_LEVEL AS experienceLevel,
+            R.EXPIRATION_DATE AS expirationDate,
+            R.CLOSE_TYPE AS closeType,
+            R.IS_ACTIVE AS isActive,
+            R.CREATED_AT AS createdAt,
+            <choose>
+                <when test="userNum != null">
+                    CASE WHEN EXISTS (
+                        SELECT 1 FROM T_JOB_SCRAP S 
+                        WHERE S.RECRUITMENT_NUM = R.RECRUITMENT_NUM AND S.USER_NUM = #{userNum}
+                    ) THEN 1 ELSE 0 END AS isScrapped
+                </when>
+                <otherwise>
+                    0 AS isScrapped
+                </otherwise>
+            </choose>
+        FROM T_RECRUITMENT R
+        WHERE R.IS_ACTIVE = 1
+        ORDER BY R.RECRUITMENT_NUM DESC
+        FETCH FIRST #{limit} ROWS ONLY
+    </select>
+
 </mapper>

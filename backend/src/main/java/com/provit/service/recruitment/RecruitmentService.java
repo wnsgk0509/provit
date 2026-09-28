@@ -6,6 +6,7 @@ import com.provit.dto.recruitment.JobDTO;
 import com.provit.dto.recruitment.OccupationDTO;
 import com.provit.dto.recruitment.RecruitmentDTO;
 import com.provit.dto.recruitment.RecruitmentSearchDTO;
+import com.provit.dto.recruitment.UserRecommendResponseDTO;
 import com.provit.dto.response.PageResponse;
 
 public interface RecruitmentService {
@@ -21,4 +22,6 @@ public interface RecruitmentService {
 	public int deactivateExpiredRecruitments();
 
 	public com.provit.dto.recruitment.JobScrapResponseDTO toggleJobScrap(long recruitmentNum, long userNum);
+
+	public UserRecommendResponseDTO getUserJobRecommendations(Long userNum);
 }

@@ -76,3 +76,17 @@ export const toggleJobScrap = async (recruitmentNum) => {
     }
 };
 
+/**
+ * 로그인 회원 직무 기반 맞춤 추천 공고 조회 (비로그인/직무 미지정 시 실시간 인기 공고 Fallback)
+ * @returns {Promise<Object>} ApiResponse<UserRecommendResponseDTO>
+ */
+export const fetchUserJobRecommendations = async () => {
+    try {
+        const response = await client.get('/recruitment/recommend/user');
+        return response.data;
+    } catch (error) {
+        console.error('맞춤 추천 공고 조회 실패:', error);
+        throw error;
+    }
+};
+

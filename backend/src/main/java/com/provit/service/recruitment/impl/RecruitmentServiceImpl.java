@@ -16,7 +16,9 @@ import com.provit.dto.recruitment.JobScrapResponseDTO;
 import com.provit.dto.recruitment.OccupationDTO;
 import com.provit.dto.recruitment.RecruitmentDTO;
 import com.provit.dto.recruitment.RecruitmentSearchDTO;
+import com.provit.dto.recruitment.UserRecommendResponseDTO;
 import com.provit.dto.response.PageResponse;
+import com.provit.dto.user.UserJobPreferenceDTO;
 import com.provit.service.recruitment.RecruitmentService;
 import com.provit.util.SaraminCrawler;
 
@@ -127,6 +129,70 @@ public class RecruitmentServiceImpl implements RecruitmentService {
                 .userNum(userNum)
                 .isScrapped(isScrapped)
                 .message(message)
+                .build();
+    }
+
+    @Override
+    public UserRecommendResponseDTO getUserJobRecommendations(Long userNum) {
+        log.info(">> [Service] 사용자 맞춤 채용 공고 추천 요청 수신 (userNum: {})", userNum);
+
+        String targetJobName = null;
+        String targetOccupationName = null;
+        String userNickname = null;
+
+        if (userNum != null) {
+            // [1단계]: 현재 T_USER 기준 희망 직무 및 닉네임 조회
+            // (추후 팀원의 T_RESUME 직무 컬럼 머지 시, 최신 이력서 직무 우선 조회 -> 없으면 T_USER 폴백 구조로 확장 가능)
+            UserJobPreferenceDTO pref = recruitmentDAO.selectUserJobPreference(userNum);
+            if (pref != null) {
+                userNickname = pref.getUserNickname();
+                if (pref.getJobName() != null && !pref.getJobName().trim().isEmpty()) {
+                    targetJobName = pref.getJobName().trim();
+                }
+                if (pref.getOccupationName() != null && !pref.getOccupationName().trim().isEmpty()) {
+                    targetOccupationName = pref.getOccupationName().trim();
+                }
+            }
+        }
+
+        // [2단계 - Tier 1]: 유저의 소분류 직무명 키워드 매칭 시도 (최대 6건)
+        if (targetJobName != null) {
+            List<RecruitmentDTO> matchedJobs = recruitmentDAO.selectRecruitmentsByKeyword(targetJobName, userNum, 6);
+            if (matchedJobs != null && !matchedJobs.isEmpty()) {
+                log.info(">> [Service] 유저 직무 키워드('{}') 매칭 성공 (총 {}건 반환)", targetJobName, matchedJobs.size());
+                return UserRecommendResponseDTO.builder()
+                        .recommendType("JOB_MATCH")
+                        .targetJobName(targetJobName)
+                        .userNickname(userNickname)
+                        .recruitments(matchedJobs)
+                        .build();
+            }
+        }
+
+        // [2단계 - Tier 2]: 소분류 매칭 결과가 없거나 직무코드가 없고 직군코드만 있는 경우, 대분류 직군명 키워드 매칭
+        if (targetOccupationName != null) {
+            // "IT개발·데이터" -> "IT개발", "기획·전략" -> "기획" 등 특수문자/구분기호 앞단 핵심 키워드 정제
+            String cleanOccName = targetOccupationName.split("[·/,]")[0].trim();
+            List<RecruitmentDTO> matchedOccJobs = recruitmentDAO.selectRecruitmentsByKeyword(cleanOccName, userNum, 6);
+            if (matchedOccJobs != null && !matchedOccJobs.isEmpty()) {
+                log.info(">> [Service] 유저 직군 키워드('{}') 매칭 성공 (총 {}건 반환)", cleanOccName, matchedOccJobs.size());
+                return UserRecommendResponseDTO.builder()
+                        .recommendType("OCCUPATION_MATCH")
+                        .targetJobName(targetOccupationName)
+                        .userNickname(userNickname)
+                        .recruitments(matchedOccJobs)
+                        .build();
+            }
+        }
+
+        // [2단계 - Tier 3 Fallback]: 비로그인, 직무 미설정, 혹은 매칭 공고가 없을 때 실시간 인기/최신 공고 반환
+        List<RecruitmentDTO> hotJobs = recruitmentDAO.selectHotRecruitments(userNum, 6);
+        log.info(">> [Service] 매칭 결과 부재 또는 미설정으로 인기 공고(Fallback) 반환 (총 {}건)", hotJobs != null ? hotJobs.size() : 0);
+        return UserRecommendResponseDTO.builder()
+                .recommendType("POPULAR_FALLBACK")
+                .targetJobName(null)
+                .userNickname(userNickname)
+                .recruitments(hotJobs != null ? hotJobs : java.util.Collections.emptyList())
                 .build();
     }
 }
