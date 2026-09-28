@@ -16,6 +16,7 @@ import MyPage from './pages/mypage/MyPage';
 import DocumentWrite from './pages/documentWrite/DocumentWrite';
 import DocumentRead from './pages/documentRead/DocumentRead';
 import DocumentEdit from './pages/documentEdit/DocumentEdit';
+import DocumentReview from './pages/documentReview/DocumentReview';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import BootstrapTemplate from './pages/bootstrap';
@@ -67,6 +68,7 @@ function App() {
             <Route path="/community/edit/:postNum" element={<CommunityEdit />} />
             <Route path="/study" element={<Navigate to="/community?tab=study" replace />} />
             <Route path="/mypage" element={<RequireAuth><MyPage /></RequireAuth>} />
+            <Route path="/document-review" element={<RequireAuth alertMessage="로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다."><DocumentReview /></RequireAuth>} />
             <Route path="/documents/write" element={<RequireAuth><DocumentWrite /></RequireAuth>} />
             <Route path="/documents/:documentType/:documentId/edit" element={<RequireAuth><DocumentEdit /></RequireAuth>} />
             <Route path="/documents/:documentType/:documentId" element={<RequireAuth><DocumentRead /></RequireAuth>} />

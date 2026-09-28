@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, Eye, EyeOff, FileText, KeyRound, ShieldCheck } from 'lucide-react';
+import { ChevronRight, Eye, EyeOff, FileText, KeyRound, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import client from '../../api/client';
 import { getCoverLetterList, getPortfolioList, getResumeList } from '../../api/documentApi';
@@ -336,6 +336,12 @@ function MyPage() {
                     </div>
 
                     <div className="mypage-document-write-action">
+                        <Link
+                            className="mypage-document-review-link"
+                            to="/document-review"
+                        >
+                            <Sparkles size={16} aria-hidden="true" /> AI원클릭첨삭
+                        </Link>
                         <Link
                             className="mypage-document-write-link"
                             to={`/documents/write?type=${selectedDocumentType}`}
