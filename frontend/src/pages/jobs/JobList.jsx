@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
     fetchRecruitments, 
@@ -51,11 +51,12 @@ const updateScrapStatusInList = (list, targetId, forcedStatus = null) => {
 
 function JobList() {
     const navigate = useNavigate();
-    const { isLoggedIn } = useAuth();
+    const { isLoggedIn, user } = useAuth();
 
-    // 0. 회원 직무 맞춤 / 실시간 인기 추천 공고 상태
+    // 0. 회원 직무 맞춤 / 실시간 인기 추천 공고 상태 및 동시성 요청 제어 ref
     const [recommendation, setRecommendation] = useState(null);
     const [recommendLoading, setRecommendLoading] = useState(true);
+    const recommendReqIdRef = useRef(0);
 
     // 1. 공고 및 페이징 상태
     const [recruitments, setRecruitments] = useState([]);
@@ -161,23 +162,38 @@ function JobList() {
 
     // 회원 직무 맞춤 / 실시간 인기 추천 공고 로드
     const loadRecommendations = useCallback(async () => {
+        const reqId = ++recommendReqIdRef.current;
         setRecommendLoading(true);
+        // [정합성/보안] 계정 전환 또는 로그아웃 시 이전 사용자 데이터가 화면에 잔류하지 않도록 즉시 초기화
+        setRecommendation(null);
+
         try {
             const res = await fetchUserJobRecommendations();
-            if (res && res.data) {
-                setRecommendation(res.data);
+            // 최신 요청인 경우에만 상태 반영 (네트워크 응답 지연/역전 방어)
+            if (reqId === recommendReqIdRef.current) {
+                if (res && res.data) {
+                    setRecommendation(res.data);
+                } else {
+                    setRecommendation(null);
+                }
             }
         } catch (err) {
-            console.error('맞춤 추천 공고 조회 에러:', err);
+            if (reqId === recommendReqIdRef.current) {
+                console.error('맞춤 추천 공고 조회 에러:', err);
+                // API 실패 시에도 이전 사용자의 데이터가 잔류하지 않도록 안전하게 초기화
+                setRecommendation(null);
+            }
         } finally {
-            setRecommendLoading(false);
+            if (reqId === recommendReqIdRef.current) {
+                setRecommendLoading(false);
+            }
         }
     }, []);
 
-    // 초기 마운트 및 로그인 상태 변경 시 추천 공고 갱신
+    // 초기 마운트 및 로그인 상태/계정 변경 시 추천 공고 갱신
     useEffect(() => {
         loadRecommendations();
-    }, [loadRecommendations, isLoggedIn]);
+    }, [loadRecommendations, isLoggedIn, user?.userNum]);
 
     // ==========================================
     // 🎯 이벤트 핸들러
@@ -311,6 +327,7 @@ function JobList() {
             const res = await syncRecruitments(100);
             alert(res?.data || '동기화가 완료되었습니다.');
             loadRecruitments(); // 목록 새로고침
+            loadRecommendations(); // 추천 공고도 최신 데이터로 새로고침
         } catch (err) {
             alert('동기화 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
         } finally {
