@@ -7,6 +7,8 @@ import java.util.List;
 
 import org.springframework.stereotype.Component;
 
+import com.provit.service.interview.InterviewTextLimits;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -119,7 +121,7 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
             property(schema, score, mapper.createObjectNode().put("type", "number").put("minimum", 0).put("maximum", 100));
         }
         for (String feedback : new String[] {"strengths", "weaknesses", "improvements", "comparison"}) {
-            property(schema, feedback, mapper.createObjectNode().put("type", "string").put("minLength", 1).put("maxLength", 250));
+            property(schema, feedback, mapper.createObjectNode().put("type", "string").put("minLength", 1).put("maxLength", InterviewTextLimits.FEEDBACK));
         }
         return convert(client.generate("evaluation", common + "\n" + answerFormat + "\n" + evaluation,
                 input, schema, 1400, hasPortfolio ? portfolioPdf : null), LlmEvaluationResponseDTO.class);
@@ -174,7 +176,7 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
     }
 
     private ObjectNode questionTextSchema() {
-        return mapper.createObjectNode().put("type", "string").put("minLength", 1).put("maxLength", 120);
+        return mapper.createObjectNode().put("type", "string").put("minLength", 1).put("maxLength", InterviewTextLimits.QUESTION);
     }
 
     private InterviewQuestionDTO question(int order, String type, String text) {

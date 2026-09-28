@@ -338,6 +338,120 @@ public class InterviewFourCallFlowTest {
     }
 
     @Test
+    public void feedbackAt250CharactersIsSavedForKoreanEnglishAndMixedText() {
+        for (String feedback : List.of("가".repeat(250), "A".repeat(250),
+                "가A1!".repeat(62) + "가A", "가A😀".repeat(50))) {
+            var generator = feedbackGenerator(feedback);
+            var saves = new AtomicInteger();
+            var dao = fakeDao(saves);
+            var service = service(dao, generator, new InterviewPersistenceService(dao));
+            int id = service.startInterview(7, settings()).getHistoryNum();
+            for (int order = 1; order <= 4; order++) service.submitAnswer(7, id, answer(order));
+            var result = service.submitAnswer(7, id, answer(5));
+            assertTrue(result.isCompleted());
+            assertEquals(feedback, result.getResult().getStrengths());
+            assertEquals(feedback, result.getResult().getWeaknesses());
+            assertEquals(feedback, result.getResult().getComparison());
+            assertEquals(feedback, result.getResult().getImprovements());
+            assertEquals(1, saves.get());
+        }
+    }
+
+    @Test
+    public void feedbackAt251CharactersIsRejectedBeforeDatabaseWrites() {
+        var generator = feedbackGenerator("가".repeat(251));
+        var saves = new AtomicInteger();
+        var dao = fakeDao(saves);
+        var service = service(dao, generator, new InterviewPersistenceService(dao));
+        int id = service.startInterview(7, settings()).getHistoryNum();
+        for (int order = 1; order <= 4; order++) service.submitAnswer(7, id, answer(order));
+        assertThrows(InterviewProcessingException.class, () -> service.submitAnswer(7, id, answer(5)));
+        assertEquals(0, saves.get());
+        assertEquals(1, generator.evaluationCalls);
+    }
+
+    @Test
+    public void answerAt1000CharactersIsAcceptedAnd1001IsRejected() {
+        var generator = new RecordingGenerator();
+        var dao = fakeDao(new AtomicInteger());
+        var service = service(dao, generator, new InterviewPersistenceService(dao));
+        int id = service.startInterview(7, settings()).getHistoryNum();
+        var request = answer(1);
+        request.setAnswer("가".repeat(1001));
+        assertThrows(IllegalArgumentException.class, () -> service.submitAnswer(7, id, request));
+        assertTrue(service.getSession(7, id).getAnswers().isEmpty());
+        request.setAnswer("가".repeat(1000));
+        service.submitAnswer(7, id, request);
+        assertEquals(request.getAnswer(), service.getSession(7, id).getAnswers().get(0).getAnswer());
+    }
+
+    @Test
+    public void questionAt120CharactersIsAcceptedAnd121IsRejected() {
+        for (int length : List.of(120, 121)) {
+            var generator = new RecordingGenerator() {
+                @Override
+                public LlmQuestionResponseDTO generateDocumentQuestions(LlmQuestionRequestDTO request) {
+                    var response = super.generateDocumentQuestions(request);
+                    response.getQuestions().get(0).setQuestionText("가".repeat(length));
+                    return response;
+                }
+            };
+            var dao = fakeDao(new AtomicInteger());
+            var service = service(dao, generator, new InterviewPersistenceService(dao));
+            if (length == 120) {
+                int id = service.startInterview(7, settings()).getHistoryNum();
+                assertEquals(length, service.getSession(7, id).getQuestions().get(0).getQuestionText().length());
+            } else {
+                assertThrows(IllegalStateException.class, () -> service.startInterview(7, settings()));
+            }
+        }
+    }
+
+    @Test
+    public void permanentDatabaseErrorsDoNotRepeatSaveOrRegenerateEvaluation() {
+        for (RuntimeException failure : List.of(
+                new org.springframework.dao.DataIntegrityViolationException("invalid stored length"),
+                new IllegalStateException(new java.sql.SQLException("oversized column", "72000", 12899)))) {
+            var generator = new RecordingGenerator();
+            var dao = fakeDao(new AtomicInteger());
+            var attempts = new AtomicInteger();
+            var persistence = new InterviewPersistenceService(dao) {
+                @Override
+                public int save(InterviewHistoryDTO history, InterviewResultDTO result) {
+                    attempts.incrementAndGet();
+                    throw failure;
+                }
+            };
+            var service = service(dao, generator, persistence);
+            int id = service.startInterview(7, settings()).getHistoryNum();
+            for (int order = 1; order <= 4; order++) service.submitAnswer(7, id, answer(order));
+            var error = assertThrows(InterviewProcessingException.class,
+                    () -> service.submitAnswer(7, id, answer(5)));
+            assertTrue(error.isRestartRequired());
+            assertFalse(error.isAnswerLocked());
+            assertTrue(error.getMessage().contains("관리자"));
+            assertThrows(InterviewProcessingException.class, () -> service.submitAnswer(7, id, answer(5)));
+            assertThrows(InterviewProcessingException.class, () -> service.getSession(7, id));
+            assertEquals(1, attempts.get());
+            assertEquals(1, generator.evaluationCalls);
+        }
+    }
+
+    private RecordingGenerator feedbackGenerator(String feedback) {
+        return new RecordingGenerator() {
+            @Override
+            public LlmEvaluationResponseDTO evaluate(LlmEvaluationRequestDTO request) {
+                var result = super.evaluate(request);
+                result.setStrengths(feedback);
+                result.setWeaknesses(feedback);
+                result.setComparison(feedback);
+                result.setImprovements(feedback);
+                return result;
+            }
+        };
+    }
+
+    @Test
     public void changedRecruitmentCannotReuseStartRequestId() {
         RecordingGenerator generator = new RecordingGenerator();
         InterviewDAO dao = fakeDao(new AtomicInteger());

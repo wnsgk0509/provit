@@ -11,7 +11,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.sql.SQLException;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -45,6 +47,7 @@ import com.provit.service.interview.InterviewPersistenceService;
 import com.provit.service.interview.InterviewDocumentInputBuilder;
 import com.provit.service.interview.InterviewMaintenanceException;
 import com.provit.service.interview.generator.InterviewGenerator;
+import com.provit.service.interview.InterviewTextLimits;
 
 @Service
 public class InterviewServiceImpl implements InterviewService {
@@ -366,6 +369,11 @@ public class InterviewServiceImpl implements InterviewService {
                 saveInterview(history, result);
             } catch (RuntimeException exception) {
                 log.warn("Interview history={} save failed type={}", historyNum, exception.getClass().getSimpleName());
+                if (isPermanentStorageFailure(exception)) {
+                    session.failed = true;
+                    throw new InterviewProcessingException(
+                            "평가 결과를 저장할 수 없습니다. 관리자에게 문의해 주세요.", true, false);
+                }
                 throw new InterviewProcessingException("평가는 완료됐지만 결과를 저장하지 못했습니다. 같은 답변으로 다시 제출해 주세요.", false, true);
             }
 
@@ -648,7 +656,7 @@ public class InterviewServiceImpl implements InterviewService {
         if (question == null || question.getQuestionOrder() != order
                 || !type.equals(question.getQuestionType())
                 || question.getQuestionText() == null || question.getQuestionText().isBlank()
-                || question.getQuestionText().length() > 1000) {
+                || question.getQuestionText().length() > InterviewTextLimits.QUESTION) {
             throw new IllegalStateException("면접 질문 형식이 올바르지 않습니다.");
         }
     }
@@ -661,7 +669,7 @@ public class InterviewServiceImpl implements InterviewService {
         if (!request.isTimedOut() && (answer == null || answer.isBlank())) {
             throw new IllegalArgumentException("답변을 입력해 주세요.");
         }
-        if (answer != null && answer.length() > 1000) {
+        if (answer != null && answer.length() > InterviewTextLimits.ANSWER) {
             throw new IllegalArgumentException("답변은 1000자 이하로 입력해 주세요.");
         }
     }
@@ -688,9 +696,19 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     private void validateFeedback(String feedback) {
-        if (feedback == null || feedback.isBlank() || feedback.length() > 500) {
-            throw new IllegalStateException("면접 평가 문구는 1자 이상 500자 이하여야 합니다.");
+        if (feedback == null || feedback.isBlank() || feedback.length() > InterviewTextLimits.FEEDBACK) {
+            throw new IllegalStateException("면접 평가 문구는 1자 이상 250자 이하여야 합니다.");
         }
+    }
+
+    private boolean isPermanentStorageFailure(RuntimeException exception) {
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            if (cause instanceof DataIntegrityViolationException
+                    || cause instanceof SQLException sqlException && sqlException.getErrorCode() == 12899) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static class InterviewSession {
