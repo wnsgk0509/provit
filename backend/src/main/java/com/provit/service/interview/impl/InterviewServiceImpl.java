@@ -1,6 +1,7 @@
 package com.provit.service.interview.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -143,6 +144,7 @@ public class InterviewServiceImpl implements InterviewService {
     private InterviewStartResponseDTO createSession(int userNum, InterviewStartRequestDTO request) {
         LlmInterviewContextDTO context = getLlmInterviewContext(
                 userNum, request.getResumeNum(), request.getPortfolioNum(), request.getLetterNum());
+        context.setRecruitment(request.getRecruitment());
 
         LlmQuestionRequestDTO questionRequest = new LlmQuestionRequestDTO();
         questionRequest.setContext(context);
@@ -326,14 +328,21 @@ public class InterviewServiceImpl implements InterviewService {
         return new InterviewProcessingException(message, true, false);
     }
 
-    private static String startFingerprint(InterviewStartRequestDTO request) {
-        return request.getResumeNum() + ":" + request.getPortfolioNum() + ":" + request.getLetterNum()
-                + ":" + request.getInterviewStyle() + ":" + request.getInterviewDifficulty();
+    private static List<Object> startFingerprint(InterviewStartRequestDTO request) {
+        var recruitment = request.getRecruitment();
+        return Arrays.asList(request.getResumeNum(), request.getPortfolioNum(), request.getLetterNum(),
+                request.getInterviewStyle(), request.getInterviewDifficulty(),
+                recruitment == null ? null : recruitment.getRecruitmentNum(),
+                recruitment == null ? null : recruitment.getCompanyName(),
+                recruitment == null ? null : recruitment.getTitle(),
+                recruitment == null ? null : recruitment.getJobName(),
+                recruitment == null ? null : recruitment.getLocationName(),
+                recruitment == null ? null : recruitment.getExperienceLevel());
     }
 
     private static class StartAttempt {
         private final long createdAt = System.currentTimeMillis();
-        private final String fingerprint;
+        private final List<Object> fingerprint;
         private InterviewStartResponseDTO response;
         private RuntimeException failure;
         private StartAttempt(InterviewStartRequestDTO request) { fingerprint = startFingerprint(request); }
@@ -465,6 +474,23 @@ public class InterviewServiceImpl implements InterviewService {
         if (!List.of("RANDOM", "ONE_TO_ONE", "PANEL", "GROUP").contains(request.getInterviewStyle())
                 || !List.of("EASY", "NORMAL", "HARD").contains(request.getInterviewDifficulty())) {
             throw new IllegalArgumentException("면접 방식 또는 난이도가 올바르지 않습니다.");
+        }
+        var recruitment = request.getRecruitment();
+        if (recruitment != null) {
+            if (recruitment.getRecruitmentNum() != null && recruitment.getRecruitmentNum() <= 0) {
+                throw new IllegalArgumentException("채용 공고 번호가 올바르지 않습니다.");
+            }
+            validateRecruitmentField(recruitment.getCompanyName(), 200);
+            validateRecruitmentField(recruitment.getTitle(), 400);
+            validateRecruitmentField(recruitment.getJobName(), 300);
+            validateRecruitmentField(recruitment.getLocationName(), 200);
+            validateRecruitmentField(recruitment.getExperienceLevel(), 100);
+        }
+    }
+
+    private void validateRecruitmentField(String value, int maxLength) {
+        if (value != null && value.length() > maxLength) {
+            throw new IllegalArgumentException("채용 공고 정보가 허용 길이를 초과했습니다.");
         }
     }
 

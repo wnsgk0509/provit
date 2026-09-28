@@ -1,4 +1,4 @@
-import client from './client';
+import client from './client.js';
 
 const INTERVIEW_TIMEOUT = 150000;
 
@@ -17,7 +17,7 @@ export async function getInterviewDocuments() {
     return response.data.data;
 }
 
-export async function createInterview(settings, requestId) {
+export async function createInterview(settings, requestId, recruitment = null) {
     const response = await client.post('/interview/start', {
         resumeNum: Number(settings.resumeNum),
         portfolioNum: Number(settings.portfolioNum || 0),
@@ -25,6 +25,7 @@ export async function createInterview(settings, requestId) {
         interviewStyle: settings.interviewStyle,
         interviewDifficulty: settings.difficulty,
         requestId,
+        recruitment,
     }, { timeout: INTERVIEW_TIMEOUT });
     return response.data.data;
 }

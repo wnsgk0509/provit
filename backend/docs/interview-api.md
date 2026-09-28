@@ -11,6 +11,23 @@ Java 17의 HTTP 클라이언트로 `https://api.openai.com/v1/responses`를 호�
 
 ## 호출과 프롬프트
 
+공고 목록의 모의면접 버튼은 선택한 공고를 React Router의 `state.recruitment`로 전달한다.
+면접 시작 요청 `POST /api/interview/start`에는 기존 설정과 함께 선택 사항인 `recruitment` 객체를 보낸다:
+
+```json
+{
+  "recruitmentNum": 42,
+  "companyName": "테스트 기업",
+  "title": "백엔드 개발자 채용",
+  "jobName": "백엔드 개발,Java",
+  "locationName": "서울",
+  "experienceLevel": "신입"
+}
+```
+
+공고 정보는 면접 세션에 보관하고 첫 질문, 4·5번 후속 질문, 최종 평가의 모든 AI 입력에 `recruitment`로 전달한다. AI에는 공고 번호를 제외한 다섯 텍스트 필드만 보낸다. 공고의 모집 직무와 경력 조건을 우선 기준으로 사용하고 이력서의 분야는 지원 경험의 배경으로 유지한다. 회사의 기술 스택·인재상 등 공고에 없는 내용은 추정하지 않으며 근무지를 능력 평가 기준으로 삼지 않는다.
+공고 없이 시작하면 기존 이력서 기반 면접으로 진행한다. 화면에 공고 요약을 표시하고 같은 공고로 다시 면접을 시작할 수 있다. 동일한 `requestId`로 공고 정보를 바꾸는 요청은 거부한다. 공고 정보는 현재 세션에만 보관하며 DB 구조는 변경하지 않는다.
+
 프롬프트 파일: `src/main/resources/interview/prompts/`.
 모든 단계는 `common.txt`에 해당 단계 파일을 덧붙여 instructions로 사용한다.
 질문 생성 단계에는 `question-rules.txt`, 질문·답변을 보내는 단계에는 `answer-format.txt`를 추가한다.

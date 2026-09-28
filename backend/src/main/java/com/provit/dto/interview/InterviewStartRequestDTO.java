@@ -11,4 +11,5 @@ public class InterviewStartRequestDTO {
     private int letterNum;
     private String interviewStyle;
     private String interviewDifficulty;
+    private InterviewRecruitmentDTO recruitment;
 }

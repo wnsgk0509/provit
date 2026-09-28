@@ -19,6 +19,7 @@ import com.provit.dto.interview.InterviewAnswerRequestDTO;
 import com.provit.dto.interview.InterviewAnswerResponseDTO;
 import com.provit.dto.interview.InterviewHistoryDTO;
 import com.provit.dto.interview.InterviewQuestionDTO;
+import com.provit.dto.interview.InterviewRecruitmentDTO;
 import com.provit.dto.interview.InterviewResultDTO;
 import com.provit.dto.interview.InterviewStartRequestDTO;
 import com.provit.dto.interview.LlmEvaluationRequestDTO;
@@ -117,6 +118,46 @@ public class InterviewFourCallFlowTest {
     private InterviewServiceImpl service(
             InterviewDAO dao, InterviewGenerator generator, InterviewPersistenceService persistence) {
         return new InterviewServiceImpl(dao, generator, persistence, new InterviewDocumentInputBuilder(null));
+    }
+
+    @Test
+    public void changedRecruitmentCannotReuseStartRequestId() {
+        RecordingGenerator generator = new RecordingGenerator();
+        InterviewDAO dao = fakeDao(new AtomicInteger());
+        InterviewServiceImpl service = service(dao, generator, new InterviewPersistenceService(dao));
+        var original = settings();
+        original.setRequestId("feea354e-64fe-4fb1-af81-05cf18f21c43");
+        var recruitment = new InterviewRecruitmentDTO();
+        recruitment.setRecruitmentNum(42L);
+        recruitment.setCompanyName("테스트 기업");
+        recruitment.setJobName("백엔드 개발");
+        original.setRecruitment(recruitment);
+        service.startInterview(7, original);
+
+        var changed = settings();
+        changed.setRequestId(original.getRequestId());
+        var changedRecruitment = new InterviewRecruitmentDTO();
+        changedRecruitment.setRecruitmentNum(42L);
+        changedRecruitment.setCompanyName("테스트 기업");
+        changedRecruitment.setJobName("프론트엔드 개발");
+        changed.setRecruitment(changedRecruitment);
+        assertThrows(IllegalArgumentException.class, () -> service.startInterview(7, changed));
+        changed.setRecruitment(null);
+        assertThrows(IllegalArgumentException.class, () -> service.startInterview(7, changed));
+        assertEquals(1, generator.batchCalls);
+    }
+
+    @Test
+    public void oversizedRecruitmentFailsBeforeQuestionGeneration() {
+        RecordingGenerator generator = new RecordingGenerator();
+        InterviewDAO dao = fakeDao(new AtomicInteger());
+        InterviewServiceImpl service = service(dao, generator, new InterviewPersistenceService(dao));
+        var request = settings();
+        var recruitment = new InterviewRecruitmentDTO();
+        recruitment.setTitle("가".repeat(401));
+        request.setRecruitment(recruitment);
+        assertThrows(IllegalArgumentException.class, () -> service.startInterview(7, request));
+        assertEquals(0, generator.batchCalls);
     }
 
     private InterviewStartRequestDTO settings() {

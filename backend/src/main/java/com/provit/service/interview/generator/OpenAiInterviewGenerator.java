@@ -125,6 +125,15 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
         }
         input.put("interviewStyle", style);
         input.put("interviewDifficulty", difficulty);
+        if (context.getRecruitment() != null) {
+            var recruitment = context.getRecruitment();
+            ObjectNode target = input.putObject("recruitment");
+            target.put("companyName", recruitment.getCompanyName());
+            target.put("title", recruitment.getTitle());
+            target.put("jobName", recruitment.getJobName());
+            target.put("locationName", recruitment.getLocationName());
+            target.put("experienceLevel", recruitment.getExperienceLevel());
+        }
         return input;
     }
 

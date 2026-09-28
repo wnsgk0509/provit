@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { createInterview, getInterviewDocuments, submitInterviewAnswer } from '../../api/interviewApi';
 import InterviewCustom from './components/InterviewCustom';
 import InterviewQuestion from './components/InterviewQuestion';
@@ -35,6 +36,8 @@ function createRequestId() {
 }
 
 function Interview() {
+    const location = useLocation();
+    const recruitment = location.state?.recruitment ?? null;
     const [step, setStep] = useState(INTERVIEW_STEP.CUSTOM);
     const [settings, setSettings] = useState(INITIAL_SETTINGS);
     const [historyNum, setHistoryNum] = useState(null);
@@ -90,7 +93,7 @@ function Interview() {
 
         try {
             startRequestIdRef.current ??= createRequestId();
-            const interviewSession = await createInterview(settings, startRequestIdRef.current);
+            const interviewSession = await createInterview(settings, startRequestIdRef.current, recruitment);
 
             setHistoryNum(interviewSession.historyNum);
             setQuestions(interviewSession.questions);
@@ -222,6 +225,14 @@ function Interview() {
                 </div>
 
                 <div className="interview-progress">
+                    {recruitment && <section className="interview-recruitment" aria-label="선택한 채용 공고">
+                        <span>지원 공고</span>
+                        <h2>{recruitment.companyName}</h2>
+                        <p>{recruitment.title}</p>
+                        <p>{[recruitment.jobName, recruitment.locationName, recruitment.experienceLevel]
+                            .filter(Boolean).join(' · ')}</p>
+                        <small>이 공고를 바탕으로 면접 질문과 평가가 진행됩니다.</small>
+                    </section>}
                     {errorMessage && <div className="interview-error" role="alert">
                         <p>{errorMessage}</p>
                         {restartRequired && <button type="button" className="btn btn-primary" onClick={handleRestart}>

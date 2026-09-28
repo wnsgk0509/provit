@@ -18,4 +18,5 @@ public class LlmInterviewContextDTO {
     private byte[] portfolioPdf;
     private CoverLetterDTO coverLetter;
     private String documentText;
+    private InterviewRecruitmentDTO recruitment;
 }

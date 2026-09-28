@@ -289,24 +289,18 @@ function JobList() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // =========================================================================
-    // 🎯 [팀원 연동용] AI 모의면접실로 선택한 채용 공고 데이터 전달
-    // - 역할: 공고 카드의 '모의면접 응시' 버튼 클릭 시 면접 화면('/interview')으로 이동하며 공고 정보를 state로 전달합니다.
-    // - 전달 데이터:
-    //     * selectedJobTitle     : 공고 제목 (예: '2026년 상반기 백엔드 개발자 채용')
-    //     * selectedCompanyName  : 기업명 (예: '카카오', '네이버')
-    //     * selectedJobDuty      : 직무/포지션명 (예: '서버/백엔드 개발')
-    // - 수신 방법 (Interview.jsx 또는 InterviewCustom.jsx에서):
-    //     import { useLocation } from 'react-router-dom';
-    //     const location = useLocation();
-    //     const { selectedJobTitle, selectedCompanyName, selectedJobDuty } = location.state || {};
-    // =========================================================================
+    // 선택한 공고 정보는 면접 시작 API를 거쳐 질문 생성·후속 질문·평가에 사용합니다.
     const handleStartInterview = (job) => {
         navigate('/interview', {
             state: {
-                selectedJobTitle: job.title,
-                selectedCompanyName: job.companyName,
-                selectedJobDuty: job.jobName
+                recruitment: {
+                    recruitmentNum: job.recruitmentNum,
+                    companyName: job.companyName,
+                    title: job.title,
+                    jobName: job.jobName,
+                    locationName: job.locationName,
+                    experienceLevel: job.experienceLevel,
+                },
             }
         });
     };

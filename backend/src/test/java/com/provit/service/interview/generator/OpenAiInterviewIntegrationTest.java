@@ -83,6 +83,19 @@ public class OpenAiInterviewIntegrationTest {
 
     @Test
     public void fullInterviewUsesFourRequestsWithOnlyNecessaryInputs() throws Exception {
+        assertFullInterview(null);
+    }
+
+    @Test
+    public void selectedRecruitmentReachesInitialQuestionsBothFollowUpsAndEvaluation() throws Exception {
+        var recruitment = mapper.readValue("""
+                {"recruitmentNum":42,"companyName":"테스트 기업","title":"퍼포먼스마케터 채용",
+                 "jobName":"퍼포먼스마케팅,SNS마케팅","locationName":"서울","experienceLevel":"신입"}
+                """, InterviewRecruitmentDTO.class);
+        assertFullInterview(recruitment);
+    }
+
+    private void assertFullInterview(InterviewRecruitmentDTO recruitment) throws Exception {
         AtomicInteger saves = new AtomicInteger();
         InterviewDAO dao = dao(saves);
         var service = new InterviewServiceImpl(dao, generator("sk-local-test-only"),
@@ -92,11 +105,13 @@ public class OpenAiInterviewIntegrationTest {
         settings.setLetterNum(2);
         settings.setInterviewStyle("ONE_TO_ONE");
         settings.setInterviewDifficulty("NORMAL");
+        settings.setRecruitment(recruitment);
         settings.setRequestId("feea354e-64fe-4fb1-af81-05cf18f21c43");
         var started = service.startInterview(7, settings);
         assertEquals(1, started.getQuestions().get(0).getQuestionOrder());
         assertEquals("DOCUMENT", started.getQuestions().get(0).getQuestionType());
-        assertSame(started, service.startInterview(7, settings));
+        assertSame(started, service.startInterview(7,
+                mapper.readValue(mapper.writeValueAsString(settings), InterviewStartRequestDTO.class)));
         assertEquals(1, requests.size());
         for (int order = 1; order <= 5; order++) {
             var answer = new InterviewAnswerRequestDTO();
@@ -126,6 +141,21 @@ public class OpenAiInterviewIntegrationTest {
             assertEquals("마케팅·홍보·조사", input.path("occupation").asText());
             assertEquals("310", input.path("jobCode").asText());
             assertEquals("콘텐츠마케팅", input.path("job").asText());
+            if (recruitment == null) {
+                assertFalse(input.has("recruitment"));
+            } else {
+                JsonNode target = input.path("recruitment");
+                assertEquals(recruitment.getCompanyName(), target.path("companyName").asText());
+                assertEquals(recruitment.getTitle(), target.path("title").asText());
+                assertEquals(recruitment.getJobName(), target.path("jobName").asText());
+                assertEquals(recruitment.getLocationName(), target.path("locationName").asText());
+                assertEquals(recruitment.getExperienceLevel(), target.path("experienceLevel").asText());
+                assertFalse(target.has("recruitmentNum"));
+                assertTrue(request.path("instructions").asText().contains("이번 면접의 우선 기준"));
+                if (index == 3) {
+                    assertTrue(request.path("instructions").asText().contains("공고의 모집 직무와 경력 조건에 비추어"));
+                }
+            }
             assertTrue(request.path("instructions").asText().contains("선택한 이력서의 1차 직군"));
             assertFalse(input.has("userNum"));
             if (index == 0) {
