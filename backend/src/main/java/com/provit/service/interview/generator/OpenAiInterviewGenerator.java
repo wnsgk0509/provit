@@ -49,14 +49,11 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
         property(schema, "questions", questions);
         JsonNode generated = client.generate("document", common + "\n" + questionRules + "\n" + document,
                 input, schema, 900, hasPortfolio ? portfolioPdf : null);
-        if (hasPortfolio) {
-            boolean includesPortfolioQuestion = false;
-            for (JsonNode question : generated.get("questions")) {
-                if (question.asText().contains("포트폴리오")) includesPortfolioQuestion = true;
-            }
-            if (!includesPortfolioQuestion) {
+        for (int index = 0; index < 3; index++) {
+            boolean portfolioQuestion = generated.get("questions").get(index).asText().contains("포트폴리오");
+            if (portfolioQuestion != (hasPortfolio && index == 1)) {
                 throw new InterviewProcessingException(
-                        "포트폴리오 관련 질문을 생성하지 못했습니다. 새 면접을 시작해 주세요.", true, false);
+                        "포트폴리오 관련 질문 구성이 올바르지 않습니다. 새 면접을 시작해 주세요.", true, false);
             }
         }
         List<InterviewQuestionDTO> result = new ArrayList<>();

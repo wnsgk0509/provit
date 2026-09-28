@@ -57,11 +57,14 @@ public class OpenAiInterviewIntegrationTest {
             requests.add(request);
             String stage = request.path("text").path("format").path("name").asText();
             String generated = switch (stage) {
-                case "interview_document" -> "{\"questions\":[\""
-                        + (request.path("input").isArray() ? "포트폴리오의 고객 분석에서 본인의 역할은 무엇인가요?" : "고객 분석에서 본인의 역할은 무엇인가요?") + "\","
-                        + "\"분석 기준을 선택한 이유는 무엇인가요?\",\"분석 결과를 입증할 근거는 무엇인가요?\"]}";
-                case "interview_follow_up_4", "interview_follow_up_5" ->
-                        "{\"questionText\":\"고객 분석에서 본인의 판단을 설명해 주세요.\"}";
+                case "interview_document" -> "{\"questions\":[\"자기소개서의 고객 분석 경험에서 본인의 역할은 무엇인가요?\",\""
+                        + (request.path("input").isArray() ? "포트폴리오의 고객 분석 기준을 선택한 이유는 무엇인가요?"
+                                : "자기소개서의 지원 동기를 본인의 강점과 연결해 설명해 주세요.")
+                        + "\",\"콘텐츠마케팅에서 고객 세분화의 원리는 무엇인가요?\"]}";
+                case "interview_follow_up_4" ->
+                        "{\"questionText\":\"콘텐츠 반응률이 목표에 미치지 못한다면 원인을 어떻게 파악하시겠습니까?\"}";
+                case "interview_follow_up_5" ->
+                        "{\"questionText\":\"1번 답변에서 고객 분석 기준을 선택한 구체적인 근거는 무엇인가요?\"}";
                 default -> "{\"confidenceScore\":70,\"persistenceScore\":75,\"expertiseScore\":80,"
                         + "\"logicScore\":85,\"deliveryScore\":90,\"strengths\":\"1번에서 기여를 설명했습니다.\","
                         + "\"weaknesses\":\"3번의 성과 근거가 부족합니다.\",\"improvements\":\"성과 비교 조건을 설명하세요.\","
@@ -192,7 +195,8 @@ public class OpenAiInterviewIntegrationTest {
             }
         }
         assertTrue(requests.get(1).path("instructions").asText().contains("전체를 검토"));
-        assertTrue(requests.get(2).path("instructions").asText().contains("4번 답변을 중심"));
+        assertTrue(requests.get(1).path("instructions").asText().contains("직무 관련 문제해결능력 질문을 정확히 1개"));
+        assertTrue(requests.get(2).path("instructions").asText().contains("비어 있지 않은 1~4번 답변 중"));
     }
 
     @Test
@@ -218,14 +222,16 @@ public class OpenAiInterviewIntegrationTest {
         settings.setInterviewDifficulty("NORMAL");
         settings.setRequestId("feea354e-64fe-4fb1-af81-05cf18f21c43");
         var started = service.startInterview(7, settings);
-        assertTrue(started.getQuestions().get(0).getQuestionText().contains("포트폴리오"));
+        assertTrue(started.getQuestions().get(0).getQuestionText().contains("자기소개서"));
+        assertFalse(started.getQuestions().get(0).getQuestionText().contains("포트폴리오"));
         assertNull(prepared[0].getPortfolioPdf());
         assertSame(started, service.startInterview(7, settings));
         for (int order = 1; order <= 5; order++) {
             var answer = new InterviewAnswerRequestDTO();
             answer.setQuestionOrder(order);
             answer.setAnswer("답변 " + order);
-            service.submitAnswer(7, started.getHistoryNum(), answer);
+            var response = service.submitAnswer(7, started.getHistoryNum(), answer);
+            if (order == 1) assertTrue(response.getNextQuestion().getQuestionText().contains("포트폴리오"));
         }
         assertEquals(4, requests.size());
         assertEquals(1, saves.get());
@@ -246,7 +252,7 @@ public class OpenAiInterviewIntegrationTest {
         String prefix = "data:application/pdf;base64,";
         assertTrue(file.path("file_data").asText().startsWith(prefix));
         assertArrayEquals(pdf, Base64.getDecoder().decode(file.path("file_data").asText().substring(prefix.length())));
-        assertTrue(first.path("instructions").asText().contains("최소 1개는 반드시 포트폴리오"));
+        assertTrue(first.path("instructions").asText().contains("포트폴리오 질문은 반드시 2번 하나만"));
         assertTrue(first.path("instructions").asText().contains("첨부 PDF의 텍스트·이미지"));
         for (int index = 0; index < requests.size(); index++) {
             assertEquals("gpt-6-sol", requests.get(index).path("model").asText());
@@ -261,7 +267,7 @@ public class OpenAiInterviewIntegrationTest {
     }
 
     @Test
-    public void portfolioQuestionCanAppearAtAnyOfTheFirstThreePositions() throws Exception {
+    public void portfolioQuestionMustAppearOnlyAtSecondPosition() throws Exception {
         for (int position = 0; position < 3; position++) {
             ObjectNode generated = mapper.createObjectNode();
             var questions = generated.putArray("questions");
@@ -272,10 +278,41 @@ public class OpenAiInterviewIntegrationTest {
             var request = documentRequest();
             request.getContext().setPortfolio(portfolio());
             request.getContext().setPortfolioPdf(portfolioPdf());
-            var result = generator("sk-local-test-only").generateDocumentQuestions(request);
-            assertTrue(result.getQuestions().get(position).getQuestionText().contains("포트폴리오"));
-            assertEquals(3, result.getQuestions().size());
+            if (position == 1) {
+                var result = generator("sk-local-test-only").generateDocumentQuestions(request);
+                assertTrue(result.getQuestions().get(1).getQuestionText().contains("포트폴리오"));
+                assertEquals(3, result.getQuestions().size());
+            } else {
+                assertThrows(InterviewProcessingException.class,
+                        () -> generator("sk-local-test-only").generateDocumentQuestions(request));
+            }
+            assertEquals(position + 1, requests.size());
         }
+    }
+
+    @Test
+    public void duplicatePortfolioQuestionsAreRejectedWithoutRetry() throws Exception {
+        ObjectNode generated = mapper.createObjectNode();
+        generated.putArray("questions").add("포트폴리오에서 본인의 역할은 무엇인가요?")
+                .add("포트폴리오의 판단 근거는 무엇인가요?").add("고객 세분화의 원리는 무엇인가요?");
+        overrideResponse = documentResponse(generated);
+        var request = documentRequest();
+        request.getContext().setPortfolio(portfolio());
+        request.getContext().setPortfolioPdf(portfolioPdf());
+        assertThrows(InterviewProcessingException.class,
+                () -> generator("sk-local-test-only").generateDocumentQuestions(request));
+        assertEquals(1, requests.size());
+    }
+
+    @Test
+    public void portfolioQuestionWithoutSelectedPortfolioIsRejectedWithoutRetry() throws Exception {
+        ObjectNode generated = mapper.createObjectNode();
+        generated.putArray("questions").add("자기소개서에서 본인의 역할은 무엇인가요?")
+                .add("포트폴리오의 판단 근거는 무엇인가요?").add("고객 세분화의 원리는 무엇인가요?");
+        overrideResponse = documentResponse(generated);
+        assertThrows(InterviewProcessingException.class,
+                () -> generator("sk-local-test-only").generateDocumentQuestions(documentRequest()));
+        assertEquals(1, requests.size());
     }
 
     @Test

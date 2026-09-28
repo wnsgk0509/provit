@@ -42,6 +42,11 @@ function InterviewQuestion({
     const submittingRef = useRef(false);
     const timeoutSubmittedRef = useRef(answerLocked);
     const questionNumber = currentQuestionIndex + 1;
+    const questionLabel = questionNumber === 1 ? '자기소개서 질문'
+        : questionNumber === 2 ? (Number(settings.portfolioNum) > 0 ? '포트폴리오 질문' : '자기소개서 질문')
+        : questionNumber === 3 ? '직무 지식 질문'
+        : questionNumber === 4 ? '직무 문제해결 질문'
+        : '꼬리질문';
     const isLastQuestion = questionNumber === totalQuestions;
     const questionProgress = (submittedAnswerCount / totalQuestions) * 100;
     const timerProgress = (timeLeft / timeLimitSeconds) * 100;
@@ -102,7 +107,7 @@ function InterviewQuestion({
         <section className="interview-question">
             <div className="interview-question-top">
                 <span className={`interview-question-type ${question.questionType.toLowerCase()}`}>
-                    {question.questionType === 'DOCUMENT' ? '서류 질문' : '후속 질문'}
+                    {questionLabel}
                 </span>
                 <span className="interview-question-count">{questionNumber} / {totalQuestions}</span>
             </div>
