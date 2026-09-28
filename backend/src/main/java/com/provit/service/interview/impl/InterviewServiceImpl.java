@@ -243,7 +243,6 @@ public class InterviewServiceImpl implements InterviewService {
 
         LlmQuestionRequestDTO questionRequest = new LlmQuestionRequestDTO();
         questionRequest.setContext(context);
-        questionRequest.setInterviewStyle(request.getInterviewStyle());
         questionRequest.setInterviewDifficulty(request.getInterviewDifficulty());
         questionRequest.setQuestionAnswers(Collections.emptyList());
 
@@ -450,7 +449,7 @@ public class InterviewServiceImpl implements InterviewService {
     private static List<Object> startFingerprint(InterviewStartRequestDTO request) {
         var recruitment = request.getRecruitment();
         return Arrays.asList(request.getResumeNum(), request.getPortfolioNum(), request.getLetterNum(),
-                request.getInterviewStyle(), request.getInterviewDifficulty(),
+                request.getInterviewDifficulty(),
                 recruitment == null ? null : recruitment.getRecruitmentNum(),
                 recruitment == null ? null : recruitment.getCompanyName(),
                 recruitment == null ? null : recruitment.getTitle(),
@@ -474,7 +473,6 @@ public class InterviewServiceImpl implements InterviewService {
             InterviewSession session, int questionOrder, InterviewQuestionAnswerDTO currentAnswer) {
         LlmFollowUpRequestDTO request = new LlmFollowUpRequestDTO();
         request.setContext(session.context);
-        request.setInterviewStyle(session.settings.getInterviewStyle());
         request.setInterviewDifficulty(session.settings.getInterviewDifficulty());
         request.setQuestionAnswers(answersIncluding(session, currentAnswer));
         return interviewGenerator.generateFollowUpQuestion(questionOrder, request);
@@ -484,7 +482,6 @@ public class InterviewServiceImpl implements InterviewService {
             InterviewSession session, int userNum, InterviewQuestionAnswerDTO currentAnswer) {
         LlmEvaluationRequestDTO request = new LlmEvaluationRequestDTO();
         request.setContext(session.context);
-        request.setInterviewStyle(session.settings.getInterviewStyle());
         request.setInterviewDifficulty(session.settings.getInterviewDifficulty());
         request.setQuestionAnswers(answersIncluding(session, currentAnswer));
         request.setPreviousResult(interviewDAO.selectLatestInterviewResultByUserNum(userNum));
@@ -589,13 +586,11 @@ public class InterviewServiceImpl implements InterviewService {
         }
         validateDocumentNumbers(
                 request.getResumeNum(), request.getPortfolioNum(), request.getLetterNum());
-        if (request.getInterviewStyle() == null || request.getInterviewStyle().isBlank()
-                || request.getInterviewDifficulty() == null || request.getInterviewDifficulty().isBlank()) {
-            throw new IllegalArgumentException("면접 방식과 난이도를 선택해 주세요.");
+        if (request.getInterviewDifficulty() == null || request.getInterviewDifficulty().isBlank()) {
+            throw new IllegalArgumentException("면접 난이도를 선택해 주세요.");
         }
-        if (!List.of("RANDOM", "ONE_TO_ONE", "PANEL", "GROUP").contains(request.getInterviewStyle())
-                || !List.of("EASY", "NORMAL", "HARD").contains(request.getInterviewDifficulty())) {
-            throw new IllegalArgumentException("면접 방식 또는 난이도가 올바르지 않습니다.");
+        if (!List.of("EASY", "NORMAL", "HARD").contains(request.getInterviewDifficulty())) {
+            throw new IllegalArgumentException("면접 난이도가 올바르지 않습니다.");
         }
         var recruitment = request.getRecruitment();
         if (recruitment != null) {

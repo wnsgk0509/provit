@@ -9,7 +9,6 @@ public class InterviewStartRequestDTO {
     private int resumeNum;
     private int portfolioNum;
     private int letterNum;
-    private String interviewStyle;
     private String interviewDifficulty;
     private InterviewRecruitmentDTO recruitment;
 }

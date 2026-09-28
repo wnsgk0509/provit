@@ -1,18 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { remainingAnswerSeconds } from '../interviewProgress';
-
-const STYLE_NAMES = {
-    RANDOM: '랜덤면접',
-    ONE_TO_ONE: '일대일면접',
-    PANEL: '다대일면접',
-    GROUP: '다대다면접',
-};
-
-const DIFFICULTY_NAMES = {
-    HARD: '압박면접',
-    NORMAL: '심층면접',
-    EASY: '일반면접',
-};
+import { DIFFICULTY_NAMES } from '../../../constants/interviewDifficulty';
 
 const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
@@ -141,7 +129,7 @@ function InterviewQuestion({
             </div>
 
             <div className="interview-setting-summary">
-                <span>{STYLE_NAMES[settings.interviewStyle]}</span>
+                <span>일대일면접</span>
                 <span>{DIFFICULTY_NAMES[settings.difficulty]}</span>
             </div>
 

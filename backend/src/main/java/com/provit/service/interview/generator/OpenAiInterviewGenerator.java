@@ -25,6 +25,9 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
     private final String followUp4 = prompt("follow-up-4");
     private final String followUp5 = prompt("follow-up-5");
     private final String evaluation = prompt("evaluation");
+    private final String easyDifficulty = prompt("difficulty-easy");
+    private final String normalDifficulty = prompt("difficulty-normal");
+    private final String hardDifficulty = prompt("difficulty-hard");
 
     public OpenAiInterviewGenerator(OpenAiInterviewClient client) { this.client = client; }
 
@@ -40,7 +43,7 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
         if (hasPortfolio && (portfolioPdf == null || portfolioPdf.length == 0)) {
             throw new IllegalArgumentException("면접에 사용할 포트폴리오 PDF가 없습니다.");
         }
-        ObjectNode input = questionSettings(request.getContext(), request.getInterviewStyle(), request.getInterviewDifficulty());
+        ObjectNode input = questionSettings(request.getContext(), request.getInterviewDifficulty());
         input.put("documentText", text);
         input.put("hasPortfolio", hasPortfolio);
         ObjectNode schema = object();
@@ -68,7 +71,7 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
     @Override
     public InterviewQuestionDTO generateFollowUpQuestion(int order, LlmFollowUpRequestDTO request) {
         if (order != 4 && order != 5) throw new IllegalArgumentException("후속 질문 순서가 올바르지 않습니다.");
-        ObjectNode input = questionSettings(request.getContext(), request.getInterviewStyle(), request.getInterviewDifficulty());
+        ObjectNode input = questionSettings(request.getContext(), request.getInterviewDifficulty());
         input.set("questionAnswers", answers(request.getQuestionAnswers()));
         ObjectNode schema = object();
         property(schema, "questionText", questionTextSchema());
@@ -89,7 +92,7 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
         if (hasPortfolio && (portfolioPdf == null || portfolioPdf.length == 0)) {
             throw new IllegalArgumentException("평가에 사용할 포트폴리오 PDF가 없습니다.");
         }
-        ObjectNode input = settings(request.getContext(), request.getInterviewStyle(), request.getInterviewDifficulty());
+        ObjectNode input = settings(request.getContext(), request.getInterviewDifficulty());
         input.put("documentText", text);
         input.put("hasPortfolio", hasPortfolio);
         input.set("questionAnswers", answers(request.getQuestionAnswers()));
@@ -122,7 +125,7 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
                 input, schema, 1400, hasPortfolio ? portfolioPdf : null), LlmEvaluationResponseDTO.class);
     }
 
-    private ObjectNode settings(LlmInterviewContextDTO context, String style, String difficulty) {
+    private ObjectNode settings(LlmInterviewContextDTO context, String difficulty) {
         ObjectNode input = mapper.createObjectNode();
         if (context.getResumeDetail() != null && context.getResumeDetail().getResume() != null) {
             var resume = context.getResumeDetail().getResume();
@@ -131,7 +134,6 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
             input.put("jobCode", resume.getJobCode());
             input.put("job", resume.getJobName());
         }
-        input.put("interviewStyle", style);
         input.put("interviewDifficulty", difficulty);
         if (context.getRecruitment() != null) {
             var recruitment = context.getRecruitment();
@@ -145,19 +147,12 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
         return input;
     }
 
-    private ObjectNode questionSettings(LlmInterviewContextDTO context, String style, String difficulty) {
-        ObjectNode input = settings(context, style, difficulty);
-        input.put("styleGuide", switch (style) {
-            case "ONE_TO_ONE" -> "직접적인 대화체";
-            case "PANEL" -> "실무·협업·성과 관점의 다양성";
-            case "GROUP" -> "협업에서의 본인 역할을 반영";
-            case "RANDOM" -> "적합한 관점을 선택";
-            default -> throw new IllegalArgumentException("면접 방식이 올바르지 않습니다.");
-        });
+    private ObjectNode questionSettings(LlmInterviewContextDTO context, String difficulty) {
+        ObjectNode input = settings(context, difficulty);
         input.put("difficultyGuide", switch (difficulty) {
-            case "EASY" -> "기본적인 역할과 행동을 검증";
-            case "NORMAL" -> "판단 근거와 결과를 검증";
-            case "HARD" -> "모순과 대안 및 한계를 더 깊게 검증";
+            case "EASY" -> easyDifficulty;
+            case "NORMAL" -> normalDifficulty;
+            case "HARD" -> hardDifficulty;
             default -> throw new IllegalArgumentException("면접 난이도가 올바르지 않습니다.");
         });
         return input;

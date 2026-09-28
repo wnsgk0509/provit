@@ -1,17 +1,5 @@
 import { SCORE_ITEMS } from '../../../constants/interviewEvaluation';
-
-const STYLE_NAMES = {
-    RANDOM: '랜덤면접',
-    ONE_TO_ONE: '일대일면접',
-    PANEL: '다대일면접',
-    GROUP: '다대다면접',
-};
-
-const DIFFICULTY_NAMES = {
-    HARD: '압박면접',
-    NORMAL: '심층면접',
-    EASY: '일반면접',
-};
+import { DIFFICULTY_NAMES } from '../../../constants/interviewDifficulty';
 
 function InterviewResult({ result, settings, onRestart }) {
     return (
@@ -20,7 +8,7 @@ function InterviewResult({ result, settings, onRestart }) {
                 <div>
                     <span>INTERVIEW COMPLETE</span>
                     <h2>면접 결과</h2>
-                    <p>{STYLE_NAMES[settings.interviewStyle]} · {DIFFICULTY_NAMES[settings.difficulty]}</p>
+                    <p>일대일면접 · {DIFFICULTY_NAMES[settings.difficulty]}</p>
                 </div>
                 <div className="interview-total-score">
                     <strong>{result.totalScore}</strong>

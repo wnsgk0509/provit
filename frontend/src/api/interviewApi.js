@@ -36,7 +36,6 @@ export async function createInterview(settings, requestId, recruitment = null) {
         resumeNum: Number(settings.resumeNum),
         portfolioNum: Number(settings.portfolioNum || 0),
         letterNum: Number(settings.letterNum || 0),
-        interviewStyle: settings.interviewStyle,
         interviewDifficulty: settings.difficulty,
         requestId,
         recruitment,

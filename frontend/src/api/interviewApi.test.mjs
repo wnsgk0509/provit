@@ -7,7 +7,6 @@ const settings = {
     resumeNum: '1',
     portfolioNum: '',
     letterNum: '2',
-    interviewStyle: 'ONE_TO_ONE',
     difficulty: 'NORMAL',
 };
 
@@ -29,6 +28,8 @@ test('공고에서 시작한 면접은 회사·직무·경력 정보를 시작 �
         assert.equal(body.portfolioNum, 0);
         assert.equal(body.requestId, 'request-id');
         assert.equal(body.interviewDifficulty, 'NORMAL');
+        assert.deepEqual(Object.keys(body).sort(), ['resumeNum', 'portfolioNum', 'letterNum',
+            'interviewDifficulty', 'requestId', 'recruitment'].sort());
         assert.equal(options.timeout, 150000);
         return { data: { data: session } };
     });

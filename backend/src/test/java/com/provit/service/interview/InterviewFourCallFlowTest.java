@@ -381,7 +381,6 @@ public class InterviewFourCallFlowTest {
         InterviewStartRequestDTO settings = new InterviewStartRequestDTO();
         settings.setResumeNum(1);
         settings.setLetterNum(2);
-        settings.setInterviewStyle("ONE_TO_ONE");
         settings.setInterviewDifficulty("NORMAL");
         return settings;
     }

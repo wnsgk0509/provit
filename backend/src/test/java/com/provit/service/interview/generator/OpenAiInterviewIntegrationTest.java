@@ -89,7 +89,17 @@ public class OpenAiInterviewIntegrationTest {
 
     @Test
     public void fullInterviewUsesFourRequestsWithOnlyNecessaryInputs() throws Exception {
-        assertFullInterview(null);
+        assertFullInterview(null, "NORMAL");
+    }
+
+    @Test
+    public void easyInterviewKeepsBasicQuestionGuidanceAcrossAllQuestionStages() throws Exception {
+        assertFullInterview(null, "EASY");
+    }
+
+    @Test
+    public void hardInterviewKeepsCounterexampleAndConstraintGuidanceAcrossAllQuestionStages() throws Exception {
+        assertFullInterview(null, "HARD");
     }
 
     @Test
@@ -98,10 +108,10 @@ public class OpenAiInterviewIntegrationTest {
                 {"recruitmentNum":42,"companyName":"테스트 기업","title":"퍼포먼스마케터 채용",
                  "jobName":"퍼포먼스마케팅,SNS마케팅","locationName":"서울","experienceLevel":"신입"}
                 """, InterviewRecruitmentDTO.class);
-        assertFullInterview(recruitment);
+        assertFullInterview(recruitment, "NORMAL");
     }
 
-    private void assertFullInterview(InterviewRecruitmentDTO recruitment) throws Exception {
+    private void assertFullInterview(InterviewRecruitmentDTO recruitment, String difficulty) throws Exception {
         AtomicInteger saves = new AtomicInteger();
         InterviewDAO dao = dao(saves);
         var service = new InterviewServiceImpl(dao, generator("sk-local-test-only"),
@@ -109,8 +119,7 @@ public class OpenAiInterviewIntegrationTest {
         InterviewStartRequestDTO settings = new InterviewStartRequestDTO();
         settings.setResumeNum(1);
         settings.setLetterNum(2);
-        settings.setInterviewStyle("ONE_TO_ONE");
-        settings.setInterviewDifficulty("NORMAL");
+        settings.setInterviewDifficulty(difficulty);
         settings.setRecruitment(recruitment);
         settings.setRequestId("feea354e-64fe-4fb1-af81-05cf18f21c43");
         var started = service.startInterview(7, settings);
@@ -150,6 +159,9 @@ public class OpenAiInterviewIntegrationTest {
             assertEquals(limits[index], request.path("max_output_tokens").asInt());
             assertTrue(request.path("text").path("format").path("strict").asBoolean());
             JsonNode input = mapper.readTree(request.path("input").asText());
+            assertEquals(difficulty, input.path("interviewDifficulty").asText());
+            assertFalse(input.has("interviewStyle"));
+            assertTrue(request.path("instructions").asText().contains("일대일 면접"));
             assertEquals("14", input.path("occupationCode").asText());
             assertEquals("마케팅·홍보·조사", input.path("occupation").asText());
             assertEquals("310", input.path("jobCode").asText());
@@ -193,8 +205,17 @@ public class OpenAiInterviewIntegrationTest {
                 }
             }
             if (index < 3) {
-                assertEquals("직접적인 대화체", input.path("styleGuide").asText());
-                assertEquals("판단 근거와 결과를 검증", input.path("difficultyGuide").asText());
+                assertFalse(input.has("styleGuide"));
+                JsonNode initial = mapper.readTree(requests.get(0).path("input").asText());
+                assertEquals(initial.path("difficultyGuide"), input.path("difficultyGuide"));
+                String guide = input.path("difficultyGuide").asText();
+                assertTrue(guide.contains("(" + difficulty + ")"));
+                assertTrue(guide.contains("직무 지식 질문"));
+                assertTrue(guide.contains("문제해결 질문"));
+                assertTrue(guide.contains("꼬리질문"));
+                if (difficulty.equals("EASY")) assertTrue(guide.contains("입문 수준"));
+                if (difficulty.equals("NORMAL")) assertTrue(guide.contains("선택의 이유와 타당성"));
+                if (difficulty.equals("HARD")) assertTrue(guide.contains("두 조건이 충돌"));
                 assertTrue(request.path("instructions").asText().contains("핵심 검증 지점 하나"));
             }
             if (index == 3) {
@@ -231,7 +252,6 @@ public class OpenAiInterviewIntegrationTest {
         settings.setResumeNum(1);
         settings.setLetterNum(2);
         settings.setPortfolioNum(3);
-        settings.setInterviewStyle("ONE_TO_ONE");
         settings.setInterviewDifficulty("NORMAL");
         settings.setRequestId("feea354e-64fe-4fb1-af81-05cf18f21c43");
         var started = service.startInterview(7, settings);
@@ -306,7 +326,6 @@ public class OpenAiInterviewIntegrationTest {
         settings.setResumeNum(1);
         settings.setLetterNum(2);
         settings.setPortfolioNum(3);
-        settings.setInterviewStyle("ONE_TO_ONE");
         settings.setInterviewDifficulty("NORMAL");
         int historyNum = service.startInterview(7, settings).getHistoryNum();
         for (int order = 1; order <= 4; order++) {
@@ -396,7 +415,6 @@ public class OpenAiInterviewIntegrationTest {
         settings.setResumeNum(1);
         settings.setLetterNum(2);
         settings.setPortfolioNum(3);
-        settings.setInterviewStyle("ONE_TO_ONE");
         settings.setInterviewDifficulty("NORMAL");
         settings.setRequestId("feea354e-64fe-4fb1-af81-05cf18f21c43");
         var exception = assertThrows(InterviewProcessingException.class, () -> service.startInterview(7, settings));
@@ -456,7 +474,6 @@ public class OpenAiInterviewIntegrationTest {
 
         var follow = new LlmFollowUpRequestDTO();
         follow.setContext(initial.getContext());
-        follow.setInterviewStyle("GROUP");
         follow.setInterviewDifficulty("HARD");
         List<InterviewQuestionAnswerDTO> answers = new ArrayList<>();
         for (int index = 1; index <= 3; index++) {
@@ -471,8 +488,8 @@ public class OpenAiInterviewIntegrationTest {
         follow.setQuestionAnswers(answers);
         generator.generateFollowUpQuestion(4, follow);
         JsonNode input = mapper.readTree(requests.get(1).path("input").asText());
-        assertEquals("협업에서의 본인 역할을 반영", input.path("styleGuide").asText());
-        assertEquals("모순과 대안 및 한계를 더 깊게 검증", input.path("difficultyGuide").asText());
+        assertFalse(input.has("styleGuide"));
+        assertTrue(input.path("difficultyGuide").asText().startsWith("압박면접(HARD)"));
         for (int index = 0; index < 3; index++) {
             JsonNode item = input.path("questionAnswers").get(index);
             assertEquals(answers.get(index).getQuestion(), item.path("question").asText());
@@ -554,7 +571,6 @@ public class OpenAiInterviewIntegrationTest {
         var context = new LlmInterviewContextDTO();
         context.setDocumentText("[이력서] 마케팅 인턴 [자기소개서] 고객 분석 경험");
         request.setContext(context);
-        request.setInterviewStyle("ONE_TO_ONE");
         request.setInterviewDifficulty("NORMAL");
         return request;
     }

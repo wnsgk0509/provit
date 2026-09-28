@@ -1,15 +1,4 @@
-const INTERVIEW_STYLES = [
-    { value: 'RANDOM', label: '랜덤면접' },
-    { value: 'ONE_TO_ONE', label: '일대일면접' },
-    { value: 'PANEL', label: '다대일면접' },
-    { value: 'GROUP', label: '다대다면접' },
-];
-
-const DIFFICULTIES = [
-    { value: 'HARD', label: '압박면접' },
-    { value: 'NORMAL', label: '심층면접' },
-    { value: 'EASY', label: '일반면접' },
-];
+import { INTERVIEW_DIFFICULTIES } from '../../../constants/interviewDifficulty';
 
 function InterviewCustom({ settings, documents, isLoading, startDisabled = false, onSettingChange, onStart }) {
     const handleSubmit = (event) => {
@@ -22,7 +11,7 @@ function InterviewCustom({ settings, documents, isLoading, startDisabled = false
             <div className="interview-section-heading">
                 <span>STEP 1</span>
                 <h2>면접 커스텀</h2>
-                <p>면접에 사용할 서류와 진행 방식을 선택해 주세요.</p>
+                <p>모든 면접은 일대일로 진행됩니다. 사용할 서류와 난이도를 선택해 주세요.</p>
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -81,27 +70,12 @@ function InterviewCustom({ settings, documents, isLoading, startDisabled = false
                     {documents && !documents.portfolioList?.length && <p>저장된 포트폴리오가 없습니다.</p>}
                 </div>
 
-                <div className="interview-form-group">
-                    <label htmlFor="interview-style"><b>*</b> 면접 스타일</label>
-                    <select
-                        id="interview-style"
-                        value={settings.interviewStyle}
-                        onChange={(event) => onSettingChange('interviewStyle', event.target.value)}
-                        required
-                    >
-                        <option value="">(필수) 면접 스타일을 선택해 주세요</option>
-                        {INTERVIEW_STYLES.map((style) => (
-                            <option key={style.value} value={style.value}>{style.label}</option>
-                        ))}
-                    </select>
-                </div>
-
                 <hr />
 
-                <fieldset className="interview-form-group interview-difficulty">
+                <fieldset className="interview-form-group interview-difficulty" aria-describedby="interview-difficulty-description">
                     <legend><b>*</b> 면접 난이도</legend>
                     <div className="interview-radio-group">
-                        {DIFFICULTIES.map((difficulty) => (
+                        {INTERVIEW_DIFFICULTIES.map((difficulty) => (
                             <label key={difficulty.value} htmlFor={`difficulty-${difficulty.value}`}>
                                 <input
                                     id={`difficulty-${difficulty.value}`}
@@ -116,6 +90,10 @@ function InterviewCustom({ settings, documents, isLoading, startDisabled = false
                             </label>
                         ))}
                     </div>
+                    <p id="interview-difficulty-description" className="interview-difficulty-description" aria-live="polite">
+                        {INTERVIEW_DIFFICULTIES.find((difficulty) => difficulty.value === settings.difficulty)?.description
+                            ?? '일반은 기초 확인, 심층은 판단 근거 검증, 압박은 반론과 제약 속 판단을 검증합니다.'}
+                    </p>
                 </fieldset>
 
                 <button
