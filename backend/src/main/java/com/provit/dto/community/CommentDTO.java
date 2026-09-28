@@ -1,7 +1,5 @@
 package com.provit.dto.community;
 
-import java.util.Date;
-
 /**
  * T_COMMENT 테이블 매핑 및 프론트엔드 전달용 DTO
  */
