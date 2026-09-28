@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { createInterview, discardInterviewSession, getInterviewDocuments,
     getInterviewSession, submitInterviewAnswer } from '../../api/interviewApi';
 import { useAuth } from '../../context/AuthContext';
+import { SCORE_ITEMS } from '../../constants/interviewEvaluation';
 import { clearInterviewProgress, getClientDeadline, getResumeDraft,
     readInterviewProgress, saveInterviewProgress } from './interviewProgress';
 import InterviewCustom from './components/InterviewCustom';
@@ -348,11 +349,7 @@ function Interview() {
                     <hr />
                     <p className="interview-analysis-title">분석 항목</p>
                     <div className="interview-analysis-list">
-                        <span>자신감</span>
-                        <span>끈기/열정</span>
-                        <span>전문성</span>
-                        <span>논리력</span>
-                        <span>전달력</span>
+                        {SCORE_ITEMS.map((item) => <span key={item.key} title={item.description}>{item.label}</span>)}
                     </div>
                 </div>
 

@@ -1,10 +1,6 @@
-export const SCORE_ITEMS = [
-    { key: 'confidenceScore', label: '자신감' },
-    { key: 'persistenceScore', label: '끈기/열정' },
-    { key: 'expertiseScore', label: '전문성' },
-    { key: 'logicScore', label: '논리력' },
-    { key: 'deliveryScore', label: '전달력' },
-];
+import { SCORE_ITEMS } from '../../../constants/interviewEvaluation.js';
+
+export { SCORE_ITEMS };
 
 export function formatScore(value) {
     if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) return '-';

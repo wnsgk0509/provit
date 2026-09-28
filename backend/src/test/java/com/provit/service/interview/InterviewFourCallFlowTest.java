@@ -71,6 +71,11 @@ public class InterviewFourCallFlowTest {
         assertTrue(restoredResult.isCompleted());
         assertEquals(5, restoredResult.getAnswers().size());
         assertEquals(80.0, restoredResult.getResult().getTotalScore(), 0.001);
+        assertEquals(60.0, restoredResult.getResult().getDocumentConsistencyScore(), 0.001);
+        assertEquals(70.0, restoredResult.getResult().getExpertiseScore(), 0.001);
+        assertEquals(80.0, restoredResult.getResult().getProblemSolvingScore(), 0.001);
+        assertEquals(90.0, restoredResult.getResult().getLogicScore(), 0.001);
+        assertEquals(100.0, restoredResult.getResult().getCommunicationScore(), 0.001);
         assertEquals(1, generator.evaluationCalls);
     }
 
@@ -402,7 +407,16 @@ public class InterviewFourCallFlowTest {
                             "selectCertificationListByResumeNum" -> List.of();
                     case "selectNextHistoryNum" -> 17;
                     case "insertInterviewHistory" -> savedHistories.incrementAndGet();
-                    case "insertInterviewResult" -> 1;
+                    case "insertInterviewResult" -> {
+                        var result = (InterviewResultDTO) args[0];
+                        assertEquals(60.0, result.getDocumentConsistencyScore(), 0.001);
+                        assertEquals(70.0, result.getExpertiseScore(), 0.001);
+                        assertEquals(80.0, result.getProblemSolvingScore(), 0.001);
+                        assertEquals(90.0, result.getLogicScore(), 0.001);
+                        assertEquals(100.0, result.getCommunicationScore(), 0.001);
+                        assertEquals(80.0, result.getTotalScore(), 0.001);
+                        yield 1;
+                    }
                     default -> null;
                 });
     }
@@ -434,11 +448,11 @@ public class InterviewFourCallFlowTest {
             evaluationCalls++;
             assertEquals(5, request.getQuestionAnswers().size());
             LlmEvaluationResponseDTO result = new LlmEvaluationResponseDTO();
-            result.setConfidenceScore(80);
-            result.setPersistenceScore(80);
-            result.setExpertiseScore(80);
-            result.setLogicScore(80);
-            result.setDeliveryScore(80);
+            result.setDocumentConsistencyScore(60);
+            result.setProblemSolvingScore(80);
+            result.setExpertiseScore(70);
+            result.setLogicScore(90);
+            result.setCommunicationScore(100);
             result.setStrengths("근거를 제시했습니다.");
             result.setWeaknesses("결과가 모호했습니다.");
             result.setComparison("이전 면접 기록 없음");

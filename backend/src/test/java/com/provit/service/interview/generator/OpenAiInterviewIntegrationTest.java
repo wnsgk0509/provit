@@ -65,8 +65,8 @@ public class OpenAiInterviewIntegrationTest {
                         "{\"questionText\":\"콘텐츠 반응률이 목표에 미치지 못한다면 원인을 어떻게 파악하시겠습니까?\"}";
                 case "interview_follow_up_5" ->
                         "{\"questionText\":\"1번 답변에서 고객 분석 기준을 선택한 구체적인 근거는 무엇인가요?\"}";
-                default -> "{\"confidenceScore\":70,\"persistenceScore\":75,\"expertiseScore\":80,"
-                        + "\"logicScore\":85,\"deliveryScore\":90,\"strengths\":\"1번에서 기여를 설명했습니다.\","
+                default -> "{\"documentConsistencyScore\":70,\"problemSolvingScore\":75,\"expertiseScore\":80,"
+                        + "\"logicScore\":85,\"communicationScore\":90,\"strengths\":\"1번에서 기여를 설명했습니다.\","
                         + "\"weaknesses\":\"3번의 성과 근거가 부족합니다.\",\"improvements\":\"성과 비교 조건을 설명하세요.\","
                         + "\"comparison\":\"이전 평가보다 논리력 점수가 높습니다.\"}";
             };
@@ -125,7 +125,14 @@ public class OpenAiInterviewIntegrationTest {
             answer.setAnswer("답변 " + order);
             var response = service.submitAnswer(7, started.getHistoryNum(), answer);
             assertSame(response, service.submitAnswer(7, started.getHistoryNum(), answer));
-            if (order == 5) assertEquals(80.0, response.getResult().getTotalScore(), 0.001);
+            if (order == 5) {
+                assertEquals(70.0, response.getResult().getDocumentConsistencyScore(), 0.001);
+                assertEquals(80.0, response.getResult().getExpertiseScore(), 0.001);
+                assertEquals(75.0, response.getResult().getProblemSolvingScore(), 0.001);
+                assertEquals(85.0, response.getResult().getLogicScore(), 0.001);
+                assertEquals(90.0, response.getResult().getCommunicationScore(), 0.001);
+                assertEquals(80.0, response.getResult().getTotalScore(), 0.001);
+            }
             else {
                 assertEquals(order + 1, response.getNextQuestion().getQuestionOrder());
                 assertEquals(order < 3 ? "DOCUMENT" : "FOLLOW_UP", response.getNextQuestion().getQuestionType());
@@ -167,7 +174,13 @@ public class OpenAiInterviewIntegrationTest {
             if (index == 0) {
                 assertTrue(input.path("documentText").asText().contains("[자기소개서]"));
             } else {
-                assertFalse(input.has("documentText"));
+                if (index == 3) {
+                    JsonNode original = mapper.readTree(requests.get(0).path("input").asText());
+                    assertEquals(original.path("documentText"), input.path("documentText"));
+                    assertFalse(input.path("hasPortfolio").asBoolean());
+                } else {
+                    assertFalse(input.has("documentText"));
+                }
                 assertFalse(input.has("context"));
                 assertEquals(index + 2, input.path("questionAnswers").size());
                 for (int answerIndex = 0; answerIndex < input.path("questionAnswers").size(); answerIndex++) {
@@ -200,7 +213,7 @@ public class OpenAiInterviewIntegrationTest {
     }
 
     @Test
-    public void portfolioInterviewSendsOriginalPdfOnceAndReleasesSessionBytes() throws Exception {
+    public void portfolioInterviewUsesSameDocumentSnapshotForQuestionsAndEvaluationThenReleasesBytes() throws Exception {
         byte[] pdf = portfolioPdf();
         LlmInterviewContextDTO[] prepared = new LlmInterviewContextDTO[1];
         InterviewDocumentInputBuilder builder = new InterviewDocumentInputBuilder(storage(pdf)) {
@@ -224,7 +237,7 @@ public class OpenAiInterviewIntegrationTest {
         var started = service.startInterview(7, settings);
         assertTrue(started.getQuestions().get(0).getQuestionText().contains("자기소개서"));
         assertFalse(started.getQuestions().get(0).getQuestionText().contains("포트폴리오"));
-        assertNull(prepared[0].getPortfolioPdf());
+        assertArrayEquals(pdf, prepared[0].getPortfolioPdf());
         assertSame(started, service.startInterview(7, settings));
         for (int order = 1; order <= 5; order++) {
             var answer = new InterviewAnswerRequestDTO();
@@ -232,6 +245,8 @@ public class OpenAiInterviewIntegrationTest {
             answer.setAnswer("답변 " + order);
             var response = service.submitAnswer(7, started.getHistoryNum(), answer);
             if (order == 1) assertTrue(response.getNextQuestion().getQuestionText().contains("포트폴리오"));
+            if (order < 5) assertArrayEquals(pdf, prepared[0].getPortfolioPdf());
+            else assertNull(prepared[0].getPortfolioPdf());
         }
         assertEquals(4, requests.size());
         assertEquals(1, saves.get());
@@ -258,12 +273,58 @@ public class OpenAiInterviewIntegrationTest {
             assertEquals("gpt-6-sol", requests.get(index).path("model").asText());
             assertEquals("medium", requests.get(index).path("reasoning").path("effort").asText());
             assertFalse(requests.get(index).path("store").asBoolean());
-            if (index > 0) {
+            if (index == 1 || index == 2) {
                 assertTrue(requests.get(index).path("input").isTextual());
                 assertFalse(requests.get(index).path("input").asText().contains("base64"));
                 assertFalse(requests.get(index).path("input").asText().contains("documentText"));
             }
         }
+        JsonNode evaluationContent = requests.get(3).path("input").get(0).path("content");
+        assertEquals(file, evaluationContent.get(1));
+        JsonNode evaluationInput = mapper.readTree(evaluationContent.get(0).path("text").asText());
+        assertEquals(input.path("documentText"), evaluationInput.path("documentText"));
+        assertTrue(evaluationInput.path("hasPortfolio").asBoolean());
+        assertEquals(5, evaluationInput.path("questionAnswers").size());
+        assertFalse(evaluationInput.toString().contains("private/path"));
+    }
+
+    @Test
+    public void failedEvaluationReleasesPortfolioSnapshotWithoutRetry() throws Exception {
+        LlmInterviewContextDTO[] prepared = new LlmInterviewContextDTO[1];
+        var builder = new InterviewDocumentInputBuilder(storage(portfolioPdf())) {
+            @Override
+            public void prepare(LlmInterviewContextDTO context) {
+                super.prepare(context);
+                prepared[0] = context;
+            }
+        };
+        var saves = new AtomicInteger();
+        var dao = dao(saves, portfolio());
+        var service = new InterviewServiceImpl(dao, generator("sk-local-test-only"),
+                new InterviewPersistenceService(dao), builder, testClock());
+        var settings = new InterviewStartRequestDTO();
+        settings.setResumeNum(1);
+        settings.setLetterNum(2);
+        settings.setPortfolioNum(3);
+        settings.setInterviewStyle("ONE_TO_ONE");
+        settings.setInterviewDifficulty("NORMAL");
+        int historyNum = service.startInterview(7, settings).getHistoryNum();
+        for (int order = 1; order <= 4; order++) {
+            var answer = new InterviewAnswerRequestDTO();
+            answer.setQuestionOrder(order);
+            answer.setAnswer("답변 " + order);
+            service.submitAnswer(7, historyNum, answer);
+        }
+        assertNotNull(prepared[0].getPortfolioPdf());
+        overrideResponse = "{\"status\":\"incomplete\",\"output\":[]}";
+        var answer = new InterviewAnswerRequestDTO();
+        answer.setQuestionOrder(5);
+        answer.setAnswer("마지막 답변");
+        assertThrows(InterviewProcessingException.class, () -> service.submitAnswer(7, historyNum, answer));
+        assertNull(prepared[0].getPortfolioPdf());
+        assertThrows(InterviewProcessingException.class, () -> service.submitAnswer(7, historyNum, answer));
+        assertEquals(4, requests.size());
+        assertEquals(0, saves.get());
     }
 
     @Test

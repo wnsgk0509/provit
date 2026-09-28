@@ -60,11 +60,11 @@ public class DummyInterviewGenerator implements InterviewGenerator {
     @Override
     public LlmEvaluationResponseDTO evaluate(LlmEvaluationRequestDTO request) {
         LlmEvaluationResponseDTO response = new LlmEvaluationResponseDTO();
-        response.setConfidenceScore(84);
-        response.setPersistenceScore(79);
+        response.setDocumentConsistencyScore(84);
+        response.setProblemSolvingScore(79);
         response.setExpertiseScore(86);
         response.setLogicScore(80);
-        response.setDeliveryScore(83);
+        response.setCommunicationScore(83);
         response.setTotalScore(82.4);
         response.setStrengths("프로젝트 경험을 구체적인 상황과 본인의 역할 중심으로 설명해 답변의 신뢰도가 높았습니다.");
         response.setWeaknesses("일부 답변에서 결론이 뒤에 제시되어 핵심 내용을 파악하는 데 시간이 걸렸습니다.");

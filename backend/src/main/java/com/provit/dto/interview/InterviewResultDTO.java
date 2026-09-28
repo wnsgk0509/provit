@@ -11,11 +11,11 @@ public class InterviewResultDTO {
 
     private int historyNum;
     private int userNum;
-    private double confidenceScore;
-    private double persistenceScore;
+    private double documentConsistencyScore;
     private double expertiseScore;
+    private double problemSolvingScore;
     private double logicScore;
-    private double deliveryScore;
+    private double communicationScore;
     private double totalScore;
     private String strengths;
     private String weaknesses;

@@ -307,12 +307,12 @@
 |:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
 | 1 | HISTORY_NUM | 면접 내역 번호 | NUMBER | 18 | PK | NOT NULL | | 해당 모의 면접 내역 번호 | T_INTERVIEW_HISTORY(HISTORY_NUM) | 복합 PK, ON DELETE CASCADE |
 | 2 | USER_NUM | 응시자 번호 | NUMBER | 9 | PK | NOT NULL | | 면접 응시 회원 번호 | T_USER(USER_NUM) | 복합 PK, ON DELETE CASCADE |
-| 3 | CONFIDENCE_SCORE | 자신감 점수 | NUMBER | 5,2 | | | 0.00 | 면접 태도 및 자신감 점수 (100점 만점) | | |
-| 4 | PERSISTENCE_SCORE | 끈기/열정 점수 | NUMBER | 5,2 | | | 0.00 | 도전 정신 및 끈기 점수 (100점 만점) | | |
-| 5 | EXPERTISE_SCORE | 전문성 점수 | NUMBER | 5,2 | | | 0.00 | 직무 지식 및 기술 역량 점수 (100점 만점) | | |
-| 6 | LOGIC_SCORE | 논리력 점수 | NUMBER | 5,2 | | | 0.00 | 논리적 사고 및 답변 전개 점수 (100점 만점) | | |
-| 7 | DELIVERY_SCORE | 전달력 점수 | NUMBER | 5,2 | | | 0.00 | 표현력 및 명확한 전달력 점수 (100점 만점) | | |
-| 8 | TOTAL_SCORE | 종합 총점 | NUMBER | 5,2 | | | 0.00 | 5개 지표 가중 종합 평점 (100점 만점) | | |
+| 3 | DOCUMENT_CONSISTENCY_SCORE | 서류 일치성 점수 | NUMBER | 5,2 | | | 0.00 | 제출 서류의 경험·경력·기술과 면접 답변의 일관성 (100점 만점) | | |
+| 4 | EXPERTISE_SCORE | 전문성 점수 | NUMBER | 5,2 | | | 0.00 | 지원 직무에 필요한 지식과 경험의 구체성 (100점 만점) | | |
+| 5 | PROBLEM_SOLVING_SCORE | 문제해결능력 점수 | NUMBER | 5,2 | | | 0.00 | 문제 상황 분석과 적절한 해결 방법 제시 (100점 만점) | | |
+| 6 | LOGIC_SCORE | 논리력 점수 | NUMBER | 5,2 | | | 0.00 | 주장·근거·결과의 연결과 명확한 답변 구조 (100점 만점) | | |
+| 7 | COMMUNICATION_SCORE | 의사소통능력 점수 | NUMBER | 5,2 | | | 0.00 | 질문 의도 파악과 명확하고 간결한 핵심 전달 (100점 만점) | | |
+| 8 | TOTAL_SCORE | 종합 총점 | NUMBER | 5,2 | | | 0.00 | 5개 지표의 동일 가중치 평균, 소수점 첫째 자리 반올림 (100점 만점) | | |
 | 9 | STRENGTH | 잘한 점 | VARCHAR2 | 500 | | | | 면접 답변 중 우수한 역량 및 강점 피드백 | | LLM 평가 |
 | 10 | WEAKNESS | 아쉬운 점 | VARCHAR2 | 500 | | | | 미흡했던 부분 및 약점 피드백 | | LLM 평가 |
 | 11 | PREVIOUS_COMPARISON | 이전 기록 비교 | VARCHAR2 | 500 | | | | 직전 모의면접 대비 변화 및 성장 추이 | | LLM 분석 |

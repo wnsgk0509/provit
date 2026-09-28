@@ -80,18 +80,29 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
 
     @Override
     public LlmEvaluationResponseDTO evaluate(LlmEvaluationRequestDTO request) {
+        String text = request.getContext().getDocumentText();
+        if (text == null || text.isBlank() || text.length() > MAX_DOCUMENT_CHARACTERS) {
+            throw new IllegalArgumentException("평가에 사용할 서류 내용이 올바르지 않습니다.");
+        }
+        boolean hasPortfolio = request.getContext().getPortfolio() != null;
+        byte[] portfolioPdf = request.getContext().getPortfolioPdf();
+        if (hasPortfolio && (portfolioPdf == null || portfolioPdf.length == 0)) {
+            throw new IllegalArgumentException("평가에 사용할 포트폴리오 PDF가 없습니다.");
+        }
         ObjectNode input = settings(request.getContext(), request.getInterviewStyle(), request.getInterviewDifficulty());
+        input.put("documentText", text);
+        input.put("hasPortfolio", hasPortfolio);
         input.set("questionAnswers", answers(request.getQuestionAnswers()));
         if (request.getPreviousResult() == null) {
             input.putNull("previousResult");
         } else {
             var previous = request.getPreviousResult();
             ObjectNode summary = input.putObject("previousResult");
-            summary.put("confidenceScore", previous.getConfidenceScore());
-            summary.put("persistenceScore", previous.getPersistenceScore());
+            summary.put("documentConsistencyScore", previous.getDocumentConsistencyScore());
             summary.put("expertiseScore", previous.getExpertiseScore());
+            summary.put("problemSolvingScore", previous.getProblemSolvingScore());
             summary.put("logicScore", previous.getLogicScore());
-            summary.put("deliveryScore", previous.getDeliveryScore());
+            summary.put("communicationScore", previous.getCommunicationScore());
             summary.put("totalScore", previous.getTotalScore());
             summary.put("strengths", previous.getStrengths());
             summary.put("weaknesses", previous.getWeaknesses());
@@ -101,14 +112,14 @@ public class OpenAiInterviewGenerator implements InterviewGenerator {
             }
         }
         ObjectNode schema = object();
-        for (String score : new String[] {"confidenceScore", "persistenceScore", "expertiseScore", "logicScore", "deliveryScore"}) {
+        for (String score : new String[] {"documentConsistencyScore", "expertiseScore", "problemSolvingScore", "logicScore", "communicationScore"}) {
             property(schema, score, mapper.createObjectNode().put("type", "number").put("minimum", 0).put("maximum", 100));
         }
         for (String feedback : new String[] {"strengths", "weaknesses", "improvements", "comparison"}) {
             property(schema, feedback, mapper.createObjectNode().put("type", "string").put("minLength", 1).put("maxLength", 250));
         }
         return convert(client.generate("evaluation", common + "\n" + answerFormat + "\n" + evaluation,
-                input, schema, 1400), LlmEvaluationResponseDTO.class);
+                input, schema, 1400, hasPortfolio ? portfolioPdf : null), LlmEvaluationResponseDTO.class);
     }
 
     private ObjectNode settings(LlmInterviewContextDTO context, String style, String difficulty) {

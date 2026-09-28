@@ -24,7 +24,7 @@ test('오각형 점수는 100점 척도를 사용하고 범위를 벗어나지 �
     assert.deepEqual(radarPoint(0, -10), [200, 180]);
     assert.deepEqual(radarPoint(0, 150), [200, 70]);
     assert.deepEqual(radarPoint(0, 'invalid'), [200, 180]);
-    assert.equal(radarPolygon({ confidenceScore: 100 }).split(' ').length, 5);
+    assert.equal(radarPolygon({ documentConsistencyScore: 100 }).split(' ').length, 5);
     assert.equal(radarPolygon({}).includes('NaN'), false);
 });
 

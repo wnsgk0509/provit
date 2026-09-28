@@ -250,9 +250,9 @@ public class InterviewServiceImpl implements InterviewService {
         LlmQuestionResponseDTO generated;
         try {
             generated = interviewGenerator.generateDocumentQuestions(questionRequest);
-        } finally {
-            // Only the initial request needs the PDF; do not retain it in the interview session.
+        } catch (RuntimeException exception) {
             context.setPortfolioPdf(null);
+            throw exception;
         }
         List<InterviewQuestionDTO> documentQuestions = validateDocumentQuestions(generated);
         ensureAvailable();
@@ -332,6 +332,7 @@ public class InterviewServiceImpl implements InterviewService {
                         validateFollowUpQuestion(nextQuestion, expectedOrder + 1);
                     } catch (RuntimeException exception) {
                         session.failed = true;
+                        session.context.setPortfolioPdf(null);
                         throw generationFailure(exception);
                     }
                     ensureActive(session, historyNum);
@@ -354,6 +355,8 @@ public class InterviewServiceImpl implements InterviewService {
                 } catch (RuntimeException exception) {
                     session.failed = true;
                     throw generationFailure(exception);
+                } finally {
+                    session.context.setPortfolioPdf(null);
                 }
             }
             InterviewHistoryDTO history = createHistory(historyNum, userNum, session);
@@ -488,11 +491,11 @@ public class InterviewServiceImpl implements InterviewService {
         LlmEvaluationResponseDTO evaluation = interviewGenerator.evaluate(request);
         validateEvaluation(evaluation);
         evaluation.setTotalScore(Math.round((
-                evaluation.getConfidenceScore()
-                + evaluation.getPersistenceScore()
+                evaluation.getDocumentConsistencyScore()
                 + evaluation.getExpertiseScore()
+                + evaluation.getProblemSolvingScore()
                 + evaluation.getLogicScore()
-                + evaluation.getDeliveryScore()) / 5.0 * 10.0) / 10.0);
+                + evaluation.getCommunicationScore()) / 5.0 * 10.0) / 10.0);
         return evaluation;
     }
 
@@ -550,11 +553,11 @@ public class InterviewServiceImpl implements InterviewService {
         InterviewResultDTO result = new InterviewResultDTO();
         result.setHistoryNum(historyNum);
         result.setUserNum(userNum);
-        result.setConfidenceScore(evaluation.getConfidenceScore());
-        result.setPersistenceScore(evaluation.getPersistenceScore());
+        result.setDocumentConsistencyScore(evaluation.getDocumentConsistencyScore());
+        result.setProblemSolvingScore(evaluation.getProblemSolvingScore());
         result.setExpertiseScore(evaluation.getExpertiseScore());
         result.setLogicScore(evaluation.getLogicScore());
-        result.setDeliveryScore(evaluation.getDeliveryScore());
+        result.setCommunicationScore(evaluation.getCommunicationScore());
         result.setTotalScore(evaluation.getTotalScore());
         result.setStrengths(evaluation.getStrengths());
         result.setWeaknesses(evaluation.getWeaknesses());
@@ -567,11 +570,11 @@ public class InterviewServiceImpl implements InterviewService {
             int historyNum, LlmEvaluationResponseDTO evaluation) {
         InterviewResultResponseDTO response = new InterviewResultResponseDTO();
         response.setHistoryNum(historyNum);
-        response.setConfidenceScore(evaluation.getConfidenceScore());
-        response.setPersistenceScore(evaluation.getPersistenceScore());
+        response.setDocumentConsistencyScore(evaluation.getDocumentConsistencyScore());
+        response.setProblemSolvingScore(evaluation.getProblemSolvingScore());
         response.setExpertiseScore(evaluation.getExpertiseScore());
         response.setLogicScore(evaluation.getLogicScore());
-        response.setDeliveryScore(evaluation.getDeliveryScore());
+        response.setCommunicationScore(evaluation.getCommunicationScore());
         response.setTotalScore(evaluation.getTotalScore());
         response.setStrengths(evaluation.getStrengths());
         response.setWeaknesses(evaluation.getWeaknesses());
@@ -672,11 +675,11 @@ public class InterviewServiceImpl implements InterviewService {
         if (evaluation == null) {
             throw new IllegalStateException("면접 평가 결과가 없습니다.");
         }
-        validateScore(evaluation.getConfidenceScore());
-        validateScore(evaluation.getPersistenceScore());
+        validateScore(evaluation.getDocumentConsistencyScore());
+        validateScore(evaluation.getProblemSolvingScore());
         validateScore(evaluation.getExpertiseScore());
         validateScore(evaluation.getLogicScore());
-        validateScore(evaluation.getDeliveryScore());
+        validateScore(evaluation.getCommunicationScore());
         validateFeedback(evaluation.getStrengths());
         validateFeedback(evaluation.getWeaknesses());
         validateFeedback(evaluation.getComparison());
