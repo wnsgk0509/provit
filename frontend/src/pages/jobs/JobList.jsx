@@ -32,6 +32,23 @@ const EXPERIENCES = [
     { value: '경력무관', label: '경력무관' },
 ];
 
+/**
+ * 공고 목록 내 특정 공고의 스크랩 상태를 불변성을 유지하며 갱신하는 순수 헬퍼 함수
+ * @param {Array} list - 공고 리스트
+ * @param {number|string} targetId - 대상 recruitmentNum
+ * @param {boolean|null} forcedStatus - 명시적 확정 상태 (null이면 기존 상태 반전)
+ */
+const updateScrapStatusInList = (list, targetId, forcedStatus = null) => {
+    if (!Array.isArray(list)) return list;
+    return list.map(job => {
+        if (job.recruitmentNum !== targetId) return job;
+        return {
+            ...job,
+            isScrapped: forcedStatus !== null ? forcedStatus : !job.isScrapped
+        };
+    });
+};
+
 function JobList() {
     const navigate = useNavigate();
     const { isLoggedIn } = useAuth();
@@ -204,6 +221,18 @@ function JobList() {
         });
     };
 
+    // 일반 공고 목록과 맞춤 추천 공고의 스크랩 상태를 일괄 동기화하는 헬퍼 함수
+    const updateScrapStatus = useCallback((targetId, forcedStatus = null) => {
+        setRecruitments(prevList => updateScrapStatusInList(prevList, targetId, forcedStatus));
+        setRecommendation(prev => {
+            if (!prev || !prev.recruitments) return prev;
+            return {
+                ...prev,
+                recruitments: updateScrapStatusInList(prev.recruitments, targetId, forcedStatus)
+            };
+        });
+    }, []);
+
     // 관심 공고 스크랩(북마크) 토글 핸들러
     const handleToggleScrap = async (e, recruitmentNum) => {
         e.stopPropagation();
@@ -225,48 +254,14 @@ function JobList() {
         setPendingScraps(prev => new Set(prev).add(recruitmentNum));
 
         // 3. 낙관적 UI 업데이트 (즉시 별 상태 토글로 체감 속도 향상)
-        setRecruitments(prevList =>
-            prevList.map(job =>
-                job.recruitmentNum === recruitmentNum
-                    ? { ...job, isScrapped: !job.isScrapped }
-                    : job
-            )
-        );
-        setRecommendation(prev => {
-            if (!prev || !prev.recruitments) return prev;
-            return {
-                ...prev,
-                recruitments: prev.recruitments.map(job =>
-                    job.recruitmentNum === recruitmentNum
-                        ? { ...job, isScrapped: !job.isScrapped }
-                        : job
-                )
-            };
-        });
+        updateScrapStatus(recruitmentNum);
 
         // 4. 서버 스크랩 토글 API 호출
         try {
             const res = await toggleJobScrap(recruitmentNum);
             if (res && res.data) {
                 // 5. 서버에서 최종 확정된 isScrapped 상태로 UI 정합성 동기화
-                setRecruitments(prevList =>
-                    prevList.map(job =>
-                        job.recruitmentNum === recruitmentNum
-                            ? { ...job, isScrapped: res.data.isScrapped }
-                            : job
-                    )
-                );
-                setRecommendation(prev => {
-                    if (!prev || !prev.recruitments) return prev;
-                    return {
-                        ...prev,
-                        recruitments: prev.recruitments.map(job =>
-                            job.recruitmentNum === recruitmentNum
-                                ? { ...job, isScrapped: res.data.isScrapped }
-                                : job
-                        )
-                    };
-                });
+                updateScrapStatus(recruitmentNum, res.data.isScrapped);
 
                 // 만약 스크랩만 모아보기 상태에서 스크랩을 취소했다면 목록 새로고침
                 if (params.scrapOnly && !res.data.isScrapped) {
@@ -275,25 +270,8 @@ function JobList() {
             }
         } catch (error) {
             console.error('스크랩 토글 에러:', error);
-            // 6. 실패 시 이전 상태로 안전하게 롤백
-            setRecruitments(prevList =>
-                prevList.map(job =>
-                    job.recruitmentNum === recruitmentNum
-                        ? { ...job, isScrapped: !job.isScrapped }
-                        : job
-                )
-            );
-            setRecommendation(prev => {
-                if (!prev || !prev.recruitments) return prev;
-                return {
-                    ...prev,
-                    recruitments: prev.recruitments.map(job =>
-                        job.recruitmentNum === recruitmentNum
-                            ? { ...job, isScrapped: !job.isScrapped }
-                            : job
-                    )
-                };
-            });
+            // 6. 실패 시 이전 상태로 안전하게 롤백 (재토글로 원복)
+            updateScrapStatus(recruitmentNum);
             alert('스크랩 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
         } finally {
             // 7. Pending 상태 해제
