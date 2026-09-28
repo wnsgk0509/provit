@@ -25,6 +25,8 @@ public class UserDTO {
     private String userPw;
     private Date userRegisterDate;
     private String userType;
+    private String occupationCode;
+    private String jobCode;
     private Integer userIsDeleted;
     private Integer userTokenVersion;
 }

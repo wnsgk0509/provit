@@ -11,6 +11,7 @@ import com.provit.dto.document.CoverLetterDTO;
 import com.provit.dto.document.EducationDTO;
 import com.provit.dto.document.PortfolioDTO;
 import com.provit.dto.document.ResumeDTO;
+import com.provit.dto.user.UserJobPreferenceDTO;
 
 public interface InterviewDAO {
 
@@ -31,6 +32,8 @@ public interface InterviewDAO {
     List<CareerDTO> selectCareerListByResumeNum(int resumeNum);
 
     List<CertificationDTO> selectCertificationListByResumeNum(int resumeNum);
+
+    UserJobPreferenceDTO selectUserJobPreferenceByUserNum(int userNum);
 
     int selectNextHistoryNum();
 

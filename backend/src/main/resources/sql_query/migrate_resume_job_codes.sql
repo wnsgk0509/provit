@@ -1,7 +1,7 @@
 -- Oracle 19c: 기존 DB에서 한 번 실행하는 이관 스크립트.
 -- 신규 DB는 schema.sql을 사용하고 이 스크립트는 실행하지 않는다.
 -- 회원/이력서 쓰기를 중단한 상태에서 실행한 뒤 새 애플리케이션을 배포한다.
--- SQL*Plus / SQLcl에서 실행. 오류 발생 시 컬럼 삭제 단계로 진행하지 않는다.
+-- SQL*Plus / SQLcl에서 실행. 회원의 코드 컬럼은 복사 후에도 유지한다.
 WHENEVER SQLERROR EXIT SQL.SQLCODE ROLLBACK
 
 -- 이력서가 없는 회원, 직군/직무가 서로 다른 기존 값도 원본 그대로 보존한다.
@@ -44,10 +44,9 @@ END;
 /
 COMMIT;
 
--- 백업 및 이력서 복사 검증 성공 후 회원 테이블에서 제거한다.
-ALTER TABLE T_USER DROP (JOB_CODE, OCCUPATION_CODE);
+-- 회원 기본 직군·직무와 이력서별 지원 분야를 각각 관리하므로 T_USER 컬럼도 유지한다.
 
--- 이력서 없는 회원의 코드는 백업 테이블에 남아 있다. 백업은 자동 삭제하지 않는다.
+-- 이력서 없는 회원의 코드도 T_USER와 백업 테이블에 유지한다. 백업은 자동 삭제하지 않는다.
 SELECT B.USER_NUM, B.OCCUPATION_CODE, B.JOB_CODE
 FROM T_USER_JOB_CODE_BACKUP B
 WHERE (B.JOB_CODE IS NOT NULL OR B.OCCUPATION_CODE IS NOT NULL)

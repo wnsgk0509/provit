@@ -18,6 +18,7 @@ import com.provit.dto.document.ResumeDTO;
 import com.provit.dto.interview.InterviewHistoryDTO;
 import com.provit.dto.interview.InterviewDocumentOptionDTO;
 import com.provit.dto.interview.InterviewResultDTO;
+import com.provit.dto.user.UserJobPreferenceDTO;
 
 @Repository
 public class InterviewDAOImpl implements InterviewDAO {
@@ -25,6 +26,7 @@ public class InterviewDAOImpl implements InterviewDAO {
     private static final String PORTFOLIO_NAMESPACE = "com.provit.mapper.document.PortfolioMapper";
     private static final String COVER_LETTER_NAMESPACE = "com.provit.mapper.document.CoverLetterMapper";
     private static final String RESUME_NAMESPACE = "com.provit.mapper.document.ResumeMapper";
+    private static final String USER_JOB_NAMESPACE = "com.provit.mapper.interview.UserJobMapper";
     private static final String INTERVIEW_HISTORY_NAMESPACE = "com.provit.mapper.interview.InterviewHistoryMapper";
     private static final String INTERVIEW_RESULT_NAMESPACE = "com.provit.mapper.interview.InterviewResultMapper";
 
@@ -84,6 +86,11 @@ public class InterviewDAOImpl implements InterviewDAO {
     @Override
     public List<CertificationDTO> selectCertificationListByResumeNum(int resumeNum) {
         return sqlSession.selectList(RESUME_NAMESPACE + ".selectCertificationList", resumeNum);
+    }
+
+    @Override
+    public UserJobPreferenceDTO selectUserJobPreferenceByUserNum(int userNum) {
+        return sqlSession.selectOne(USER_JOB_NAMESPACE + ".selectUserJobPreferenceByUserNum", userNum);
     }
 
     @Override

@@ -91,6 +91,9 @@
 | 7 | USER_REGISTER_DATE | 가입일시 | DATE | | | NOT NULL | SYSDATE | 최초 회원가입 일시 | | |
 | 8 | USER_TYPE | 권한 구분 | VARCHAR2 | 30 | | | 'USER' | 계정 권한 구분 | | 'USER', 'ADMIN' |
 | 9 | USER_IS_DELETED | 탈퇴 여부 | NUMBER | 1 | | NOT NULL | 0 | 회원 탈퇴 플래그 | | 0: 정상, 1: 탈퇴 |
+| 10 | USER_TOKEN_VERSION | 토큰 버전 | NUMBER | 9 | | NOT NULL | 0 | 비밀번호 변경·탈퇴 시 기존 토큰 무효화 | | |
+| 11 | OCCUPATION_CODE | 회원 기본 직군 코드 | VARCHAR2 | 20 | | | | 회원의 기본 직군, 선택값 | T_OCCUPATION(OCCUPATION_CODE) | ON DELETE SET NULL |
+| 12 | JOB_CODE | 회원 기본 직무 코드 | VARCHAR2 | 20 | | | | 회원의 기본 직무, 선택값 | T_JOB(JOB_CODE) | ON DELETE SET NULL |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|

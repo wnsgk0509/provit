@@ -477,6 +477,8 @@ public class OpenAiInterviewIntegrationTest {
         return (InterviewDAO) Proxy.newProxyInstance(InterviewDAO.class.getClassLoader(),
                 new Class<?>[] {InterviewDAO.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "selectResumeByResumeNumAndUserNum" -> resume;
+                    case "selectUserJobPreferenceByUserNum" -> throw new AssertionError(
+                            "AI 면접의 지원 분야는 선택한 이력서에서 읽어야 합니다.");
                     case "selectCoverLetterByLetterNumAndUserNum" -> letter;
                     case "selectPortfolioByPortfolioNumAndUserNum" -> portfolio;
                     case "selectEducationListByResumeNum", "selectCareerListByResumeNum", "selectCertificationListByResumeNum" -> List.of();

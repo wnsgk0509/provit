@@ -14,6 +14,8 @@
         <result property="userPw" column="USER_PW" />
         <result property="userRegisterDate" column="USER_REGISTER_DATE" />
         <result property="userType" column="USER_TYPE" />
+        <result property="occupationCode" column="OCCUPATION_CODE" />
+        <result property="jobCode" column="JOB_CODE" />
         <result property="userIsDeleted" column="USER_IS_DELETED" />
         <result property="userTokenVersion" column="USER_TOKEN_VERSION" />
     </resultMap>
@@ -29,6 +31,8 @@
             USER_PW,
             USER_REGISTER_DATE,
             USER_TYPE,
+            OCCUPATION_CODE,
+            JOB_CODE,
             USER_IS_DELETED,
             USER_TOKEN_VERSION
         FROM T_USER
@@ -46,6 +50,8 @@
             USER_PW,
             USER_REGISTER_DATE,
             USER_TYPE,
+            OCCUPATION_CODE,
+            JOB_CODE,
             USER_IS_DELETED,
             USER_TOKEN_VERSION
         FROM T_USER
@@ -64,6 +70,8 @@
             USER_PW,
             USER_REGISTER_DATE,
             USER_TYPE,
+            OCCUPATION_CODE,
+            JOB_CODE,
             USER_IS_DELETED,
             USER_TOKEN_VERSION
         FROM T_USER
@@ -99,6 +107,8 @@
             USER_PW,
             USER_REGISTER_DATE,
             USER_TYPE,
+            OCCUPATION_CODE,
+            JOB_CODE,
             USER_IS_DELETED
         ) VALUES (
             #{userNum},
@@ -109,6 +119,8 @@
             #{userPw},
             SYSDATE,
             NVL(#{userType, jdbcType=VARCHAR}, 'USER'),
+            #{occupationCode, jdbcType=VARCHAR},
+            #{jobCode, jdbcType=VARCHAR},
             0
         )
     </insert>
