@@ -6,6 +6,8 @@ import com.provit.dto.recruitment.OccupationDTO;
 import com.provit.dto.recruitment.RecruitmentDTO;
 import com.provit.dto.recruitment.RecruitmentSearchDTO;
 
+import com.provit.dto.user.UserJobPreferenceDTO;
+
 public interface RecruitmentDAO {
 
     public List<OccupationDTO> selectOccupationList();
@@ -25,4 +27,10 @@ public interface RecruitmentDAO {
     public int deleteJobScrap(long recruitmentNum, long userNum);
 
     public int checkJobScrap(long recruitmentNum, long userNum);
+
+    public UserJobPreferenceDTO selectUserJobPreference(long userNum);
+
+    public List<RecruitmentDTO> selectRecruitmentsByKeyword(String keyword, Long userNum, int limit);
+
+    public List<RecruitmentDTO> selectHotRecruitments(Long userNum, int limit);
 }
