@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -81,8 +83,18 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ApiResponse<String>> handleNoSuchElementException(NoSuchElementException e) {
 		log.warn("리소스 조회 실패: {}", e.getMessage());
 		ApiResponse<String> response = new ApiResponse<>(ResponseCode.NOT_FOUND, e.getMessage());
-		return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		return new ResponseEntity<>(response, headers, HttpStatus.NOT_FOUND);
 	}
+
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ApiResponse<String>> handleSecurityException(SecurityException exception) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return new ResponseEntity<>(
+                new ApiResponse<>(ResponseCode.AUTH_FORBIDDEN, exception.getMessage()), headers, HttpStatus.FORBIDDEN);
+    }
 
 	/**
 	 * 동시 가입 등 DB 고유 제약조건 충돌 (409 Conflict)

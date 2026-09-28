@@ -16,6 +16,8 @@
             USER_NUM,
             PORTFOLIO_TITLE,
             FILE_URL,
+            ORIGINAL_FILE_NAME,
+            SAVED_FILE_NAME,
             CREATED_AT,
             UPDATED_AT
         ) VALUES (
@@ -23,6 +25,8 @@
             #{userNum},
             #{portfolioTitle},
             #{fileUrl},
+            #{originalFileName},
+            #{savedFileName},
             SYSDATE,
             SYSDATE
         )
@@ -58,10 +62,19 @@
     </select>
 
     <select id="selectPortfolio" resultType="com.provit.dto.document.PortfolioDTO">
-        SELECT PORTFOLIO_NUM, USER_NUM, PORTFOLIO_TITLE, FILE_URL, CREATED_AT, UPDATED_AT
+        SELECT PORTFOLIO_NUM, USER_NUM, PORTFOLIO_TITLE, FILE_URL,
+               ORIGINAL_FILE_NAME, SAVED_FILE_NAME, CREATED_AT, UPDATED_AT
         FROM T_PORTFOLIO
         WHERE PORTFOLIO_NUM = #{portfolioNum}
           AND USER_NUM = #{userNum}
+    </select>
+
+    <select id="selectPortfolioByPortfolioNum" parameterType="int"
+            resultType="com.provit.dto.document.PortfolioDTO">
+        SELECT PORTFOLIO_NUM, USER_NUM, PORTFOLIO_TITLE, FILE_URL,
+               ORIGINAL_FILE_NAME, SAVED_FILE_NAME, CREATED_AT, UPDATED_AT
+        FROM T_PORTFOLIO
+        WHERE PORTFOLIO_NUM = #{portfolioNum}
     </select>
 
 </mapper>

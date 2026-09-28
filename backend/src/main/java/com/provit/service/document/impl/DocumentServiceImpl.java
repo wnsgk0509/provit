@@ -2,9 +2,11 @@ package com.provit.service.document.impl;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.NoSuchElementException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,6 +109,8 @@ public class DocumentServiceImpl implements DocumentService {
         portfolio.setUserNum(userNum);
         portfolio.setPortfolioTitle(portfolioRequest.getPortfolioTitle().trim());
         portfolio.setFileUrl(fileUrl);
+        portfolio.setOriginalFileName(originalFileName(portfolioRequest.getFile()));
+        portfolio.setSavedFileName(Path.of(fileUrl).getFileName().toString());
         requireSingleInsert(documentDAO.insertPortfolio(portfolio), "포트폴리오");
         return portfolio;
     }
@@ -263,9 +267,12 @@ public class DocumentServiceImpl implements DocumentService {
     @Override
     @Transactional(readOnly = true)
     public PortfolioDTO getPortfolio(int userNum, int portfolioNum) {
-        PortfolioDTO portfolio = documentDAO.selectPortfolio(userNum, portfolioNum);
+        PortfolioDTO portfolio = documentDAO.selectPortfolioByPortfolioNum(portfolioNum);
         if (portfolio == null) {
             throw new NoSuchElementException("조회할 수 있는 포트폴리오가 없습니다.");
+        }
+        if (portfolio.getUserNum() != userNum) {
+            throw new SecurityException("본인이 등록한 포트폴리오만 조회하거나 삭제할 수 있습니다.");
         }
         return portfolio;
     }
@@ -325,9 +332,12 @@ public class DocumentServiceImpl implements DocumentService {
             throw new IllegalArgumentException("포트폴리오 파일은 20MB 이하여야 합니다.");
         }
 
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".pdf")) {
+        String originalFilename = originalFileName(file);
+        if (!originalFilename.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
             throw new IllegalArgumentException("PDF 형식의 파일만 등록할 수 있습니다.");
+        }
+        if (originalFilename.length() > 255 || originalFilename.chars().anyMatch(Character::isISOControl)) {
+            throw new IllegalArgumentException("포트폴리오 원본 파일명이 올바르지 않습니다.");
         }
 
         try (InputStream inputStream = file.getInputStream()) {
@@ -338,6 +348,15 @@ public class DocumentServiceImpl implements DocumentService {
         } catch (IOException exception) {
             throw new IllegalArgumentException("포트폴리오 파일을 확인하지 못했습니다.", exception);
         }
+    }
+
+    private String originalFileName(MultipartFile file) {
+        String filename = file.getOriginalFilename();
+        if (filename == null || filename.isBlank()) {
+            throw new IllegalArgumentException("포트폴리오 원본 파일명이 없습니다.");
+        }
+        filename = filename.replace('\\', '/');
+        return filename.substring(filename.lastIndexOf('/') + 1);
     }
 
     private void registerFileRollback(String fileUrl) {

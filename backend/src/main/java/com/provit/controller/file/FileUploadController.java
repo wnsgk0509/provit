@@ -26,7 +26,7 @@ import com.provit.util.jwt.JwtProvider;
  * 공통 파일 업로드/삭제 REST API 컨트롤러
  * 
  * [엔드포인트 규격]
- * - POST /api/upload/portfolio?targetId=15 : 포트폴리오 PDF 파일 업로드 (.pdf 전용, 최대 20MB, 파일명: 15_원본파일명.pdf)
+ * - 포트폴리오 PDF는 /api/documents/portfolios API에서만 관리합니다.
  * - POST /api/upload/post?targetId=102     : 커뮤니티 게시글 이미지 업로드 (.jpg, .png 등, 최대 10MB, 파일명: 102_원본파일명.png)
  * - POST /api/upload/profile?targetId=3    : 회원 프로필 사진 업로드 (.jpg, .png 등, 최대 5MB, 파일명: 3_원본파일명.jpg)
  */

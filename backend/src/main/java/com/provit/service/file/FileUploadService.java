@@ -12,8 +12,8 @@ public interface FileUploadService {
      * 호출자의 소유권 및 접근 권한을 검증합니다.
      *
      * @param file     업로드할 멀티파트 파일
-     * @param category 업로드 목적 카테고리 (PORTFOLIO, POST, PROFILE)
-     * @param targetId 대상 DB 엔티티 고유 번호 (portfolioNum, postNum, userNum 등)
+     * @param category 공개 이미지 카테고리 (POST, PROFILE)
+     * @param targetId 대상 게시글 또는 회원 번호
      * @param userNum  요청자 회원 번호 (JWT 인증)
      * @param userRole 요청자 권한 (USER, ADMIN)
      * @return 저장된 파일의 메타데이터 및 웹 접근 URL

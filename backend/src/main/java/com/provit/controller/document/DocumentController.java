@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,6 +32,7 @@ import com.provit.dto.document.ResumeDetailDTO;
 import com.provit.dto.response.ApiResponse;
 import com.provit.service.document.DocumentService;
 import com.provit.util.jwt.JwtProvider;
+import io.jsonwebtoken.JwtException;
 
 @RestController
 @RequestMapping("/api/documents")
@@ -256,7 +258,6 @@ public class DocumentController {
 
         PortfolioDTO portfolio = documentService.getPortfolio(
                 Math.toIntExact(userNum), portfolioNum);
-        portfolio.setFileUrl(null);
         return new ResponseEntity<>(
                 ApiResponse.success(ResponseCode.SUCCESS, portfolio), HttpStatus.OK);
     }
@@ -286,12 +287,16 @@ public class DocumentController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
+        PortfolioDTO portfolio = documentService.getPortfolio(Math.toIntExact(userNum), portfolioNum);
         Resource file = documentService.getPortfolioFile(Math.toIntExact(userNum), portfolioNum);
-        String filename = portfolioNum + ".pdf";
+        String filename = portfolio.getOriginalFileName() == null
+                ? portfolioNum + ".pdf" : portfolio.getOriginalFileName();
         ContentDisposition contentDisposition = ContentDisposition.attachment()
                 .filename(filename, StandardCharsets.UTF_8)
                 .build();
         return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .header("X-Content-Type-Options", "nosniff")
                 .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(file);
@@ -304,9 +309,10 @@ public class DocumentController {
         }
 
         String token = authHeader.substring(7).trim();
-        if (!jwtProvider.validateToken(token)) {
+        try {
+            return jwtProvider.validateToken(token) ? jwtProvider.getUserNum(token) : null;
+        } catch (JwtException | IllegalArgumentException exception) {
             return null;
         }
-        return jwtProvider.getUserNum(token);
     }
 }

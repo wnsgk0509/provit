@@ -164,6 +164,11 @@ public class DocumentDAOImpl implements DocumentDAO {
     }
 
     @Override
+    public PortfolioDTO selectPortfolioByPortfolioNum(int portfolioNum) {
+        return sqlSession.selectOne(PORTFOLIO_NAMESPACE + ".selectPortfolioByPortfolioNum", portfolioNum);
+    }
+
+    @Override
     public List<DocumentSummaryDTO> selectResumeSummaryList(int userNum) {
         return sqlSession.selectList(RESUME_NAMESPACE + ".selectResumeSummaryList", userNum);
     }

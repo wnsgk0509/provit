@@ -58,6 +58,8 @@ public interface DocumentDAO {
 
     PortfolioDTO selectPortfolio(int userNum, int portfolioNum);
 
+    PortfolioDTO selectPortfolioByPortfolioNum(int portfolioNum);
+
     List<DocumentSummaryDTO> selectResumeSummaryList(int userNum);
 
     List<DocumentSummaryDTO> selectCoverLetterSummaryList(int userNum);
