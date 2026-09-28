@@ -6,6 +6,7 @@ function StudyCreateModal({ show, onClose, onSuccess }) {
     const { user } = useAuth();
     const [studyName, setStudyName] = useState('');
     const [studyExplain, setStudyExplain] = useState('');
+    const [maxMembers, setMaxMembers] = useState(10);
 
     if (!show) return null;
 
@@ -25,13 +26,15 @@ function StudyCreateModal({ show, onClose, onSuccess }) {
             const result = await createStudy({
                 userNum: user.userNum,
                 studyName,
-                studyExplain
+                studyExplain,
+                maxMembers
             });
             
             if (result && result.responseCode && result.responseCode.code === 200) {
                 alert('스터디가 성공적으로 개설되었습니다!');
                 setStudyName('');
                 setStudyExplain('');
+                setMaxMembers(10);
                 onSuccess(); // 목록 새로고침
                 onClose(); // 모달 닫기
             } else {
@@ -62,6 +65,17 @@ function StudyCreateModal({ show, onClose, onSuccess }) {
                                         value={studyName}
                                         onChange={(e) => setStudyName(e.target.value)}
                                         maxLength={100}
+                                    />
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label fw-semibold text-secondary small">최대 참여 인원</label>
+                                    <input 
+                                        type="number" 
+                                        className="form-control" 
+                                        min="2"
+                                        max="100"
+                                        value={maxMembers}
+                                        onChange={(e) => setMaxMembers(parseInt(e.target.value) || 2)}
                                     />
                                 </div>
                                 <div className="mb-4">

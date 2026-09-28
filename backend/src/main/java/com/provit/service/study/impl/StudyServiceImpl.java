@@ -34,6 +34,10 @@ public class StudyServiceImpl implements StudyService {
     @Override
     @Transactional
     public Long createStudy(StudyDTO studyDto) {
+        if (studyDto.getMaxMembers() < 2) {
+            throw new IllegalArgumentException("스터디 정원은 최소 2명 이상이어야 합니다.");
+        }
+        
         // 1. 스터디 방 개설
         studyDao.insertStudy(studyDto);
         Long newStudyNum = studyDto.getStudyNum();
@@ -50,6 +54,15 @@ public class StudyServiceImpl implements StudyService {
     @Override
     @Transactional
     public int updateStudy(StudyDTO studyDto) {
+        if (studyDto.getMaxMembers() < 2) {
+            throw new IllegalArgumentException("스터디 정원은 최소 2명 이상이어야 합니다.");
+        }
+        
+        StudyDTO existingStudy = studyDao.selectStudyDetail(studyDto.getStudyNum());
+        if (existingStudy != null && studyDto.getMaxMembers() < existingStudy.getMemberCount()) {
+            throw new IllegalArgumentException("최대 인원은 현재 참여 인원(" + existingStudy.getMemberCount() + "명)보다 적게 설정할 수 없습니다.");
+        }
+
         int affectedRows = studyDao.updateStudy(studyDto);
         if (affectedRows == 0) {
             throw new IllegalArgumentException("스터디 방이 존재하지 않거나 권한이 없습니다.");
@@ -74,13 +87,21 @@ public class StudyServiceImpl implements StudyService {
     @Override
     @Transactional
     public void joinStudy(Long studyNum, Long userNum) {
+        StudyDTO study = studyDao.selectStudyDetail(studyNum);
+        if (study == null) {
+            throw new IllegalArgumentException("존재하지 않는 스터디입니다.");
+        }
+
         Map<String, Object> params = new HashMap<>();
         params.put("studyNum", studyNum);
         params.put("userNum", userNum);
         
-        // 중복 참여 방지 로직 (선택사항)
+        // 중복 참여 방지 로직 및 정원 초과 검증 로직 (원자적 SQL로 처리)
         if (studyDao.checkStudyMember(params) == 0) {
-            studyDao.insertStudyMember(params);
+            int inserted = studyDao.insertStudyMember(params);
+            if (inserted == 0) {
+                throw new IllegalArgumentException("스터디 정원이 가득 차서 참여할 수 없습니다.");
+            }
         }
     }
 
