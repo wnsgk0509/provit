@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchPostDetail, updatePost } from '../../api/communityApi';
+import { uploadFile, deleteFile } from '../../api/fileApi';
 import { useAuth } from '../../context/AuthContext';
 
 const CATEGORIES = [
@@ -15,6 +16,7 @@ function CommunityEdit() {
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
+    const [file, setFile] = useState(null); // 추가된 첨부파일 상태
 
     const [formData, setFormData] = useState({
         categoryNum: 1,
@@ -69,6 +71,14 @@ function CommunityEdit() {
         });
     };
 
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0]);
+        } else {
+            setFile(null);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         
@@ -84,9 +94,18 @@ function CommunityEdit() {
 
         setLoading(true);
         try {
+            let finalPostFile = formData.postFile;
+
+            // 새로운 파일이 선택되었다면, 글 수정 API 호출 전에 먼저 파일을 업로드합니다.
+            if (file) {
+                const uploadResult = await uploadFile(file, 'post', postNum);
+                finalPostFile = uploadResult.savedFileName;
+            }
+
             const postDto = {
                 ...formData,
                 postNum: postNum, // 수정할 글 번호 필수 포함
+                postFile: finalPostFile, // 업로드된 파일명 (또는 기존 파일명) 덮어쓰기
                 userNum: user.userNum
             };
 
@@ -155,6 +174,24 @@ function CommunityEdit() {
                                 maxLength={100}
                                 required
                             />
+                        </div>
+
+                        <div className="mb-3">
+                            <label htmlFor="postFile" className="form-label fw-semibold">첨부파일(이미지) 수정</label>
+                            {formData.postFile && (
+                                <div className="mb-2 text-primary">
+                                    현재 첨부된 파일: {formData.postFile}
+                                </div>
+                            )}
+                            <input
+                                type="file"
+                                className="form-control"
+                                id="postFile"
+                                name="postFile"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                            />
+                            <div className="form-text text-muted">새로운 파일을 업로드하면 기존 파일은 대체됩니다. (10MB 이하 .jpg, .png 등)</div>
                         </div>
 
                         <div className="mb-4">
