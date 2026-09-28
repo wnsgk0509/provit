@@ -58,10 +58,12 @@ function StudyListSection() {
             if (result && result.responseCode && result.responseCode.code === 200) {
                 loadStudies();
             } else {
-                alert('참여에 실패했습니다.');
+                alert(result?.responseCode?.message || '정원이 가득 찼거나 이미 처리된 요청입니다.');
+                loadStudies(); // 에러 발생 시에도 최신 목록을 불러와 '모집 마감' 상태로 비동기 업데이트
             }
         } catch (error) {
-            alert('서버 오류가 발생했습니다.');
+            alert(error.response?.data?.message || '동시 요청으로 인해 참여에 실패했습니다. (이미 모집 마감되었을 수 있습니다.)');
+            loadStudies(); // catch 에러 시에도 최신 데이터 동기화
         }
     };
 
