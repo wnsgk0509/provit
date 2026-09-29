@@ -1,12 +1,21 @@
 import { useRef, useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, FolderOpen, Layers, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, FolderOpen, Layers, Sparkles } from 'lucide-react';
 import { DOCUMENT_REVIEW_AVAILABLE, requestDocumentReview } from '../../api/documentReviewApi';
-import { DOCUMENT_REVIEW_TYPES, REVIEW_FOCUS_OPTIONS, reviewErrorMessage } from './documentReviewConfig';
+import {
+    DOCUMENT_REVIEW_TYPES,
+    REVIEW_CUSTOM_MAX_LENGTH,
+    REVIEW_INSTRUCTIONS_MAX_LENGTH,
+    REVIEW_MODE_OPTIONS,
+    reviewErrorMessage,
+} from './documentReviewConfig';
 import { useReviewSelection } from './useReviewDocuments';
 import ReviewDocumentWizard from './components/ReviewDocumentWizard';
+import ReviewOptions from './components/ReviewOptions';
 import DocumentReviewResult from './components/DocumentReviewResult';
 import './DocumentReview.css';
+
+const REVIEW_STEPS = ['서류 선택', '첨삭 기준 설정', '결과 확인'];
 
 function DocumentReview() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -24,21 +33,31 @@ function DocumentReview() {
     const coverLetter = useReviewSelection('cover-letter', selectedIds.letterNum);
     const portfolio = useReviewSelection('portfolio', selectedIds.portfolioNum);
     const selections = { resumeNum: resume, letterNum: coverLetter, portfolioNum: portfolio };
-    const [focusAreas, setFocusAreas] = useState(['expression', 'structure', 'evidence']);
+    const [reviewMode, setReviewMode] = useState('comprehensive');
+    const [customCriteria, setCustomCriteria] = useState('');
     const [instructions, setInstructions] = useState('');
     const [submission, setSubmission] = useState(null);
     const [confirmedSelectionKey, setConfirmedSelectionKey] = useState(null);
+    const [step, setStep] = useState(0);
+    const [exampleKey, setExampleKey] = useState(null);
+    const workspaceRef = useRef(null);
     const submittingRef = useRef(false);
     const activeRef = useRef(false);
     const selectionKey = JSON.stringify(selectedIds);
-    const contextKey = JSON.stringify({ selectedIds, focusAreas, instructions });
+    const effectiveCustomCriteria = reviewMode === 'custom' ? customCriteria.trim() : null;
+    const contextKey = JSON.stringify({ selectedIds, reviewMode, customCriteria: effectiveCustomCriteria, instructions });
     const currentContextRef = useRef(contextKey);
     const currentSubmission = submission?.key === contextKey ? submission : null;
     const isSubmitting = currentSubmission?.status === 'loading';
     const requiredCount = Number(Boolean(resume.source.document)) + Number(Boolean(coverLetter.source.document));
     const portfolioReady = !selectedIds.portfolioNum || Boolean(portfolio.source.document);
     const isSelectionComplete = confirmedSelectionKey === selectionKey && requiredCount === 2 && portfolioReady;
-    const canReview = isSelectionComplete && focusAreas.length > 0;
+    const isCriteriaValid = REVIEW_MODE_OPTIONS.some((option) => option.value === reviewMode) &&
+        (reviewMode !== 'custom' || (Boolean(effectiveCustomCriteria) && customCriteria.length <= REVIEW_CUSTOM_MAX_LENGTH));
+    const canReview = isSelectionComplete && isCriteriaValid && instructions.length <= REVIEW_INSTRUCTIONS_MAX_LENGTH;
+    const activeStep = step === 1 && !isSelectionComplete ? 0 : step;
+    const showExample = exampleKey === contextKey;
+    const previousStepRef = useRef(activeStep);
 
     useEffect(() => {
         activeRef.current = true;
@@ -49,6 +68,12 @@ function DocumentReview() {
     useEffect(() => {
         currentContextRef.current = contextKey;
     }, [contextKey]);
+    useEffect(() => {
+        if (previousStepRef.current !== activeStep) {
+            workspaceRef.current?.querySelector(`[data-review-step="${activeStep}"] h2`)?.focus();
+        }
+        previousStepRef.current = activeStep;
+    }, [activeStep]);
 
     const selectDocument = (key, value) => {
         setConfirmedSelectionKey(null);
@@ -62,22 +87,28 @@ function DocumentReview() {
         }
         setConfirmedSelectionKey(JSON.stringify(next));
     };
-    const toggleFocus = (value) =>
-        setFocusAreas((current) =>
-            current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
-        );
+    const changeCustomCriteria = (value) => setCustomCriteria(value.slice(0, REVIEW_CUSTOM_MAX_LENGTH));
+    const changeInstructions = (value) => setInstructions(value.slice(0, REVIEW_INSTRUCTIONS_MAX_LENGTH));
+    const previewResult = () => {
+        setExampleKey(contextKey);
+        setStep(2);
+    };
+    const returnToSetup = () => setStep(isSelectionComplete ? 1 : 0);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
         if (!DOCUMENT_REVIEW_AVAILABLE || submittingRef.current || !canReview) return;
         submittingRef.current = true;
+        setExampleKey(null);
         setSubmission({ key: contextKey, status: 'loading' });
+        setStep(2);
         try {
             const result = await requestDocumentReview({
                 resumeNum: Number(resume.selectedDocumentNum),
                 letterNum: Number(coverLetter.selectedDocumentNum),
                 portfolioNum: portfolio.selectedDocumentNum ? Number(portfolio.selectedDocumentNum) : null,
-                focusAreas,
+                reviewMode,
+                customCriteria: effectiveCustomCriteria,
                 instructions: instructions.trim(),
             });
             if (activeRef.current && currentContextRef.current === contextKey)
@@ -123,101 +154,96 @@ function DocumentReview() {
                 </div>
             </div>
             <div className="review-workspace">
-                <form className="review-setup" onSubmit={handleSubmit}>
-                    <ReviewDocumentWizard
-                        selections={selections}
-                        isComplete={isSelectionComplete}
-                        onChange={selectDocument}
-                        onComplete={completeSelection}
-                        onEdit={() => setConfirmedSelectionKey(null)}
-                        disabled={isSubmitting}
-                    />
-                    {isSelectionComplete && (
-                        <section className="review-card" aria-labelledby="review-options-title">
-                            <div className="review-card-heading">
-                                <span className="review-step">02</span>
-                                <div>
-                                    <h2 id="review-options-title">통합 첨삭 기준 설정</h2>
-                                    <p>선택한 모든 서류에 같은 기준과 추가 요청을 적용합니다.</p>
-                                </div>
-                            </div>
-                            <div className="review-consistency-guide">
-                                <Layers size={16} aria-hidden="true" />
-                                <span>서류 간 경력·역할·성과의 일관성은 기본으로 확인합니다.</span>
-                            </div>
-                            <fieldset className="review-focus-options" disabled={isSubmitting}>
-                                <legend className="visually-hidden">첨삭 기준 · 하나 이상 선택</legend>
-                                {REVIEW_FOCUS_OPTIONS.map((option) => (
-                                    <label
-                                        key={option.value}
-                                        className={focusAreas.includes(option.value) ? 'is-selected' : ''}
+                <nav className="review-progress" aria-label="통합 첨삭 진행 단계">
+                    <p className="review-progress-title">첨삭 진행 순서</p>
+                    <ol>
+                        {REVIEW_STEPS.map((label, index) => {
+                            const isDone = (index === 0 && isSelectionComplete) ||
+                                (index === 1 && Boolean(currentSubmission));
+                            return (
+                                <li
+                                    key={label}
+                                    className={index === activeStep ? 'is-current' : isDone ? 'is-done' : ''}
+                                >
+                                    <button
+                                        type="button"
+                                        aria-current={index === activeStep ? 'step' : undefined}
+                                        disabled={isSubmitting || (index === 1 && !isSelectionComplete) ||
+                                            (index === 2 && !currentSubmission && !showExample)}
+                                        onClick={() => setStep(index)}
                                     >
-                                        <input
-                                            type="checkbox"
-                                            checked={focusAreas.includes(option.value)}
-                                            onChange={() => toggleFocus(option.value)}
-                                        />
-                                        <span>
-                                            <strong>{option.label}</strong>
-                                            <small>{option.description}</small>
+                                        <span className="review-progress-number">
+                                            {isDone && index !== activeStep
+                                                ? <Check size={15} aria-hidden="true" /> : index + 1}
                                         </span>
-                                    </label>
-                                ))}
-                            </fieldset>
-                            {!focusAreas.length && (
-                                <p className="review-field-error" role="alert">
-                                    첨삭 기준을 하나 이상 선택해 주세요.
-                                </p>
-                            )}
-                            <div className="review-instructions">
-                                <label htmlFor="review-instructions">
-                                    추가 요청 <span>선택</span>
-                                </label>
-                                <textarea
-                                    id="review-instructions"
-                                    value={instructions}
-                                    onChange={(event) => setInstructions(event.target.value)}
-                                    maxLength={1000}
-                                    rows={3}
-                                    placeholder="예: 백엔드 개발자 지원용으로, 각 서류에 적은 프로젝트 역할과 성과가 일관되는지 봐 주세요."
-                                    disabled={isSubmitting}
-                                />
-                                <span className="review-character-count">
-                                    {instructions.length.toLocaleString()} / 1,000
-                                </span>
-                            </div>
-                            <button
-                                type="submit"
-                                className="review-primary-button"
-                                disabled={!DOCUMENT_REVIEW_AVAILABLE || !canReview || isSubmitting}
-                                aria-describedby="review-submit-hint"
-                            >
-                                <Sparkles size={18} aria-hidden="true" />
-                                {isSubmitting
-                                    ? '통합 첨삭 진행 중...'
-                                    : DOCUMENT_REVIEW_AVAILABLE
-                                      ? '원클릭 통합 첨삭 시작하기'
-                                      : 'AI원클릭첨삭 준비 중'}
-                            </button>
-                            <p id="review-submit-hint" className="review-submit-hint">
-                                {requiredCount < 2
-                                    ? '이력서와 자기소개서를 모두 선택해 주세요.'
-                                    : !portfolioReady
-                                      ? '포트폴리오를 확인할 수 없습니다. 다시 선택하거나 선택을 해제해 주세요.'
-                                      : !DOCUMENT_REVIEW_AVAILABLE
-                                        ? '필수 서류 선택이 완료되었습니다. 첨삭 서비스가 열리면 함께 요청할 수 있습니다.'
-                                        : '선택한 서류를 한 번에 첨삭합니다. 수정 제안은 원문에 자동으로 반영되지 않습니다.'}
-                            </p>
-                        </section>
+                                        <span>{label}</span>
+                                    </button>
+                                </li>
+                            );
+                        })}
+                    </ol>
+                    {activeStep !== 2 && (
+                        <button type="button" className="review-text-button" onClick={previewResult}>
+                            결과 예시 보기 <ArrowRight size={14} aria-hidden="true" />
+                        </button>
                     )}
-                </form>
-                <DocumentReviewResult
-                    key={selectionKey}
-                    includePortfolio={Boolean(portfolio.source.document)}
-                    result={currentSubmission?.result}
-                    isSubmitting={isSubmitting}
-                    error={currentSubmission?.error}
-                />
+                </nav>
+                <div className="review-process" ref={workspaceRef}>
+                    <form className="review-setup" onSubmit={handleSubmit} hidden={activeStep === 2}>
+                        <div className="review-stage-container" data-review-step="0" hidden={activeStep !== 0}>
+                            <ReviewDocumentWizard
+                                selections={selections}
+                                isComplete={isSelectionComplete}
+                                onChange={selectDocument}
+                                onComplete={completeSelection}
+                                onEdit={() => setConfirmedSelectionKey(null)}
+                                onContinue={() => setStep(1)}
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        {activeStep === 1 && (
+                            <ReviewOptions
+                                reviewMode={reviewMode}
+                                customCriteria={customCriteria}
+                                instructions={instructions}
+                                canReview={canReview}
+                                isSubmitting={isSubmitting}
+                                onModeChange={setReviewMode}
+                                onCustomCriteriaChange={changeCustomCriteria}
+                                onInstructionsChange={changeInstructions}
+                                onPrevious={() => setStep(0)}
+                                onPreview={previewResult}
+                            />
+                        )}
+                    </form>
+                    {activeStep === 2 && (
+                        <>
+                            <DocumentReviewResult
+                                includePortfolio={Boolean(portfolio.source.document)}
+                                result={currentSubmission?.result}
+                                isSubmitting={isSubmitting}
+                                error={currentSubmission?.error}
+                                showExample={showExample}
+                                onShowExample={previewResult}
+                                onCloseExample={() => {
+                                    setExampleKey(null);
+                                    returnToSetup();
+                                }}
+                            />
+                            <div className="review-stage-actions">
+                                <button
+                                    type="button"
+                                    className="review-secondary-button"
+                                    onClick={returnToSetup}
+                                    disabled={isSubmitting}
+                                >
+                                    <ArrowLeft size={16} aria-hidden="true" />
+                                    {isSelectionComplete ? '첨삭 기준으로' : '서류 선택으로'}
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );

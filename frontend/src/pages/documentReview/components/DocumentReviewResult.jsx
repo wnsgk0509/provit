@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { CheckCircle2, ChevronDown, ClipboardCheck, Layers, LoaderCircle, Sparkles, X } from 'lucide-react';
 import { createBundleReviewExample } from '../reviewExamples';
 
@@ -10,21 +9,20 @@ const DOCUMENT_RESULTS = [
 const documentLabels = { resume: '이력서', 'cover-letter': '자기소개서', portfolio: '포트폴리오' };
 const consistencyLabels = { mismatch: '내용 불일치', missingEvidence: '근거 보완', needsConfirmation: '확인 필요' };
 
-function DocumentReviewResult({ includePortfolio, result, isSubmitting, error }) {
-    const [showExample, setShowExample] = useState(false);
+function DocumentReviewResult({ includePortfolio, result, isSubmitting, error, showExample, onShowExample, onCloseExample }) {
     const isExample = !result && showExample;
     const displayedResult = result || (isExample ? createBundleReviewExample(includePortfolio) : null);
 
     return (
         <section
-            className="review-card review-result-card"
+            className="review-stage review-result-card"
+            data-review-step="2"
             aria-labelledby="review-result-title"
             aria-busy={isSubmitting}
         >
             <div className="review-card-heading">
-                <span className="review-step">03</span>
                 <div>
-                    <h2 id="review-result-title">통합 첨삭 결과</h2>
+                    <h2 id="review-result-title" tabIndex={-1}>통합 첨삭 결과</h2>
                     <p>종합 피드백, 서류 간 일관성과 문서별 첨삭을 확인하세요.</p>
                 </div>
                 {isExample && <span className="review-example-badge">결과 예시</span>}
@@ -48,7 +46,7 @@ function DocumentReviewResult({ includePortfolio, result, isSubmitting, error })
                                 <br />
                                 선택한 서류를 분석한 결과가 아닙니다.
                             </p>
-                            <button type="button" onClick={() => setShowExample(false)} aria-label="결과 예시 닫기">
+                            <button type="button" onClick={onCloseExample} aria-label="결과 예시 닫기">
                                 <X size={18} />
                             </button>
                         </div>
@@ -123,7 +121,7 @@ function DocumentReviewResult({ includePortfolio, result, isSubmitting, error })
                         종합 피드백과 서류 간 일관성,
                         <br />각 문서의 수정 제안을 한 곳에서 확인하세요.
                     </p>
-                    <button type="button" className="review-secondary-button" onClick={() => setShowExample(true)}>
+                    <button type="button" className="review-secondary-button" onClick={onShowExample}>
                         통합 결과 예시 보기
                     </button>
                 </div>

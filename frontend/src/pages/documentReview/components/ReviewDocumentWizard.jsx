@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Check, CheckCircle2 } from 'lucide-react';
 import { DOCUMENT_REVIEW_TYPES } from '../documentReviewConfig';
 import ReviewDocumentSelector from './ReviewDocumentSelector';
 
-function ReviewDocumentWizard({ selections, isComplete, onChange, onComplete, onEdit, disabled }) {
+function ReviewDocumentWizard({ selections, isComplete, onChange, onComplete, onEdit, onContinue, disabled }) {
     const [step, setStep] = useState(0);
     const panelHeadingRef = useRef(null);
     const resumeReady = Boolean(selections.resumeNum.source.document);
@@ -32,11 +32,10 @@ function ReviewDocumentWizard({ selections, isComplete, onChange, onComplete, on
     const steps = [...DOCUMENT_REVIEW_TYPES.map((type) => type.label), '서류 선택 완료'];
 
     return (
-        <section className="review-card review-document-wizard" aria-labelledby="review-document-title">
+        <section className="review-stage review-document-wizard" aria-labelledby="review-document-title">
             <div className="review-card-heading">
-                <span className="review-step">01</span>
                 <div>
-                    <h2 id="review-document-title">첨삭할 서류 선택</h2>
+                    <h2 id="review-document-title" tabIndex={-1}>첨삭할 서류 선택</h2>
                     <p>이력서부터 순서대로 선택해 주세요. 포트폴리오는 생략할 수 있습니다.</p>
                 </div>
             </div>
@@ -100,7 +99,17 @@ function ReviewDocumentWizard({ selections, isComplete, onChange, onComplete, on
                                 );
                             })}
                         </ul>
-                        <p className="review-field-hint">아래에서 통합 첨삭 기준과 추가 요청을 설정해 주세요.</p>
+                        <p className="review-field-hint">선택한 서류를 확인한 뒤 다음 단계에서 첨삭 기준을 설정해 주세요.</p>
+                        <div className="review-selection-actions">
+                            <button
+                                type="button"
+                                className="review-primary-button"
+                                onClick={onContinue}
+                                disabled={disabled || !isComplete}
+                            >
+                                다음: 첨삭 기준 설정 <ArrowRight size={15} aria-hidden="true" />
+                            </button>
+                        </div>
                     </>
                 ) : (
                     <>

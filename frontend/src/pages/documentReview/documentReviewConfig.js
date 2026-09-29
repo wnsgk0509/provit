@@ -25,11 +25,40 @@ export const DOCUMENT_REVIEW_TYPES = [
     },
 ];
 
-export const REVIEW_FOCUS_OPTIONS = [
-    { value: 'expression', label: '문장 표현 · 가독성', description: '자연스럽고 간결하게 읽히는 표현' },
-    { value: 'structure', label: '구성 · 논리', description: '핵심 메시지와 경험의 흐름' },
-    { value: 'jobFit', label: '직무 적합성', description: '지원 직무와 경험의 연결' },
-    { value: 'evidence', label: '경험 · 성과 구체성', description: '나의 역할과 성과를 뒷받침하는 근거' },
+export const REVIEW_CUSTOM_MAX_LENGTH = 200;
+export const REVIEW_INSTRUCTIONS_MAX_LENGTH = 200;
+
+export const REVIEW_MODE_OPTIONS = [
+    {
+        value: 'comprehensive',
+        label: '전체 종합 첨삭',
+        description: '문장 표현, 논리 흐름, 서류 간 일관성, 직무 적합성 등을 전반적으로 확인합니다.',
+    },
+    {
+        value: 'expression',
+        label: '문장 표현·가독성 중심',
+        description: '어색한 문장, 중복 표현, 장황한 문장, 맞춤법·문법, 읽기 쉬운 표현 중심으로 첨삭합니다.',
+    },
+    {
+        value: 'consistency',
+        label: '서류 간 일관성 중심',
+        description: '이력서·자기소개서·포트폴리오 사이의 경력 기간, 역할, 기술, 프로젝트 내용 등의 불일치나 모순을 확인합니다.',
+    },
+    {
+        value: 'jobFit',
+        label: '직무 적합성 중심',
+        description: '지원 직무와 관련된 경험·기술·역량이 충분히 강조됐는지 확인하고 불필요한 내용은 줄이도록 제안합니다.',
+    },
+    {
+        value: 'evidence',
+        label: '성과·구체성 중심',
+        description: '추상적인 표현이나 단순 업무 나열을 찾아 역할, 행동, 문제 해결 과정, 성과가 구체적으로 드러나도록 첨삭합니다.',
+    },
+    {
+        value: 'custom',
+        label: '직접 입력',
+        description: '첨삭에서 중점적으로 확인할 기준을 200자 이내로 직접 입력해 주세요.',
+    },
 ];
 
 export function reviewErrorMessage(error, fallback) {

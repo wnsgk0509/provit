@@ -33,7 +33,7 @@ export function getReviewDocument(documentType, documentNum) {
 }
 
 // One request reviews the required resume and cover letter plus an optional portfolio.
-// Future service boundary: { resumeNum, letterNum, portfolioNum, focusAreas, instructions }.
+// Future service boundary: { resumeNum, letterNum, portfolioNum, reviewMode, customCriteria, instructions }.
 // Never substitute interview evaluation or a sample for a real review response.
 export async function requestDocumentReview() {
     throw new Error('AI원클릭첨삭 서비스는 준비 중입니다.');
