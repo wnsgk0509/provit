@@ -911,13 +911,6 @@
     font-size: 13px;
     font-weight: 700;
 }
-.review-strengths ul {
-    margin: 9px 0 0;
-    padding-left: 20px;
-    color: #6b7280;
-    font-size: 12px;
-    line-height: 1.9;
-}
 .review-strength-items {
     display: grid;
     gap: 14px;

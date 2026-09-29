@@ -165,14 +165,12 @@ public class OracleDocumentReviewPersistenceTest {
         assertEquals(3, saved.getDocuments().size());
         assertEquals(3, saved.getResponseVersion());
         assertEquals("백엔드/서버개발", saved.getCareerPreparation().getJobName());
-        assertEquals(4, saved.getCareerPreparation().getRecommendations().size());
-        assertCounts(1, 3, 8, 3, 2, 4);
+        assertEquals(3, saved.getCareerPreparation().getRecommendations().size());
+        assertCounts(1, 3, 0, 4, 2, 5);
         var mapper = new ObjectMapper();
-        var expected = mapper.valueToTree(mapper.readValue(resource("/document-review/dummy-result.json"), DocumentReviewResultDTO.class));
+        var expected = mapper.valueToTree(reviewFixture(true));
         var actual = mapper.valueToTree(saved);
-        for (String field : List.of("summary", "strengths", "documentReviews", "consistencyIssues")) {
-            removeNullPageNumbers(actual.path(field));
-            removeNullPageNumbers(expected.path(field));
+        for (String field : List.of("summary", "strengths", "documentReviews", "consistencyIssues", "careerPreparation")) {
             assertEquals(field, expected.path(field), actual.path(field));
         }
         String json = mapper.writeValueAsString(saved);
@@ -201,7 +199,7 @@ public class OracleDocumentReviewPersistenceTest {
         var saved = transaction.execute(status -> service.createReview(7, request));
         assertNull(saved.getCustomCriteria()); assertEquals("추가 요청", saved.getInstructions());
         assertNull(saved.getDocumentReviews().get("portfolio"));
-        assertCounts(1, 2, 6, 2, 1, 2);
+        assertCounts(1, 2, 0, 3, 1, 3);
         resume.getResume().setResumeTitle("수정된 이력서"); documentsDeleted = true;
         var reread = transaction.execute(status -> service.getReview(7, saved.getReviewNum()));
         assertEquals("저장 당시 이력서", reread.getDocuments().get(0).getDocumentTitle());
@@ -239,7 +237,7 @@ public class OracleDocumentReviewPersistenceTest {
                 assertTrue(rows.next());
                 var json = new ObjectMapper().readTree(rows.getString(1));
                 assertEquals("84", json.path("jobCode").asText());
-                assertEquals(4, json.path("recommendations").size());
+                assertEquals(3, json.path("recommendations").size());
             }
         }
         resume.getResume().setJobName("프론트엔드");
@@ -274,23 +272,49 @@ public class OracleDocumentReviewPersistenceTest {
                 .header("Authorization", "Bearer owner")).andReturn().getResponse();
         assertEquals(200, reread.getStatus());
         assertEquals(data, mapper.readTree(reread.getContentAsByteArray()).path("data"));
-        assertCounts(1, 2, 6, 2, 1, 2);
+        assertCounts(1, 2, 0, 3, 1, 3);
     }
 
     private DocumentReviewService transactionalService(DocumentReviewDAO reviewDAO) {
         return transactionalService(reviewDAO, (request, snapshots) -> {
             assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
             try {
-                var result = new ObjectMapper().readValue(resource("/document-review/dummy-result.json"), DocumentReviewResultDTO.class);
-                if (request.getPortfolioNum() == null) {
-                    result.getDocumentReviews().put("portfolio", null);
-                    result.getConsistencyIssues().removeIf(issue -> issue.getSources().stream()
-                            .anyMatch(source -> "portfolio".equals(source.getDocumentType())));
-                }
-                result.setCareerPreparation(new com.provit.service.document.generator.DummyCareerPreparationGenerator().generate(snapshots));
-                return result;
+                return reviewFixture(request.getPortfolioNum() != null);
             } catch (Exception exception) { throw new AssertionError(exception); }
         });
+    }
+
+    private DocumentReviewResultDTO reviewFixture(boolean includePortfolio) throws Exception {
+        var result = new ObjectMapper().readValue(Files.readString(Path.of("docs/examples/document-review/response.example.json")),
+                DocumentReviewResultDTO.class);
+        var preparation = result.getCareerPreparation();
+        preparation.setOccupationCode(resume.getResume().getOccupationCode());
+        preparation.setOccupationName(resume.getResume().getOccupationName());
+        preparation.setJobCode(resume.getResume().getJobCode());
+        preparation.setJobName(resume.getResume().getJobName());
+        if (includePortfolio) {
+            var feedback = new DocumentReviewResultDTO.Feedback();
+            feedback.setSummary("포트폴리오의 역할·검증 결과 보완");
+            var improvement = new DocumentReviewResultDTO.Improvement();
+            improvement.setSection("1페이지"); improvement.setTitle("담당 역할 보완");
+            improvement.setOriginal("portfolio snapshot"); improvement.setIssue("담당 역할이 설명되지 않았습니다.");
+            improvement.setSuggestion("Portfolio snapshot: [실제 담당 역할과 확인한 결과]");
+            improvement.setReason("실제 담당 역할과 검증 결과를 추가해 주세요.");
+            feedback.setImprovements(List.of(improvement));
+            result.getDocumentReviews().put("portfolio", feedback);
+            var issue = new DocumentReviewResultDTO.Consistency();
+            issue.setType("needsConfirmation"); issue.setTitle("포트폴리오와 지원 동기의 역할 확인");
+            issue.setRecommendation("같은 경험을 설명하는지 확인하고 실제 담당 역할을 구분해 주세요.");
+            var portfolioSource = new DocumentReviewResultDTO.Source();
+            portfolioSource.setDocumentType("portfolio"); portfolioSource.setSection("1페이지");
+            portfolioSource.setText("portfolio snapshot"); portfolioSource.setPageNumber(1);
+            var resumeSource = new DocumentReviewResultDTO.Source();
+            resumeSource.setDocumentType("resume"); resumeSource.setSection("지원 동기");
+            resumeSource.setText("원본 지원 동기");
+            issue.setSources(List.of(portfolioSource, resumeSource));
+            result.getConsistencyIssues().add(issue);
+        }
+        return result;
     }
 
     private DocumentReviewService transactionalService(DocumentReviewDAO reviewDAO,
@@ -345,7 +369,8 @@ public class OracleDocumentReviewPersistenceTest {
             resumeFeedback.setStrengths(List.of(mapper.convertValue(strength, DocumentReviewResultDTO.Strength.class)));
             var letterFeedback = new DocumentReviewResultDTO.Feedback(); letterFeedback.setSummary("자기소개서 검토");
             result.getDocumentReviews().put("resume", resumeFeedback); result.getDocumentReviews().put("coverLetter", letterFeedback);
-            result.setCareerPreparation(new com.provit.service.document.generator.DummyCareerPreparationGenerator().generate(snapshots));
+            try { result.setCareerPreparation(reviewFixture(false).getCareerPreparation()); }
+            catch (Exception exception) { throw new AssertionError(exception); }
             result.getCareerPreparation().getRecommendations().get(0).setSources(List.of(source));
             return result;
         });
@@ -424,12 +449,6 @@ public class OracleDocumentReviewPersistenceTest {
                 rows.next(); assertEquals(tables.get(i), expected[i], rows.getInt(1));
             } catch (Exception exception) { throw new AssertionError(exception); }
         }
-    }
-
-    private void removeNullPageNumbers(com.fasterxml.jackson.databind.JsonNode node) {
-        if (node.isObject() && node.has("pageNumber") && node.path("pageNumber").isNull())
-            ((com.fasterxml.jackson.databind.node.ObjectNode) node).remove("pageNumber");
-        node.forEach(this::removeNullPageNumbers);
     }
 
     private DocumentReviewRequestDTO request(boolean portfolio) {
