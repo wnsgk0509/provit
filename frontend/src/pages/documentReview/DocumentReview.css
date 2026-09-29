@@ -989,6 +989,28 @@
 .review-spinner {
     animation: review-spin 1s linear infinite;
 }
+.review-history {
+    margin-top: 28px;
+    padding: 26px;
+    border: 1px solid #e4e8f0;
+    border-radius: 20px;
+    background: #fff;
+}
+.review-history h2 { margin: 0; font-size: 19px; }
+.review-history-list { display: grid; gap: 10px; padding: 0; list-style: none; }
+.review-history-list button {
+    display: grid; gap: 6px; width: 100%; padding: 16px;
+    border: 1px solid #e4e8f0; border-radius: 12px; background: #fafbfe;
+    text-align: left; color: #35415a; overflow-wrap: anywhere;
+}
+.review-history-list button:hover, .review-history-list button[aria-current="true"] { border-color: #8193d7; }
+.review-history-list span { font-size: 12px; color: #738095; }
+.review-saved-request { padding: 18px; border: 1px solid #e4e8f0; border-radius: 12px; overflow-wrap: anywhere; }
+.review-saved-request h3 { margin: 0 0 14px; font-size: 15px; }
+.review-saved-request dl { display: grid; gap: 12px; margin: 0; }
+.review-saved-request dt { color: #738095; font-size: 12px; }
+.review-saved-request dd { margin: 4px 0 0; white-space: pre-wrap; }
+.review-saved-request ul { padding-left: 20px; margin: 16px 0 0; }
 @keyframes review-spin {
     to {
         transform: rotate(360deg);

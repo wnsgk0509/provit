@@ -1,5 +1,6 @@
 import { CheckCircle2, ChevronDown, ClipboardCheck, Layers, LoaderCircle, Sparkles, X } from 'lucide-react';
 import { createBundleReviewExample } from '../reviewExamples';
+import { REVIEW_MODE_OPTIONS } from '../documentReviewConfig';
 
 const DOCUMENT_RESULTS = [
     { key: 'resume', label: '이력서' },
@@ -12,6 +13,7 @@ const consistencyLabels = { mismatch: '내용 불일치', missingEvidence: '근�
 function DocumentReviewResult({ includePortfolio, result, isSubmitting, error, showExample, onShowExample, onCloseExample }) {
     const isExample = !result && showExample;
     const displayedResult = result || (isExample ? createBundleReviewExample(includePortfolio) : null);
+    const isDummy = result?.resultSource === 'DUMMY';
 
     return (
         <section
@@ -25,13 +27,13 @@ function DocumentReviewResult({ includePortfolio, result, isSubmitting, error, s
                     <h2 id="review-result-title" tabIndex={-1}>통합 첨삭 결과</h2>
                     <p>종합 피드백, 서류 간 일관성과 문서별 첨삭을 확인하세요.</p>
                 </div>
-                {isExample && <span className="review-example-badge">결과 예시</span>}
+                {(isExample || isDummy) && <span className="review-example-badge">{isDummy ? '저장된 더미 결과' : '결과 예시'}</span>}
             </div>
             {isSubmitting ? (
                 <div className="review-result-empty" role="status">
                     <LoaderCircle size={32} className="review-spinner" aria-hidden="true" />
-                    <h3>선택한 서류를 함께 살펴보고 있습니다.</h3>
-                    <p>통합 첨삭이 완료되면 결과가 여기에 표시됩니다.</p>
+                    <h3>첨삭 기록을 저장하거나 불러오고 있습니다.</h3>
+                    <p>DB에서 확인한 결과를 여기에 표시합니다.</p>
                 </div>
             ) : error ? (
                 <div className="review-status is-error" role="alert">
@@ -39,6 +41,28 @@ function DocumentReviewResult({ includePortfolio, result, isSubmitting, error, s
                 </div>
             ) : displayedResult ? (
                 <div className="review-result-content">
+                    {isDummy && (
+                        <div className="review-example-notice" role="status">
+                            <p>DB에 저장된 예시 응답입니다. 아래 원문·피드백·비교 근거는 더미 데이터이며 실제 서류의 AI 분석 결과가 아닙니다.</p>
+                        </div>
+                    )}
+                    {result && (
+                        <section className="review-saved-request" aria-label="저장된 요청 정보">
+                            <h3>요청 정보 · 기록 #{result.reviewNum}</h3>
+                            <dl>
+                                <div><dt>저장 시각</dt><dd>{result.finishedAt || result.createdAt}</dd></div>
+                                <div><dt>첨삭 기준</dt><dd>{REVIEW_MODE_OPTIONS.find((mode) => mode.value === result.reviewMode)?.label}</dd></div>
+                                {result.customCriteria && <div><dt>직접 입력 기준</dt><dd>{result.customCriteria}</dd></div>}
+                                <div><dt>추가 요청</dt><dd>{result.instructions || '없음'}</dd></div>
+                            </dl>
+                            <ul>{result.documents.map((document) => (
+                                <li key={document.reviewDocumentNum}>
+                                    {documentLabels[document.documentType]} · {document.documentTitle}
+                                    {document.originalFileName ? ` (${document.originalFileName})` : ''}
+                                </li>
+                            ))}</ul>
+                        </section>
+                    )}
                     {isExample && (
                         <div className="review-example-notice" role="status">
                             <p>
@@ -104,7 +128,7 @@ function DocumentReviewResult({ includePortfolio, result, isSubmitting, error, s
                                     </summary>
                                     <ReviewDocumentFeedback
                                         feedback={displayedResult.documentReviews[document.key]}
-                                        isExample={isExample}
+                                        isExample={isExample || isDummy}
                                     />
                                 </details>
                             ),

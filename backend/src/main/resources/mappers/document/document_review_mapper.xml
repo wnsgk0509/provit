@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.provit.mapper.document.DocumentReviewMapper">
+    <sql id="reviewColumns">
+        REVIEW_NUM, USER_NUM, REVIEW_TITLE, REVIEW_STATUS, REVIEW_MODE, CUSTOM_CRITERIA,
+        INSTRUCTIONS, MODEL_NAME, PROMPT_VERSION, RESPONSE_VERSION, CREATED_AT, FINISHED_AT
+    </sql>
+
+    <insert id="insertReview">
+        <selectKey keyProperty="reviewNum" resultType="long" order="BEFORE">
+            SELECT SEQ_T_DOCUMENT_REVIEW.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_DOCUMENT_REVIEW
+            (REVIEW_NUM, USER_NUM, REVIEW_TITLE, REVIEW_STATUS, REVIEW_MODE, CUSTOM_CRITERIA,
+             INSTRUCTIONS, MODEL_NAME, PROMPT_VERSION, RESPONSE_VERSION)
+        VALUES (#{reviewNum}, #{userNum}, #{reviewTitle}, 'PROCESSING', #{reviewMode},
+                #{customCriteria,jdbcType=VARCHAR}, #{instructions,jdbcType=VARCHAR},
+                #{modelName}, #{promptVersion}, #{responseVersion})
+    </insert>
+    <insert id="insertDocument">
+        <selectKey keyProperty="reviewDocumentNum" resultType="long" order="BEFORE">
+            SELECT SEQ_T_REVIEW_DOCUMENT.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_REVIEW_DOCUMENT
+            (REVIEW_DOCUMENT_NUM, REVIEW_NUM, DOCUMENT_TYPE, SOURCE_DOCUMENT_NUM, DOCUMENT_TITLE,
+             SOURCE_UPDATED_AT, SOURCE_SNAPSHOT_JSON, ORIGINAL_FILE_NAME, PDF_SNAPSHOT, DOCUMENT_SUMMARY)
+        VALUES (#{reviewDocumentNum}, #{reviewNum}, #{documentType}, #{sourceDocumentNum}, #{documentTitle},
+                #{sourceUpdatedAt,jdbcType=TIMESTAMP}, #{sourceSnapshotJson,jdbcType=CLOB},
+                #{originalFileName,jdbcType=VARCHAR}, #{pdfSnapshot,jdbcType=BLOB}, #{summary,jdbcType=CLOB})
+    </insert>
+    <insert id="insertStrength">
+        INSERT INTO T_REVIEW_STRENGTH
+            (REVIEW_NUM, REVIEW_DOCUMENT_NUM, DISPLAY_ORDER, STRENGTH_CONTENT)
+        VALUES (#{reviewNum}, #{reviewDocumentNum,jdbcType=NUMERIC}, #{displayOrder}, #{content,jdbcType=CLOB})
+    </insert>
+    <insert id="insertImprovement">
+        INSERT INTO T_REVIEW_IMPROVEMENT
+            (REVIEW_DOCUMENT_NUM, DISPLAY_ORDER, SECTION_NAME, IMPROVEMENT_TITLE, ISSUE_CONTENT,
+             ORIGINAL_CONTENT, SUGGESTED_CONTENT, REASON_CONTENT)
+        VALUES (#{reviewDocumentNum}, #{displayOrder}, #{section}, #{title}, #{issue,jdbcType=CLOB},
+                #{original,jdbcType=CLOB}, #{suggestion,jdbcType=CLOB}, #{reason,jdbcType=CLOB})
+    </insert>
+    <insert id="insertConsistency">
+        <selectKey keyProperty="consistencyNum" resultType="long" order="BEFORE">
+            SELECT SEQ_T_REVIEW_CONSISTENCY.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_REVIEW_CONSISTENCY
+            (CONSISTENCY_NUM, REVIEW_NUM, DISPLAY_ORDER, ISSUE_TYPE, ISSUE_TITLE, RECOMMENDATION)
+        VALUES (#{consistencyNum}, #{reviewNum}, #{displayOrder}, #{type}, #{title}, #{recommendation,jdbcType=CLOB})
+    </insert>
+    <insert id="insertSource">
+        INSERT INTO T_REVIEW_SOURCE
+            (CONSISTENCY_NUM, DISPLAY_ORDER, REVIEW_NUM, REVIEW_DOCUMENT_NUM, SECTION_NAME, SOURCE_CONTENT, PAGE_NUMBER)
+        VALUES (#{consistencyNum}, #{displayOrder}, #{reviewNum}, #{reviewDocumentNum}, #{section},
+                #{text,jdbcType=CLOB}, #{pageNumber,jdbcType=NUMERIC})
+    </insert>
+    <update id="completeReview">
+        UPDATE T_DOCUMENT_REVIEW
+        SET OVERALL_SUMMARY = #{summary,jdbcType=CLOB}, REVIEW_STATUS = 'COMPLETED', FINISHED_AT = LOCALTIMESTAMP
+        WHERE REVIEW_NUM = #{reviewNum} AND USER_NUM = #{userNum} AND REVIEW_STATUS = 'PROCESSING'
+    </update>
+
+    <select id="selectReview" resultType="com.provit.dto.document.DocumentReviewResultDTO">
+        SELECT <include refid="reviewColumns"/>, OVERALL_SUMMARY AS SUMMARY
+        FROM T_DOCUMENT_REVIEW WHERE REVIEW_NUM = #{reviewNum} AND USER_NUM = #{userNum}
+    </select>
+    <select id="selectReviews" resultType="com.provit.dto.document.DocumentReviewDTO">
+        SELECT <include refid="reviewColumns"/>
+        FROM T_DOCUMENT_REVIEW WHERE USER_NUM = #{userNum}
+        ORDER BY CREATED_AT DESC, REVIEW_NUM DESC
+        OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+    <select id="selectDocuments" resultType="com.provit.dto.document.DocumentReviewResultDTO$Document">
+        SELECT REVIEW_DOCUMENT_NUM, REVIEW_NUM, DOCUMENT_TYPE, SOURCE_DOCUMENT_NUM, DOCUMENT_TITLE,
+               SOURCE_UPDATED_AT, ORIGINAL_FILE_NAME, DOCUMENT_SUMMARY AS SUMMARY
+        FROM T_REVIEW_DOCUMENT WHERE REVIEW_NUM = #{reviewNum}
+        ORDER BY CASE DOCUMENT_TYPE WHEN 'resume' THEN 1 WHEN 'cover-letter' THEN 2 ELSE 3 END
+    </select>
+    <select id="selectStrengths" resultType="com.provit.dto.document.DocumentReviewResultDTO$Strength">
+        SELECT REVIEW_NUM, REVIEW_DOCUMENT_NUM, DISPLAY_ORDER, STRENGTH_CONTENT AS CONTENT
+        FROM T_REVIEW_STRENGTH WHERE REVIEW_NUM = #{reviewNum}
+        ORDER BY REVIEW_DOCUMENT_NUM NULLS FIRST, DISPLAY_ORDER
+    </select>
+    <select id="selectImprovements" resultType="com.provit.dto.document.DocumentReviewResultDTO$Improvement">
+        SELECT I.REVIEW_DOCUMENT_NUM, I.DISPLAY_ORDER, I.SECTION_NAME AS SECTION,
+               I.IMPROVEMENT_TITLE AS TITLE, I.ISSUE_CONTENT AS ISSUE, I.ORIGINAL_CONTENT AS ORIGINAL,
+               I.SUGGESTED_CONTENT AS SUGGESTION, I.REASON_CONTENT AS REASON
+        FROM T_REVIEW_IMPROVEMENT I
+        JOIN T_REVIEW_DOCUMENT D ON D.REVIEW_DOCUMENT_NUM = I.REVIEW_DOCUMENT_NUM
+        WHERE D.REVIEW_NUM = #{reviewNum}
+        ORDER BY I.REVIEW_DOCUMENT_NUM, I.DISPLAY_ORDER
+    </select>
+    <select id="selectConsistencies" resultType="com.provit.dto.document.DocumentReviewResultDTO$Consistency">
+        SELECT CONSISTENCY_NUM, REVIEW_NUM, DISPLAY_ORDER, ISSUE_TYPE AS TYPE,
+               ISSUE_TITLE AS TITLE, RECOMMENDATION
+        FROM T_REVIEW_CONSISTENCY WHERE REVIEW_NUM = #{reviewNum} ORDER BY DISPLAY_ORDER
+    </select>
+    <select id="selectSources" resultType="com.provit.dto.document.DocumentReviewResultDTO$Source">
+        SELECT S.CONSISTENCY_NUM, S.REVIEW_NUM, S.REVIEW_DOCUMENT_NUM, S.DISPLAY_ORDER,
+               D.DOCUMENT_TYPE, S.SECTION_NAME AS SECTION, S.SOURCE_CONTENT AS TEXT, S.PAGE_NUMBER
+        FROM T_REVIEW_SOURCE S
+        JOIN T_REVIEW_DOCUMENT D ON D.REVIEW_DOCUMENT_NUM = S.REVIEW_DOCUMENT_NUM AND D.REVIEW_NUM = S.REVIEW_NUM
+        WHERE S.REVIEW_NUM = #{reviewNum} ORDER BY S.CONSISTENCY_NUM, S.DISPLAY_ORDER
+    </select>
+</mapper>

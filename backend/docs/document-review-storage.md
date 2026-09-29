@@ -2,7 +2,9 @@
 
 현재 결과 화면의 모든 데이터는 6개 테이블에 저장한다. 한 번의 통합 첨삭을 `REVIEW_NUM`으로 묶고, 같은 서류를 다시 첨삭하면 새로운 기록을 만든다. 완료된 기록은 원본 문서 변경에 따라 덮어쓰지 않는다.
 
-DDL: [document_review_schema.sql](../src/main/resources/sql_query/document_review_schema.sql). 기존 `T_USER`가 있는 Oracle 19c 스키마에 적용하는 별도 스크립트다. 설계 파일만 작성했으며 DB에는 실행하지 않았다. 기존 `schema.sql`과 `drop.sql`에는 아직 통합하지 않았다.
+DDL: [document_review_schema.sql](../src/main/resources/sql_query/document_review_schema.sql). 기존 `T_USER`가 있는 Oracle 19c 스키마에 한 번 적용하는 별도 스크립트다. 기존 `schema.sql`과 `drop.sql`에는 통합하지 않았다. 2026-09-29 로컬 DB에서 6개 테이블·5개 시퀀스와 200자 입력 컬럼을 확인했다. 이미 적용한 DB에 CREATE 스크립트를 다시 실행하지 않는다.
+
+현재 구현은 **AI 호출 없이 서버의 고정 예시 응답을 저장하는 더미 모드**다. 선택한 문서와 요청 설정은 실제 사용자 데이터이며 결과의 원문·피드백·비교 근거는 예시다. `MODEL_NAME = 'dummy-document-review-v1'`, `PROMPT_VERSION = 'dummy-v1'`로 출처를 기록하고 응답의 `resultSource = 'DUMMY'` 및 화면 안내로 구분한다. 기준과 추가 요청은 저장하지만 더미 피드백을 변경하지 않는다.
 
 ## 관계
 
@@ -100,15 +102,24 @@ DB의 `cover-letter`는 응답을 조립할 때 `coverLetter` 키로 변환한�
 ## 저장 및 조회 흐름
 
 1. 인증된 사용자 번호로 선택한 이력서·자기소개서·포트폴리오 소유권을 검증한다. 선택 기준의 허용 값, 직접 입력 기준과 추가 요청의 각각 200자 제한, 직접 입력의 필수 여부도 검증한다.
-2. 짧은 트랜잭션에서 `PROCESSING` 기록과 실제 첨삭 입력 보관본을 저장한다. AI에도 이 보관본과 같은 내용을 전달한다.
-3. DB 트랜잭션을 유지하지 않은 상태로 AI 요청을 실행한다.
-4. 응답 구조·문서 종류·필수 피드백·일관성 근거의 문서 포함 여부를 검증한다.
-5. 하나의 `@Transactional` 작업에서 종합 피드백, 문서 피드백, 강점, 수정 제안, 일관성 항목·근거를 저장하고 `COMPLETED`로 바꾼다. 부분 결과만 남지 않도록 결과 저장과 완료 상태 변경을 함께 처리한다.
-6. AI 오류나 결과 저장 롤백 시 별도 트랜잭션에서 기록을 `FAILED`로 바꾸고 사용자에게 보여줄 오류 메시지를 저장한다. 작업 중 서버가 종료되어 `PROCESSING`으로 남은 기록도 이후 실패·재처리 여부를 판정할 수 있어야 한다.
+2. 기존 `DocumentService`로 문서 상세를 읽고 JSON 보관본을 만든다. 포트폴리오를 선택했으면 기존 파일 조회 서비스를 통해 PDF 보관본도 저장한다. 파일은 기존 업로드 제한과 동일하게 20MB 이하만 허용한다. 파일 경로나 내부 저장 파일명은 JSON 보관본과 응답에 포함하지 않는다.
+3. 서버 리소스 `document-review/dummy-result.json`에서 예시 응답을 읽는다. 포트폴리오를 선택하지 않으면 해당 결과와 포트폴리오 관련 일관성 항목을 제외한다. 클라이언트가 보낸 결과 JSON은 저장하지 않는다.
+4. 하나의 `@Transactional` 작업에서 요청(`PROCESSING`), 서류 보관본, 모든 결과 자식 행을 저장하고 종합 피드백과 함께 `COMPLETED`로 변경한다. 더미 모드는 외부 호출이 없으며 실패 시 요청까지 전체 롤백한다. 부분 결과나 실패·처리 중 기록을 따로 남기지 않는다.
+5. 같은 트랜잭션에서 DB의 저장 결과를 다시 읽어 반환한다. 화면은 저장된 기록 번호로 상세 API를 조회하며 새로고침 후에도 같은 기록을 확인한다.
+
+AI 호출을 나중에 연결할 때에는 외부 호출 동안 트랜잭션을 유지하지 않도록 요청 저장·호출·결과 저장을 분리하고 `FAILED` 처리 및 처리 중 기록 복구를 추가해야 한다. 현재 구현에는 AI 클라이언트나 관련 재시도 로직을 추가하지 않았다.
 
 완료 후 같은 기록에 결과 자식을 다시 추가하지 않는다. 저장 시 부모 행을 잠그거나 상태를 검사해 이미 완료된 기록의 중복 저장을 막는다. 사용자의 새 첨삭 요청은 새 `REVIEW_NUM`으로 처리한다.
 
-예정 API 계약은 `POST /api/document-reviews`, `GET /api/document-reviews`, `GET /api/document-reviews/{reviewNum}`이다. 아직 구현한 서버 API는 아니다. 상세·PDF·삭제 모두 인증된 사용자 번호로 소유권을 확인한다.
+구현 API는 다음과 같다. 모두 기존 `@LoginUser`와 공통 `ApiResponse`를 사용하며 JWT 사용자 번호를 서버에서 결정한다. 클라이언트가 `userNum`을 바꿔도 다른 사용자의 서류나 기록에 접근할 수 없다. 인증되지 않으면 401이며 개인 결과에는 `Cache-Control: no-store`를 적용한다.
+
+| API | 동작 |
+| --- | --- |
+| `POST /api/document-reviews` | 선택 문서 번호·기준·추가 요청을 검증하고 더미 결과 저장, HTTP 201과 저장된 상세 반환 |
+| `GET /api/document-reviews?offset=0&pageSize=20` | 본인 기록을 최신순으로 조회; offset은 0 이상, pageSize는 1~100 |
+| `GET /api/document-reviews/{reviewNum}` | 본인 기록의 요청 설정·선택 문서 정보·전체 결과 조회; 없거나 타인 기록이면 404 |
+
+서류 조회 DTO·DAO·Mapper, `DocumentService`, 파일 저장 서비스, JWT 처리와 공통 axios 클라이언트를 재사용했다. 새 코드는 첨삭 요청/응답 DTO 3개, 첨삭 전용 Controller·Service·DAO와 **Mapper XML 1개**다. 결과 항목은 응답 DTO의 내부 클래스를 재사용하며 테이블별 서비스나 Java Mapper 인터페이스를 추가하지 않았다. 삭제 및 보관 PDF 다운로드 API는 이번 범위에 포함하지 않는다.
 
 목록 조회 예시:
 
@@ -123,6 +134,12 @@ OFFSET :offset ROWS FETCH NEXT :pageSize ROWS ONLY;
 상세 조회는 먼저 `REVIEW_NUM = :reviewNum AND USER_NUM = :userNum`으로 부모 기록을 확인한다. 이후 문서·강점·수정 제안·일관성 항목·근거를 각각 조회하고 정렬 순서대로 기존 응답 구조를 조립한다. 여러 1:N 배열을 한 번에 JOIN하면 강점과 수정 제안 등이 곱으로 늘어나므로 별도 조회로 구성한다. 응답에는 기록 번호, 상태, 작성 시각, 요청 설정도 함께 제공한다.
 
 첨삭 기록을 삭제하면 자식 결과와 보관본도 FK의 `ON DELETE CASCADE`로 함께 삭제한다. 기존 사용자 탈퇴는 `USER_IS_DELETED`를 변경하는 소프트 삭제이므로 사용자 FK의 CASCADE가 동작하지 않는다. 탈퇴 시 첨삭 기록을 즉시 삭제할 정책이라면 탈퇴 서비스의 트랜잭션에 해당 사용자의 `T_DOCUMENT_REVIEW` 삭제를 추가해야 한다.
+
+## 검증과 실행
+
+- 기존 Spring MVC/Tomcat 프로젝트를 다시 빌드·게시한 뒤 프론트의 **더미 첨삭 결과 저장하기** 버튼을 사용한다. 서버가 이전 빌드로 실행 중이면 신규 경로가 404일 수 있으므로 백엔드 재게시가 필요하다.
+- `DocumentReviewValidationTest`: 필수 번호·기준·200자 제한, 인증 누락, 서류 소유권, 목록 범위를 검증한다.
+- `OracleDocumentReviewPersistenceTest`: 실제 Oracle에 무작위 이름의 별도 테이블·시퀀스를 만들고 전체 결과/JSON/PDF 보관본, 포트폴리오 생략, 과거 조회 및 트랜잭션 롤백을 검증한다. 기존 테이블/데이터를 수정하지 않으며 테스트 객체를 종료 시 제거한다. 기본 실행에서는 건너뛰고 `mvn -Dprovit.oracle.documentReviewTests=true -Dtest=OracleDocumentReviewPersistenceTest test`로 명시 실행한다.
 
 ## Oracle 참고
 

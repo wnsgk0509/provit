@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, FolderOpen, Layers, Sparkles } from 'lucide-react';
-import { DOCUMENT_REVIEW_AVAILABLE, requestDocumentReview } from '../../api/documentReviewApi';
+import { requestDocumentReview } from '../../api/documentReviewApi';
 import {
     DOCUMENT_REVIEW_TYPES,
     REVIEW_CUSTOM_MAX_LENGTH,
@@ -9,16 +9,20 @@ import {
     REVIEW_MODE_OPTIONS,
     reviewErrorMessage,
 } from './documentReviewConfig';
-import { useReviewSelection } from './useReviewDocuments';
+import { useReviewSelection, useSavedReview } from './useReviewDocuments';
 import ReviewDocumentWizard from './components/ReviewDocumentWizard';
 import ReviewOptions from './components/ReviewOptions';
 import DocumentReviewResult from './components/DocumentReviewResult';
+import ReviewHistory from './components/ReviewHistory';
 import './DocumentReview.css';
 
 const REVIEW_STEPS = ['서류 선택', '첨삭 기준 설정', '결과 확인'];
 
 function DocumentReview() {
     const [searchParams, setSearchParams] = useSearchParams();
+    const savedReviewNum = searchParams.get('reviewNum') || '';
+    const savedReview = useSavedReview(savedReviewNum);
+    const [historyRevision, setHistoryRevision] = useState(0);
     // Old document links can still preselect one input in the new bundle.
     const legacyType = DOCUMENT_REVIEW_TYPES.find((type) => type.value === searchParams.get('type'));
     const selectedIds = Object.fromEntries(
@@ -55,8 +59,8 @@ function DocumentReview() {
     const isCriteriaValid = REVIEW_MODE_OPTIONS.some((option) => option.value === reviewMode) &&
         (reviewMode !== 'custom' || (Boolean(effectiveCustomCriteria) && customCriteria.length <= REVIEW_CUSTOM_MAX_LENGTH));
     const canReview = isSelectionComplete && isCriteriaValid && instructions.length <= REVIEW_INSTRUCTIONS_MAX_LENGTH;
-    const activeStep = step === 1 && !isSelectionComplete ? 0 : step;
-    const showExample = exampleKey === contextKey;
+    const activeStep = savedReviewNum ? 2 : step === 1 && !isSelectionComplete ? 0 : step;
+    const showExample = !savedReviewNum && exampleKey === contextKey;
     const previousStepRef = useRef(activeStep);
 
     useEffect(() => {
@@ -89,15 +93,33 @@ function DocumentReview() {
     };
     const changeCustomCriteria = (value) => setCustomCriteria(value.slice(0, REVIEW_CUSTOM_MAX_LENGTH));
     const changeInstructions = (value) => setInstructions(value.slice(0, REVIEW_INSTRUCTIONS_MAX_LENGTH));
+    const clearSavedReview = () => setSearchParams((params) => {
+        const next = new URLSearchParams(params);
+        next.delete('reviewNum');
+        return next;
+    }, { replace: true });
     const previewResult = () => {
+        clearSavedReview();
         setExampleKey(contextKey);
         setStep(2);
     };
-    const returnToSetup = () => setStep(isSelectionComplete ? 1 : 0);
+    const returnToSetup = () => {
+        clearSavedReview();
+        setStep(isSelectionComplete ? 1 : 0);
+    };
+    const openSavedReview = (reviewNum) => {
+        setSearchParams((params) => {
+            const next = new URLSearchParams(params);
+            next.set('reviewNum', String(reviewNum));
+            return next;
+        });
+        setStep(2);
+        workspaceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        if (!DOCUMENT_REVIEW_AVAILABLE || submittingRef.current || !canReview) return;
+        if (submittingRef.current || !canReview) return;
         submittingRef.current = true;
         setExampleKey(null);
         setSubmission({ key: contextKey, status: 'loading' });
@@ -111,8 +133,11 @@ function DocumentReview() {
                 customCriteria: effectiveCustomCriteria,
                 instructions: instructions.trim(),
             });
-            if (activeRef.current && currentContextRef.current === contextKey)
+            if (activeRef.current) setHistoryRevision((value) => value + 1);
+            if (activeRef.current && currentContextRef.current === contextKey) {
                 setSubmission({ key: contextKey, status: 'complete', result });
+                openSavedReview(result.reviewNum);
+            }
         } catch (error) {
             if (activeRef.current && currentContextRef.current === contextKey)
                 setSubmission({
@@ -140,12 +165,10 @@ function DocumentReview() {
                     <ArrowRight size={16} aria-hidden="true" />
                 </Link>
             </header>
-            {!DOCUMENT_REVIEW_AVAILABLE && (
-                <div className="review-availability" role="status">
-                    <span>서비스 준비 중</span>
-                    <p>첨삭할 서류를 함께 선택하고 통합 첨삭 결과 예시를 확인해 보세요.</p>
-                </div>
-            )}
+            <div className="review-availability" role="status">
+                <span>더미 결과 저장 모드</span>
+                <p>선택한 서류와 요청 설정, 예시 결과를 DB에 저장합니다. AI 분석은 아직 연결하지 않았습니다.</p>
+            </div>
             <div className="review-bundle-guide">
                 <Layers size={22} aria-hidden="true" />
                 <div>
@@ -169,8 +192,11 @@ function DocumentReview() {
                                         type="button"
                                         aria-current={index === activeStep ? 'step' : undefined}
                                         disabled={isSubmitting || (index === 1 && !isSelectionComplete) ||
-                                            (index === 2 && !currentSubmission && !showExample)}
-                                        onClick={() => setStep(index)}
+                                            (index === 2 && !currentSubmission && !showExample && !savedReviewNum)}
+                                        onClick={() => {
+                                            if (index !== 2) clearSavedReview();
+                                            setStep(index);
+                                        }}
                                     >
                                         <span className="review-progress-number">
                                             {isDone && index !== activeStep
@@ -220,9 +246,9 @@ function DocumentReview() {
                         <>
                             <DocumentReviewResult
                                 includePortfolio={Boolean(portfolio.source.document)}
-                                result={currentSubmission?.result}
-                                isSubmitting={isSubmitting}
-                                error={currentSubmission?.error}
+                                result={savedReviewNum ? savedReview.result : currentSubmission?.result}
+                                isSubmitting={isSubmitting || savedReview.isLoading}
+                                error={savedReviewNum ? savedReview.error : currentSubmission?.error}
                                 showExample={showExample}
                                 onShowExample={previewResult}
                                 onCloseExample={() => {
@@ -230,6 +256,11 @@ function DocumentReview() {
                                     returnToSetup();
                                 }}
                             />
+                            {savedReview.error && (
+                                <button type="button" className="review-secondary-button" onClick={savedReview.reload}>
+                                    저장된 결과 다시 불러오기
+                                </button>
+                            )}
                             <div className="review-stage-actions">
                                 <button
                                     type="button"
@@ -245,6 +276,7 @@ function DocumentReview() {
                     )}
                 </div>
             </div>
+            <ReviewHistory key={historyRevision} currentReviewNum={savedReviewNum} onOpen={openSavedReview} disabled={isSubmitting} />
         </div>
     );
 }

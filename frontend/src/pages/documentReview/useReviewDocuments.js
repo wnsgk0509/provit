@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getReviewDocument, getReviewDocuments } from '../../api/documentReviewApi';
+import { getDocumentReview, getReviewDocument, getReviewDocuments } from '../../api/documentReviewApi';
 import { reviewErrorMessage } from './documentReviewConfig';
 
 export function useReviewDocuments(documentType) {
@@ -78,4 +78,30 @@ export function useReviewSelection(documentType, requestedDocumentNum) {
         : '';
     const source = useReviewDocument(documentType, selectedDocumentNum);
     return { ...list, selectedDocumentNum, requestedDocumentNum, source };
+}
+
+export function useSavedReview(reviewNum) {
+    const [revision, setRevision] = useState(0);
+    const [resource, setResource] = useState(null);
+    const resourceKey = `${reviewNum}:${revision}`;
+    useEffect(() => {
+        if (!reviewNum) return undefined;
+        let active = true;
+        getDocumentReview(reviewNum).then(
+            (data) => {
+                if (active) setResource({ key: resourceKey, data });
+            },
+            (error) => {
+                if (active) setResource({ key: resourceKey, error: reviewErrorMessage(error, '저장된 첨삭 기록을 불러오지 못했습니다.') });
+            },
+        );
+        return () => { active = false; };
+    }, [reviewNum, resourceKey]);
+    const current = resource?.key === resourceKey ? resource : null;
+    return {
+        result: current?.data || null,
+        isLoading: Boolean(reviewNum) && !current,
+        error: current?.error || '',
+        reload: () => setRevision((value) => value + 1),
+    };
 }

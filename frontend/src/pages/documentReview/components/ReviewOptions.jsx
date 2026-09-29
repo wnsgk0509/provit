@@ -1,5 +1,4 @@
 import { ArrowLeft, Layers, Sparkles } from 'lucide-react';
-import { DOCUMENT_REVIEW_AVAILABLE } from '../../../api/documentReviewApi';
 import { REVIEW_CUSTOM_MAX_LENGTH, REVIEW_INSTRUCTIONS_MAX_LENGTH, REVIEW_MODE_OPTIONS } from '../documentReviewConfig';
 
 function ReviewOptions({
@@ -28,7 +27,7 @@ function ReviewOptions({
             </div>
             <div className="review-consistency-guide">
                 <Layers size={16} aria-hidden="true" />
-                <span>선택한 기준으로 이력서·자기소개서·포트폴리오를 함께 첨삭합니다.</span>
+                <span>선택한 기준과 추가 요청을 서류 묶음에 함께 기록합니다.</span>
             </div>
             <div className="review-mode-field">
                 <label htmlFor="review-mode">첨삭 기준</label>
@@ -98,29 +97,21 @@ function ReviewOptions({
                 <button type="button" className="review-secondary-button" onClick={onPrevious} disabled={isSubmitting}>
                     <ArrowLeft size={16} aria-hidden="true" /> 서류 선택으로
                 </button>
-                {!DOCUMENT_REVIEW_AVAILABLE && (
-                    <button type="button" className="review-secondary-button" onClick={onPreview}>
-                        통합 결과 예시 보기
-                    </button>
-                )}
+                <button type="button" className="review-secondary-button" onClick={onPreview} disabled={isSubmitting}>
+                    통합 결과 예시 보기
+                </button>
                 <button
                     type="submit"
                     className="review-primary-button"
-                    disabled={!DOCUMENT_REVIEW_AVAILABLE || !canReview || isSubmitting}
+                    disabled={!canReview || isSubmitting}
                     aria-describedby="review-submit-hint"
                 >
                     <Sparkles size={18} aria-hidden="true" />
-                    {isSubmitting
-                        ? '통합 첨삭 진행 중...'
-                        : DOCUMENT_REVIEW_AVAILABLE
-                          ? '원클릭 통합 첨삭 시작하기'
-                          : 'AI원클릭첨삭 준비 중'}
+                    {isSubmitting ? '더미 결과 저장 중...' : '더미 첨삭 결과 저장하기'}
                 </button>
             </div>
             <p id="review-submit-hint" className="review-submit-hint">
-                {!DOCUMENT_REVIEW_AVAILABLE
-                    ? '필수 서류 선택이 완료되었습니다. 첨삭 서비스가 열리면 함께 요청할 수 있습니다.'
-                    : '선택한 서류를 한 번에 첨삭합니다. 수정 제안은 원문에 자동으로 반영되지 않습니다.'}
+                AI 호출 없이 예시 결과를 저장합니다. 기준과 요청은 기록되며, 더미 내용에는 반영되지 않습니다.
             </p>
         </section>
     );
