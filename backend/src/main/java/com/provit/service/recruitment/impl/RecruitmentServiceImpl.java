@@ -49,7 +49,6 @@ public class RecruitmentServiceImpl implements RecruitmentService {
     }
 
     @Override
-    @Transactional
     public int syncSaraminRecruitments(int limit) {
         log.info(">> [Service] 사람인 실시간 인기 공고 크롤링 동기화 시작 (요청 상한: {}건)", limit);
 
