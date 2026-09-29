@@ -10,6 +10,10 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provit.dao.document.DocumentReviewDAO;
 import com.provit.dto.document.DocumentReviewDTO;
@@ -19,7 +23,9 @@ import com.provit.dto.document.DocumentReviewResultDTO.*;
 import com.provit.dto.document.CareerPreparationDTO;
 import com.provit.service.document.DocumentReviewService;
 import com.provit.service.document.DocumentService;
-import com.provit.service.document.generator.DummyCareerPreparationGenerator;
+import com.provit.service.document.generator.DocumentReviewGenerator;
+import com.provit.service.document.generator.OpenAiDocumentReviewGenerator;
+import com.provit.service.document.DocumentReviewProcessingException;
 
 @Service
 public class DocumentReviewServiceImpl implements DocumentReviewService {
@@ -29,43 +35,73 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
     private final DocumentReviewDAO reviewDAO;
     private final DocumentService documentService;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final DummyCareerPreparationGenerator preparationGenerator = new DummyCareerPreparationGenerator();
+    private final DocumentReviewGenerator generator;
+    private final TransactionTemplate transaction;
 
-    public DocumentReviewServiceImpl(DocumentReviewDAO reviewDAO, DocumentService documentService) {
+    public DocumentReviewServiceImpl(DocumentReviewDAO reviewDAO, DocumentService documentService,
+            DocumentReviewGenerator generator, PlatformTransactionManager transactionManager) {
         this.reviewDAO = reviewDAO;
         this.documentService = documentService;
+        this.generator = generator;
+        this.transaction = new TransactionTemplate(transactionManager);
+        this.transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     @Override
-    @Transactional
-    public DocumentReviewResultDTO createDummyReview(int userNum, DocumentReviewRequestDTO request) {
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public DocumentReviewResultDTO createReview(int userNum, DocumentReviewRequestDTO request) {
         validateRequest(request);
         var documents = snapshotDocuments(userNum, request);
-        var example = loadExample(request.getPortfolioNum() != null);
         var review = new DocumentReviewDTO();
         review.setUserNum(userNum);
-        String title = "더미 첨삭 · " + documents.get(0).getDocumentTitle();
+        String title = "AI 첨삭 · " + documents.get(0).getDocumentTitle();
         review.setReviewTitle(title.substring(0, Math.min(title.length(), MAX_TEXT_LENGTH)));
         review.setReviewMode(request.getReviewMode());
         review.setCustomCriteria("custom".equals(request.getReviewMode()) ? request.getCustomCriteria().strip() : null);
         review.setInstructions(normalizeOptionalText(request.getInstructions()));
-        review.setModelName("dummy-document-review-v2");
-        review.setPromptVersion("dummy-v2");
+        review.setModelName(OpenAiDocumentReviewGenerator.MODEL);
+        review.setPromptVersion(OpenAiDocumentReviewGenerator.PROMPT_VERSION);
         review.setResponseVersion(2);
-        review.setSummary(example.getSummary());
+        transaction.executeWithoutResult(status -> {
+            reviewDAO.insertReview(review);
+            for (Document document : documents) {
+                document.setReviewNum(review.getReviewNum());
+                reviewDAO.insertDocument(document);
+            }
+        });
         try {
-            review.setCareerPreparationJson(objectMapper.writeValueAsString(preparationGenerator.generate(documents)));
-        } catch (IOException exception) {
-            throw new IllegalStateException("취업 준비 추천 결과를 저장할 수 없습니다.", exception);
+            var result = generator.generate(request, documents);
+            transaction.executeWithoutResult(status -> saveResult(userNum, review, documents, result));
+        } catch (RuntimeException exception) {
+            var failure = exception instanceof DocumentReviewProcessingException
+                    ? (DocumentReviewProcessingException) exception
+                    : new DocumentReviewProcessingException("첨삭 결과를 저장하지 못했습니다. 기록을 확인해 주세요.", 500);
+            failure.setReviewNum(review.getReviewNum());
+            review.setErrorMessage(failure.getMessage());
+            try {
+                transaction.executeWithoutResult(status -> {
+                    if (reviewDAO.failReview(review) != 1) throw new IllegalStateException("첨삭 실패 상태 저장 실패");
+                });
+            } catch (RuntimeException persistenceFailure) {
+                org.slf4j.LoggerFactory.getLogger(getClass()).error("첨삭 실패 상태 저장 실패: reviewNum={}, exception={}",
+                        review.getReviewNum(), persistenceFailure.getClass().getSimpleName());
+            }
+            throw failure;
         }
-        reviewDAO.insertReview(review);
+        return getReview(userNum, review.getReviewNum());
+    }
 
+    private void saveResult(int userNum, DocumentReviewDTO review, List<Document> documents, DocumentReviewResultDTO result) {
+        if (!"PROCESSING".equals(reviewDAO.lockReview(userNum, review.getReviewNum())))
+            throw new IllegalStateException("처리 중인 첨삭 기록이 없습니다.");
+        review.setSummary(result.getSummary());
+        try { review.setCareerPreparationJson(objectMapper.writeValueAsString(result.getCareerPreparation())); }
+        catch (IOException exception) { throw new IllegalStateException("취업 준비 추천 저장 실패", exception); }
         Map<String, Document> documentsByType = new LinkedHashMap<>();
         for (Document document : documents) {
-            document.setReviewNum(review.getReviewNum());
-            Feedback feedback = example.getDocumentReviews().get(resultKey(document.getDocumentType()));
+            Feedback feedback = result.getDocumentReviews().get(resultKey(document.getDocumentType()));
             document.setSummary(feedback.getSummary());
-            reviewDAO.insertDocument(document);
+            if (reviewDAO.updateDocumentSummary(document) != 1) throw new IllegalStateException("문서 요약 저장 실패");
             documentsByType.put(document.getDocumentType(), document);
             saveStrengths(review.getReviewNum(), document.getReviewDocumentNum(), feedback.getStrengths());
             int order = 1;
@@ -75,16 +111,16 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
                 reviewDAO.insertImprovement(improvement);
             }
         }
-        saveStrengths(review.getReviewNum(), null, example.getStrengths());
+        saveStrengths(review.getReviewNum(), null, result.getStrengths());
         int order = 1;
-        for (Consistency issue : example.getConsistencyIssues()) {
+        for (Consistency issue : result.getConsistencyIssues()) {
             issue.setReviewNum(review.getReviewNum());
             issue.setDisplayOrder(order++);
             reviewDAO.insertConsistency(issue);
             int sourceOrder = 1;
             for (Source source : issue.getSources()) {
                 Document document = documentsByType.get(source.getDocumentType());
-                if (document == null) throw new IllegalStateException("더미 결과의 비교 문서가 선택한 서류와 다릅니다.");
+                if (document == null) throw new IllegalStateException("결과의 비교 문서가 선택한 서류와 다릅니다.");
                 source.setReviewNum(review.getReviewNum());
                 source.setConsistencyNum(issue.getConsistencyNum());
                 source.setReviewDocumentNum(document.getReviewDocumentNum());
@@ -93,7 +129,6 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
             }
         }
         if (reviewDAO.completeReview(review) != 1) throw new IllegalStateException("첨삭 결과 저장을 완료하지 못했습니다.");
-        return getReview(userNum, review.getReviewNum());
     }
 
     @Override
@@ -109,6 +144,8 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
         if (reviewNum < 1) throw new IllegalArgumentException("첨삭 기록 번호가 올바르지 않습니다.");
         var result = reviewDAO.selectReview(userNum, reviewNum);
         if (result == null) throw new NoSuchElementException("첨삭 기록을 찾을 수 없습니다.");
+        result.setDocuments(reviewDAO.selectDocuments(reviewNum));
+        if (!"COMPLETED".equals(result.getReviewStatus())) return result;
         if (result.getCareerPreparationJson() != null) {
             try {
                 result.setCareerPreparation(objectMapper.readValue(result.getCareerPreparationJson(), CareerPreparationDTO.class));
@@ -116,7 +153,6 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
                 throw new IllegalStateException("저장된 취업 준비 추천 결과를 읽지 못했습니다.", exception);
             }
         }
-        result.setDocuments(reviewDAO.selectDocuments(reviewNum));
         result.setStrengths(new ArrayList<>());
         result.setDocumentReviews(new LinkedHashMap<>());
         Map<Long, Feedback> feedbackByDocument = new LinkedHashMap<>();
@@ -205,19 +241,6 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
         try { document.setSourceSnapshotJson(objectMapper.writeValueAsString(value)); }
         catch (IOException exception) { throw new IllegalStateException("서류 보관본을 만들지 못했습니다.", exception); }
         return document;
-    }
-
-    private DocumentReviewResultDTO loadExample(boolean includePortfolio) {
-        try (var stream = getClass().getResourceAsStream("/document-review/dummy-result.json")) {
-            if (stream == null) throw new IllegalStateException("첨삭 더미 결과 파일이 없습니다.");
-            var result = objectMapper.readValue(stream, DocumentReviewResultDTO.class);
-            if (!includePortfolio) {
-                result.getDocumentReviews().put("portfolio", null);
-                result.getConsistencyIssues().removeIf(issue -> issue.getSources().stream()
-                        .anyMatch(source -> "portfolio".equals(source.getDocumentType())));
-            }
-            return result;
-        } catch (IOException exception) { throw new IllegalStateException("첨삭 더미 결과를 읽지 못했습니다.", exception); }
     }
 
     private void saveStrengths(Long reviewNum, Long documentNum, List<String> strengths) {

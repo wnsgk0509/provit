@@ -13,6 +13,9 @@ public interface DocumentReviewDAO {
     int insertConsistency(Consistency consistency);
     int insertSource(Source source);
     int completeReview(DocumentReviewDTO review);
+    int failReview(DocumentReviewDTO review);
+    int updateDocumentSummary(Document document);
+    String lockReview(int userNum, long reviewNum);
     DocumentReviewResultDTO selectReview(int userNum, long reviewNum);
     List<DocumentReviewDTO> selectReviews(int userNum, int offset, int pageSize);
     List<Document> selectDocuments(long reviewNum);

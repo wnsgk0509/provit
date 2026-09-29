@@ -80,12 +80,13 @@ export function useReviewSelection(documentType, requestedDocumentNum) {
     return { ...list, selectedDocumentNum, requestedDocumentNum, source };
 }
 
-export function useSavedReview(reviewNum) {
+export function useSavedReview(reviewNum, initialResult) {
     const [revision, setRevision] = useState(0);
     const [resource, setResource] = useState(null);
     const resourceKey = `${reviewNum}:${revision}`;
+    const cachedResult = revision === 0 && String(initialResult?.reviewNum) === reviewNum ? initialResult : null;
     useEffect(() => {
-        if (!reviewNum) return undefined;
+        if (!reviewNum || cachedResult) return undefined;
         let active = true;
         getDocumentReview(reviewNum).then(
             (data) => {
@@ -96,8 +97,8 @@ export function useSavedReview(reviewNum) {
             },
         );
         return () => { active = false; };
-    }, [reviewNum, resourceKey]);
-    const current = resource?.key === resourceKey ? resource : null;
+    }, [reviewNum, resourceKey, cachedResult]);
+    const current = cachedResult ? { data: cachedResult } : resource?.key === resourceKey ? resource : null;
     return {
         result: current?.data || null,
         isLoading: Boolean(reviewNum) && !current,

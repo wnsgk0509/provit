@@ -21,7 +21,6 @@ const REVIEW_STEPS = ['서류 선택', '첨삭 기준 설정', '결과 확인'];
 function DocumentReview() {
     const [searchParams, setSearchParams] = useSearchParams();
     const savedReviewNum = searchParams.get('reviewNum') || '';
-    const savedReview = useSavedReview(savedReviewNum);
     const [historyRevision, setHistoryRevision] = useState(0);
     // Old document links can still preselect one input in the new bundle.
     const legacyType = DOCUMENT_REVIEW_TYPES.find((type) => type.value === searchParams.get('type'));
@@ -41,6 +40,7 @@ function DocumentReview() {
     const [customCriteria, setCustomCriteria] = useState('');
     const [instructions, setInstructions] = useState('');
     const [submission, setSubmission] = useState(null);
+    const savedReview = useSavedReview(savedReviewNum, submission?.result);
     const [confirmedSelectionKey, setConfirmedSelectionKey] = useState(null);
     const [step, setStep] = useState(0);
     const [exampleKey, setExampleKey] = useState(null);
@@ -139,6 +139,7 @@ function DocumentReview() {
                 openSavedReview(result.reviewNum);
             }
         } catch (error) {
+            if (activeRef.current) setHistoryRevision((value) => value + 1);
             if (activeRef.current && currentContextRef.current === contextKey)
                 setSubmission({
                     key: contextKey,
@@ -166,8 +167,8 @@ function DocumentReview() {
                 </Link>
             </header>
             <div className="review-availability" role="status">
-                <span>더미 결과 저장 모드</span>
-                <p>선택한 서류와 요청 설정, 첨삭 예시와 직무별 더미 추천을 DB에 저장합니다. AI 분석은 아직 연결하지 않았습니다.</p>
+                <span>AI 통합 첨삭</span>
+                <p>선택한 서류를 한 번에 분석하고, 첨삭 결과와 지원 직무에 도움이 될 준비 항목을 함께 저장합니다.</p>
             </div>
             <div className="review-bundle-guide">
                 <Layers size={22} aria-hidden="true" />

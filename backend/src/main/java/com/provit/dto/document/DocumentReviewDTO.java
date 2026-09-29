@@ -12,6 +12,7 @@ public class DocumentReviewDTO {
     private int userNum;
     private String reviewTitle;
     private String reviewStatus;
+    private String errorMessage;
     private String reviewMode;
     private String customCriteria;
     private String instructions;
@@ -28,6 +29,7 @@ public class DocumentReviewDTO {
     private Date finishedAt;
 
     public String getResultSource() {
-        return modelName != null && modelName.startsWith("dummy-") ? "DUMMY" : "UNKNOWN";
+        if (modelName != null && modelName.startsWith("dummy-")) return "DUMMY";
+        return "gpt-6-sol".equals(modelName) ? "AI" : "UNKNOWN";
     }
 }

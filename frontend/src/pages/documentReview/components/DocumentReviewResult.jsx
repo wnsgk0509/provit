@@ -15,6 +15,7 @@ function DocumentReviewResult({ includePortfolio, result, isSubmitting, error, s
     const isExample = !result && showExample;
     const displayedResult = result || (isExample ? createBundleReviewExample(includePortfolio) : null);
     const isDummy = result?.resultSource === 'DUMMY';
+    const isIncomplete = result && result.reviewStatus !== 'COMPLETED';
 
     return (
         <section
@@ -29,12 +30,13 @@ function DocumentReviewResult({ includePortfolio, result, isSubmitting, error, s
                     <p>종합 피드백, 서류 간 일관성과 문서별 첨삭을 확인하세요.</p>
                 </div>
                 {(isExample || isDummy) && <span className="review-example-badge">{isDummy ? '저장된 더미 결과' : '결과 예시'}</span>}
+                {result?.resultSource === 'AI' && <span className="review-example-badge">AI 분석 결과</span>}
             </div>
             {isSubmitting ? (
                 <div className="review-result-empty" role="status">
                     <LoaderCircle size={32} className="review-spinner" aria-hidden="true" />
-                    <h3>첨삭 기록을 저장하거나 불러오고 있습니다.</h3>
-                    <p>DB에서 확인한 결과를 여기에 표시합니다.</p>
+                    <h3>AI 첨삭 결과를 기다리고 있습니다.</h3>
+                    <p>서류 분석과 결과 저장에 최대 2분 정도 걸릴 수 있습니다.</p>
                 </div>
             ) : error ? (
                 <div className="review-status is-error" role="alert">
@@ -76,6 +78,11 @@ function DocumentReviewResult({ includePortfolio, result, isSubmitting, error, s
                             </button>
                         </div>
                     )}
+                    {isIncomplete ? (
+                        <div className={`review-status${result.reviewStatus === 'FAILED' ? ' is-error' : ''}`} role="status">
+                            <p>{result.reviewStatus === 'FAILED' ? result.errorMessage || '첨삭 처리에 실패했습니다.' : '첨삭 처리 중입니다. 잠시 후 기록을 다시 열어 주세요.'}</p>
+                        </div>
+                    ) : <>
                     <section className="review-summary">
                         <span>종합 피드백</span>
                         <p>{displayedResult.summary}</p>
@@ -139,6 +146,7 @@ function DocumentReviewResult({ includePortfolio, result, isSubmitting, error, s
                         preparation={displayedResult.careerPreparation}
                         isExample={isExample || isDummy}
                     />
+                    </>}
                 </div>
             ) : (
                 <div className="review-result-empty">

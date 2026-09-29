@@ -1,6 +1,6 @@
 # 통합 첨삭 단일 OpenAI 요청 설계와 예시
 
-2026-09-29 현재 코드를 확인한 단일 API 호출 설계다. **실제 서비스는 고정 첨삭 예시와 직무별 더미 취업 준비 추천을 저장하며 OpenAI API는 아직 연결하지 않았다.** 모델·effort는 앞으로 사용할 요청 예시에서 `gpt-6-sol` / `medium`으로 고정했다. 예시 응답은 직접 작성한 샘플이며 실제 API 생성 결과가 아니다. 응답 구조는 취업 준비 추천을 포함한 버전 2다.
+2026-09-29 실제 OpenAI Responses API 연결을 구현했다. 모델은 `gpt-6-sol`, `reasoning.effort`는 `medium`으로 고정하며 첨삭과 취업 준비 추천을 한 번의 생성 응답에서 받아 DB에 저장한다. 예시 파일의 응답은 직접 작성한 샘플이다. 응답 구조는 버전 2다.
 
 ## 1. 현재 구현 확인
 
@@ -9,12 +9,13 @@
 | 라우팅 | 로그인한 사용자의 `/document-review` SPA 화면 | [App.jsx](../../frontend/src/App.jsx) |
 | 화면 | 서류 선택 → 첨삭 기준 설정 → 결과 확인, 이력서·자기소개서 필수, 포트폴리오 선택 | [DocumentReview.jsx](../../frontend/src/pages/documentReview/DocumentReview.jsx) |
 | 요청 | 선택한 문서 번호와 `reviewMode`, `customCriteria`, `instructions`를 전송 | [documentReviewApi.js](../../frontend/src/api/documentReviewApi.js), [요청 DTO](../src/main/java/com/provit/dto/document/DocumentReviewRequestDTO.java) |
-| Controller | `POST /api/document-reviews` → `createDummyReview()`, HTTP 201과 저장된 상세 결과 반환 | [DocumentReviewController.java](../src/main/java/com/provit/controller/document/DocumentReviewController.java) |
-| Service | 요청·소유권 검증 → 실제 문서 JSON/PDF 보관본 구성 → 서버 더미 JSON 로드 → 결과 저장 → 상세 조회 | [DocumentReviewServiceImpl.java](../src/main/java/com/provit/service/document/impl/DocumentReviewServiceImpl.java) |
+| Controller | `POST /api/document-reviews` → `createReview()`, HTTP 201과 저장된 상세 결과 반환 | [DocumentReviewController.java](../src/main/java/com/provit/controller/document/DocumentReviewController.java) |
+| Service | 요청·소유권 검증 → PROCESSING/원문 저장 → AI 호출 → 검증·결과 저장 → 상세 조회 | [DocumentReviewServiceImpl.java](../src/main/java/com/provit/service/document/impl/DocumentReviewServiceImpl.java) |
+| Generator | Java 17 HttpClient로 단일 Responses POST, PDF 직접 첨부, 스키마·인용·직무 검증 | [OpenAiDocumentReviewGenerator.java](../src/main/java/com/provit/service/document/generator/OpenAiDocumentReviewGenerator.java) |
 | 결과 | 종합 요약·강점, 문서별 요약·강점·수정 제안, 일관성 문제·비교 근거 | [DocumentReviewResultDTO.java](../src/main/java/com/provit/dto/document/DocumentReviewResultDTO.java) |
 | DB | 6개 테이블에 요청·원문 보관본·결과를 저장 | [document_review_mapper.xml](../src/main/resources/mappers/document/document_review_mapper.xml), [저장 설계](document-review-storage.md) |
 
-현재는 OpenAI 호출이 **0회**다. 선택 기준과 추가 요청은 저장하지만 `dummy-result.json`의 첨삭 피드백에는 반영되지 않는다. 포트폴리오는 메타데이터와 PDF 바이트를 보관한다. 별도 취업 준비 더미 추천에서만 PDFBox로 추출한 텍스트를 키워드 비교에 사용하며 AI 분석은 하지 않는다.
+정상 실행의 OpenAI 생성 호출은 **1회**다. 기준과 추가 요청을 실제 입력에 반영한다. 포트폴리오는 PDFBox로 파일·암호·페이지 수를 확인한 뒤 원본 바이트를 같은 요청에 첨부한다. 더미 생성기로 대체하는 경로는 없다. 과거 `DUMMY` 기록과 정적 화면 예시는 그대로 구분해 표시한다.
 
 첨삭 요청에는 `recruitmentNum`이나 JD가 없다. `jobFit`은 현재 입력만 사용할 때 이력서의 `jobName`, `occupationName`에 대한 검토다. 특정 채용 공고와의 적합도 분석을 하려면 별도 입력 확장이 필요하다.
 
@@ -39,16 +40,17 @@ DB 매핑은 다음과 같다.
 ```text
 React POST /api/document-reviews
   → 서버에서 문서 소유권·요청 검증 및 원문 보관본 구성
+  → 짧은 DB 트랜잭션에서 PROCESSING 요청·원문 저장
   → 서버 POST https://api.openai.com/v1/responses 1회
       [고정 프롬프트 + 모든 서류 + 첨삭 기준 + 선택적 PDF]
-  ← 종합·문서별·일관성 결과 JSON 1회
+  ← 종합·문서별·일관성·취업 준비 결과 JSON 1회
   → 서버 검증 및 기존 6개 테이블에 결과 저장
 React ← HTTP 201, ApiResponse<DocumentReviewResultDTO>
 ```
 
 자료가 부족해도 질문을 반환하지 않는다. 실제 자료로 가능한 결과를 완성하고, 부족한 근거는 보완 안내로 표시한다. API 오류·타임아웃·거절·불완전 응답·검증 실패는 실패 처리한다. 새로운 생성 호출로 자동 보정하지 않는다. 네트워크 장애가 있어도 성공 응답을 반드시 받는다는 보장은 할 수 없으며, 단일 호출은 호출 횟수에 대한 제한이다.
 
-현재 프론트는 POST 성공 후 `openSavedReview()`로 상세 GET을 하고 기록 목록도 다시 조회한다. 이 조회는 AI 재호출이 아니다. 브라우저 통신도 실행 시 POST 1회로 제한하려면 POST가 반환한 결과를 즉시 표시하고, 상세·목록 재조회는 사용자의 이후 조회 동작으로 옮겨야 한다. 현재 코드는 그렇게 변경하지 않았다.
+프론트는 POST가 반환한 저장 결과를 즉시 표시해 성공 직후 상세 GET을 생략한다. 기록 목록 새로고침, 과거 기록 조회는 DB 조회이며 AI를 호출하지 않는다. 한 번이라는 제한은 OpenAI 생성 요청에 적용한다.
 
 ## 3. React → Spring 요청 예시
 
@@ -98,8 +100,8 @@ Content-Type: application/json
 {
   "model": "gpt-6-sol",
   "reasoning": { "effort": "medium" },
-  "instructions": "<prompt.txt 전체 내용>",
   "input": [
+    { "role": "developer", "content": "<prompt.txt 전체 내용>" },
     {
       "role": "user",
       "content": [
@@ -125,7 +127,7 @@ Content-Type: application/json
 
 `max_output_tokens`는 추론 토큰과 결과 출력 토큰을 함께 제한한다. 25,000은 초기 검증을 위한 상한 예시이며 고정 소모량이나 충분한 예산의 보장이 아니다. 실제 사용량을 확인하고 조정하되 모델·effort는 유지한다. [Reasoning 모델 문서](https://developers.openai.com/api/docs/guides/reasoning)
 
-서버 입력 예시는 [input.example.json](examples/document-review/input.example.json)이다. `ResumeDetailDTO`의 이력서·학력·경력·자격증과 자기소개서의 네 항목을 내용 중심으로 변환한다. 이 예시의 `documents` 구조는 **새로 제안한 모델 입력 형태**이며 기존 프론트 요청 DTO가 아니다. 빈 항목은 그대로 빈 값·배열로 보내고, 실제 경력이나 학력이 생략되지 않도록 한다. 근무·학력 날짜와 원문 줄바꿈도 보존한다. 내부 사용자 번호, 서버 파일 경로, 불필요한 생성 시각은 모델 입력에서 제외한다. DB에는 당시 실제 모델에 보낸 내용도 재현 가능한 형태로 보관한다.
+서버 입력 예시는 [input.example.json](examples/document-review/input.example.json)이다. `ResumeDetailDTO`의 이력서·학력·경력·자격증과 자기소개서의 네 항목을 내용 중심으로 변환한다. `documents`는 서버가 구성하는 모델 입력이며 프론트 요청 DTO가 아니다. 빈 항목은 그대로 null·빈 값·배열로 보내고, 실제 경력이나 학력이 생략되지 않도록 한다. 근무·학력 날짜와 원문 줄바꿈도 보존한다. 내부 사용자 번호, 서버 파일 경로, 불필요한 생성 시각은 모델 입력에서 제외한다. DB의 원문 JSON/PDF와 요청 설정에서 동일 입력을 재구성할 수 있다.
 
 ### 선택적 PDF도 같은 요청에 첨부
 
@@ -134,7 +136,7 @@ Content-Type: application/json
 ```json
 {
   "title": "백엔드 프로젝트 포트폴리오",
-  "originalFileName": "portfolio.pdf"
+  "originalFilename": "portfolio.pdf"
 }
 ```
 
@@ -151,7 +153,7 @@ Content-Type: application/json
 
 Responses API는 Base64 PDF 입력을 지원하며 비전 모델에서 PDF 텍스트와 페이지 이미지를 사용한다. 페이지 이미지 처리 수준은 `detail`로 지정한다. [File inputs 공식 문서](https://developers.openai.com/api/docs/guides/file-inputs)
 
-현재 첨삭 서비스의 파일 제한은 `20_000_000`바이트다. 이 제한을 유지하고 PDF 형식·암호화·페이지 유효성도 호출 전에 검증한다. 기존 면접의 [InterviewDocumentInputBuilder.java](../src/main/java/com/provit/service/interview/InterviewDocumentInputBuilder.java)는 PDF 검사 방식을 참고할 수 있지만 첨삭 서비스에 이미 연결된 기능은 아니다.
+첨삭 서비스의 파일 제한은 `20_000_000`바이트다. PDF 형식·암호화·페이지 유효성은 OpenAI 호출 전에 검증하며 읽을 수 없는 PDF는 API를 호출하지 않고 실패 기록으로 남긴다.
 
 ## 5. 프롬프트와 응답 형식
 
@@ -192,13 +194,14 @@ careerPreparation
 
 프론트로는 기존처럼 `ApiResponse`로 감싼 `DocumentReviewResultDTO`를 반환한다. 서버가 기록 번호·문서 목록·상태·시각·요청 설정을 결합한다. 현재 HTTP 상태는 201이지만 공통 `ResponseCode.CREATED`의 JSON 내부 `code`는 프로젝트 정의상 **202**다. 응답 예시를 만들 때 이 둘을 혼동하지 않는다.
 
-## 6. 실제 연결 시 필요한 변경
+## 6. 실행 설정과 실패 처리
 
-1. 더미 로더와 더미 취업 준비 생성기 대신 첨삭·추천을 한 번에 생성하는 전용 생성기를 호출하도록 구성한다. 모델 `gpt-6-sol`과 effort `medium`은 서버 상수로 고정하고 클라이언트 설정을 받지 않는다. `PROMPT_VERSION = 'document-review-v2'`, `RESPONSE_VERSION = 2`, `MODEL_NAME = 'gpt-6-sol'`을 기록한다.
-2. [OpenAiInterviewClient.java](../src/main/java/com/provit/service/interview/generator/OpenAiInterviewClient.java)의 Java 17 HttpClient, API 키 설정, 단일 `http.send()`, 응답 파싱 방식을 참고한다. 현재 클래스는 면접 전용 오류 메시지를 사용하고 스키마 검증기가 `null`·`anyOf`·`$ref`를 처리하지 못하므로 첨삭에 그대로 재사용하지 않는다. 공통 클라이언트 분리는 별도 구현 선택이다.
-3. 외부 HTTP 대기 중 DB 트랜잭션을 유지하지 않도록 현재 `createDummyReview()`의 한 트랜잭션을 분리한다. 요청·보관본/PROCESSING 저장, API 호출, 결과 자식 일괄 저장 및 COMPLETED 갱신을 구분하고 실패 시 별도 짧은 트랜잭션에서 FAILED·ERROR_MESSAGE·FINISHED_AT을 기록한다. 현재 Mapper에는 완료 갱신만 있으므로 실패 갱신이 추가로 필요하다.
-4. 결과 저장 전 스키마뿐 아니라 필수 문자열의 공백, 프롬프트의 분량 제한, 실제 선택 문서, 인용과 항목 위치, PDF 페이지 범위를 검증한다. `mismatch`는 최소 두 종류 문서 근거를 요구한다. JSON/PDF 인용의 원문 일치 검증은 서버에서 확보한 원문·페이지 텍스트 기준으로 수행한다. 이미지로만 읽힌 PDF 인용은 로컬 텍스트만으로 확인되지 않을 수 있으므로 별도 검증 정책이 필요하며 문자열 매칭만으로 사실성을 보장한다고 가정하지 않는다.
-5. 현재 첨삭 POST의 프론트 timeout은 30초다. 동기식 AI 처리에 맞춰 예를 들어 서버 OpenAI 제한 120초, 프론트 제한 180초로 조정하고 Tomcat·프록시의 대기 제한도 확인한다. 시간은 초기 설정 예시이고 완료를 보장하지 않는다. 타임아웃 후 자동 재전송하면 단일 호출 제한과 중복 기록 문제가 생길 수 있으므로 자동 재시도하지 않는다.
-6. 현재 `getResultSource()`는 dummy 모델에 `DUMMY`, 그 외에 `UNKNOWN`을 반환한다. 실제 AI 결과를 구분하도록 `AI` 반환을 추가하고 더미 전용 화면 문구와 로딩 문구를 바꾼다. 과거 더미 기록의 모델명과 표시를 보존한다.
+API 키는 기존 `src/main/resources/api.properties`의 `api.openai.key`를 사용하며 브라우저에 전달하지 않는다. 프롬프트와 스키마의 실행 원본은 `src/main/resources/document-review/prompt.txt`, `response-schema.json`이다. WAR classpath에서 읽으며 문서 폴더에 의존하지 않는다. 프롬프트를 변경하면 문서 예시도 함께 변경하고 버전을 갱신한다.
 
-현재 DTO·MyBatis·화면은 첨삭과 취업 준비 추천을 저장·조회·표시한다. 기존 DB에는 취업 준비 JSON 컬럼 추가 마이그레이션이 필요하다. API 호출·AI 결과 검증·실패 기록·대기 시간·AI 출처 표시는 실제 연결 시 구현해야 한다. OpenAI 모델·effort 설정은 예시에서만 사용하며 실제 API는 호출하지 않았다.
+`createReview()`는 `NOT_SUPPORTED`이고 요청 저장·결과 저장·실패 갱신은 각각 `REQUIRES_NEW`인 TransactionTemplate로 실행한다. 외부 HTTP 대기 중 DB 트랜잭션을 유지하지 않는다. 결과 저장은 부모 행을 `FOR UPDATE`로 잠그고 PROCESSING을 확인한 뒤 자식 행 전체와 COMPLETED를 한 번에 커밋한다. 저장 실패 시 부분 결과를 롤백하고 이미 보관한 요청·원문에 FAILED/ERROR_MESSAGE/FINISHED_AT을 기록한다.
+
+서버 검증기는 `$ref`, `anyOf`, nullable, 타입·필수 필드·추가 필드·배열 제한, 문자열 분량, 선택 문서, 이력서 직군·직무 일치, 추천 제목 중복을 확인한다. 이력서·자기소개서의 original과 sources.text는 실제 입력 텍스트 필드의 연속 인용이어야 한다. mismatch는 두 종류 이상의 문서를 요구하고 일반 문서 pageNumber는 null, PDF 페이지는 실제 범위 안이어야 한다. PDF는 이미지로도 읽히므로 인용 문자열의 로컬 텍스트 일치는 강제하지 않는다. PDF 인용의 사실성, 추천의 부재 여부와 의미적 관련성은 프롬프트에 맡기며 서버 검증이 모든 의미를 보장하지 않는다.
+
+API 연결 제한은 10초, 전체 응답 제한은 120초, 프론트 POST 제한은 180초다. 배포 환경의 프록시 대기 제한도 180초 이상으로 맞춘다. 자동 재시도·JSON 복구 호출·모델 대체는 하지 않는다. 실패 응답은 `{ data: { message, reviewNum }, ... }` 형태이며 400(PDF 오류), 502(응답·검증 오류), 503(인증·한도·설정), 504(대기 초과), 500(DB 결과 저장 오류)를 사용한다. 실패·처리 중 기록은 완료 피드백과 구분하여 화면에 상태와 메시지를 표시한다.
+
+프로세스 강제 종료나 DB 장애로 실패 갱신도 불가능한 경우 PROCESSING이 남을 수 있다. 이 구현은 자동 복구·재생성을 수행하지 않으며 관리자가 상태를 확인해야 한다. 기존 JSON 컬럼 마이그레이션 외에 새로운 DDL은 필요하지 않다. 변경된 백엔드는 Tomcat에서 재빌드·재게시해야 한다.

@@ -4,19 +4,19 @@
 
 DDL: [document_review_schema.sql](../src/main/resources/sql_query/document_review_schema.sql). 기존 `T_USER`가 있는 Oracle 19c 스키마에 한 번 적용하는 별도 스크립트다. 기존 `schema.sql`과 `drop.sql`에는 통합하지 않았다. 2026-09-29 로컬 DB에서 6개 테이블·5개 시퀀스와 200자 입력 컬럼을 확인했다. 이미 적용한 DB에 CREATE 스크립트를 다시 실행하지 않는다.
 
-현재 구현은 **AI 호출 없이 첨삭 예시 응답과 직무별 더미 추천을 저장하는 모드**다. 선택한 문서와 요청 설정은 실제 사용자 데이터이며 첨삭의 원문·피드백·비교 근거는 고정 예시다. `MODEL_NAME = 'dummy-document-review-v2'`, `PROMPT_VERSION = 'dummy-v2'`, `RESPONSE_VERSION = 2`로 출처를 기록하고 응답의 `resultSource = 'DUMMY'` 및 화면 안내로 구분한다. 기준과 추가 요청은 저장하지만 더미 첨삭 피드백을 변경하지 않는다. 별도 `careerPreparation` 추천은 이력서의 지원 직군·직무로 후보를 고르고 실제 서류 텍스트에 언급된 항목을 제외한다.
+현재 구현은 **OpenAI Responses API 생성 1회로 첨삭과 취업 준비 추천을 받아 저장한다.** `MODEL_NAME = 'gpt-6-sol'`, effort `medium`, `PROMPT_VERSION = 'document-review-v2'`, `RESPONSE_VERSION = 2`, `resultSource = 'AI'`를 사용한다. 과거 `dummy-document-review-*` 기록은 `DUMMY`로 표시하며 새 요청에는 더미 생성기를 사용하지 않는다. 실제 요청·검증·프롬프트는 [OpenAI 연결 문서](document-review-openai.md)를 참고한다.
 
 기존 DB에는 [migrate_document_review_preparation.sql](../src/main/resources/sql_query/migrate_document_review_preparation.sql)을 적용한다. `T_DOCUMENT_REVIEW.CAREER_PREPARATION_JSON` CLOB 컬럼과 JSON CHECK 제약만 추가하며 반복 실행할 수 있다. 신규 DB의 첨삭 DDL에는 이미 포함되어 있다. 기존 기록은 컬럼이 NULL인 채 유지하고 상세 응답의 `careerPreparation`도 null로 반환한다.
 
-2026-09-29 프로젝트에 설정된 로컬 Oracle에 이 마이그레이션을 적용했고 반복 실행, CLOB 타입, JSON 제약과 기존 기록 수 보존을 확인했다. 단위·인증/검증·격리 Oracle 저장 테스트 16개, 프론트 빌드와 변경 파일 ESLint, 추천 화면의 예시·저장 결과·과거 NULL·빈 배열 렌더링을 검증했다. 실행 중인 Tomcat에는 수정한 백엔드의 재빌드·재게시가 필요하다.
+2026-09-29 프로젝트에 설정된 로컬 Oracle에 이 마이그레이션을 적용했고 반복 실행, CLOB 타입, JSON 제약과 기존 기록 수 보존을 확인했다. API 연결은 이미 존재하는 상태·오류 컬럼을 사용하므로 추가 DDL은 없다. 실행 중인 Tomcat에는 수정한 백엔드의 재빌드·재게시가 필요하다.
 
 ## 별도 취업 준비 추천
 
 `careerPreparation`은 첨삭과 구분한 응답이다. 당시 이력서의 `occupationCode`, `occupationName`, `jobCode`, `jobName`과 `summary`, `coverageNote`, `recommendations[]`를 JSON 전체로 부모 기록에 보관한다. 추천 항목은 `category`(experience, skill, certification, qualification), `title`, `reason`, `action`으로 구성한다. MyBatis가 CLOB으로 저장·조회하며 별도 테이블이나 DAO는 추가하지 않았다. 현재 클라이언트는 추천 결과를 전송하지 않으며 서버가 직접 구성한다.
 
-더미 생성기는 백엔드, 프론트엔드, 데이터, 인프라 직무 이름별 후보를 사용한다. 그 외에는 직무에 특정 기술·자격을 임의로 적용하지 않고 일반적인 준비 예시를 사용한다. 직군·직무 이름이 모두 없으면 추천을 비운다. 이력서·자기소개서·문서 제목과 PDFBox로 추출 가능한 PDF 텍스트에 후보 키워드가 있으면 제외한다. 이미지 속 텍스트·동의어·부정 표현까지 판단하는 AI 분석은 아니며 PDF를 읽지 못한 경우 범위 제한을 응답과 화면에 표시한다.
+AI가 선택한 이력서·자기소개서·PDF를 함께 검토해 현재 서류에 언급되지 않은 경험·기술·자격증·스펙을 0~8개 제안한다. 직군·직무 이름이 모두 없으면 추천을 비운다. 서버는 반환한 직군·직무가 이력서와 같은지, 항목 형식·분량과 제목 중복을 검증한다. 검토 범위와 PDF 읽기 제한은 coverageNote에 표시한다.
 
-추천은 서류에 언급되지 않은 준비 제안이며 실제 미보유 여부·취업 필수 자격을 뜻하지 않는다. 기록 상세 조회에서는 현재 원본 서류로 추천을 다시 만들지 않고 저장된 JSON을 그대로 반환한다. 따라서 원본 직무나 내용이 변경·삭제되어도 당시 추천이 유지된다. API 연결 후에도 첨삭과 추천을 한 번의 생성 응답에서 받을 수 있도록 예시 응답·스키마·프롬프트를 버전 2로 확장했다. 실제 OpenAI API 호출은 추가하지 않았다.
+추천은 서류에 언급되지 않은 준비 제안이며 실제 미보유 여부·취업 필수 자격을 뜻하지 않는다. 기록 상세 조회에서는 현재 원본 서류로 추천을 다시 만들지 않고 저장된 JSON을 그대로 반환한다. 따라서 원본 직무나 내용이 변경·삭제되어도 당시 추천이 유지된다. 첨삭·추천은 같은 결과 트랜잭션에서 저장한다.
 
 ## 관계
 
@@ -115,11 +115,12 @@ DB의 `cover-letter`는 응답을 조립할 때 `coverLetter` 키로 변환한�
 
 1. 인증된 사용자 번호로 선택한 이력서·자기소개서·포트폴리오 소유권을 검증한다. 선택 기준의 허용 값, 직접 입력 기준과 추가 요청의 각각 200자 제한, 직접 입력의 필수 여부도 검증한다.
 2. 기존 `DocumentService`로 문서 상세를 읽고 JSON 보관본을 만든다. 포트폴리오를 선택했으면 기존 파일 조회 서비스를 통해 PDF 보관본도 저장한다. 파일은 기존 업로드 제한과 동일하게 20MB 이하만 허용한다. 파일 경로나 내부 저장 파일명은 JSON 보관본과 응답에 포함하지 않는다.
-3. 서버 리소스 `document-review/dummy-result.json`에서 예시 응답을 읽는다. 포트폴리오를 선택하지 않으면 해당 결과와 포트폴리오 관련 일관성 항목을 제외한다. 클라이언트가 보낸 결과 JSON은 저장하지 않는다.
-4. 하나의 `@Transactional` 작업에서 요청(`PROCESSING`), 서류 보관본, 모든 결과 자식 행을 저장하고 종합 피드백과 함께 `COMPLETED`로 변경한다. 더미 모드는 외부 호출이 없으며 실패 시 요청까지 전체 롤백한다. 부분 결과나 실패·처리 중 기록을 따로 남기지 않는다.
-5. 같은 트랜잭션에서 DB의 저장 결과를 다시 읽어 반환한다. 화면은 저장된 기록 번호로 상세 API를 조회하며 새로고침 후에도 같은 기록을 확인한다.
+3. 서버 리소스의 프롬프트·스키마를 사용한다. 포트폴리오 선택 여부에 맞게 스키마를 좁히고 모든 원문·기준을 포함한 모델 입력을 만든다. 클라이언트가 보낸 결과 JSON은 저장하지 않는다.
+4. 짧은 트랜잭션에서 요청(`PROCESSING`)과 서류 보관본을 먼저 저장한다. 트랜잭션 밖에서 OpenAI를 한 번 호출하고 응답을 검증한다.
+5. 별도 트랜잭션에서 요청 행을 잠그고 문서 요약·강점·수정 제안·일관성·취업 준비 JSON 전체와 `COMPLETED` 상태를 저장한다. API·검증·저장 실패 시 부분 결과를 롤백하고 별도 트랜잭션에서 `FAILED`, 오류 메시지, 종료 시각을 저장한다.
+6. 커밋 후 저장 결과를 읽어 반환한다. 화면은 POST 결과를 바로 표시하고 새로고침·과거 기록 조회 때 상세 API로 같은 기록을 확인한다.
 
-AI 호출을 나중에 연결할 때에는 외부 호출 동안 트랜잭션을 유지하지 않도록 요청 저장·호출·결과 저장을 분리하고 `FAILED` 처리 및 처리 중 기록 복구를 추가해야 한다. 현재 구현에는 AI 클라이언트나 관련 재시도 로직을 추가하지 않았다.
+실패해도 요청과 원문은 보존된다. 자동 재시도는 없다. 프로세스 강제 종료나 DB 장애로 PROCESSING이 남은 경우 자동 복구하지 않는다.
 
 완료 후 같은 기록에 결과 자식을 다시 추가하지 않는다. 저장 시 부모 행을 잠그거나 상태를 검사해 이미 완료된 기록의 중복 저장을 막는다. 사용자의 새 첨삭 요청은 새 `REVIEW_NUM`으로 처리한다.
 
@@ -127,7 +128,7 @@ AI 호출을 나중에 연결할 때에는 외부 호출 동안 트랜잭션을 
 
 | API | 동작 |
 | --- | --- |
-| `POST /api/document-reviews` | 선택 문서 번호·기준·추가 요청을 검증하고 더미 결과 저장, HTTP 201과 저장된 상세 반환 |
+| `POST /api/document-reviews` | 선택 문서 번호·기준·추가 요청을 검증하고 AI 생성 1회 및 결과 저장, HTTP 201과 저장된 상세 반환 |
 | `GET /api/document-reviews?offset=0&pageSize=20` | 본인 기록을 최신순으로 조회; offset은 0 이상, pageSize는 1~100 |
 | `GET /api/document-reviews/{reviewNum}` | 본인 기록의 요청 설정·선택 문서 정보·전체 결과 조회; 없거나 타인 기록이면 404 |
 
@@ -149,9 +150,10 @@ OFFSET :offset ROWS FETCH NEXT :pageSize ROWS ONLY;
 
 ## 검증과 실행
 
-- 기존 Spring MVC/Tomcat 프로젝트를 다시 빌드·게시한 뒤 프론트의 **더미 첨삭 결과 저장하기** 버튼을 사용한다. 서버가 이전 빌드로 실행 중이면 신규 경로가 404일 수 있으므로 백엔드 재게시가 필요하다.
+- 기존 Spring MVC/Tomcat 프로젝트를 다시 빌드·게시한 뒤 프론트의 **AI 첨삭 시작하기** 버튼을 사용한다. API 키는 `api.properties`의 `api.openai.key`에 설정한다.
+- `OpenAiDocumentReviewGeneratorTest`: 로컬 HTTP 서버로 단일 요청·고정 모델/effort, PDF 직접 첨부, 잘못된 형식·인용·직무·페이지·거절·불완전 응답·한도 오류를 검증하며 유료 API를 호출하지 않는다.
 - `DocumentReviewValidationTest`: 필수 번호·기준·200자 제한, 인증 누락, 서류 소유권, 목록 범위를 검증한다.
-- `OracleDocumentReviewPersistenceTest`: 실제 Oracle에 무작위 이름의 별도 테이블·시퀀스를 만들고 전체 결과/JSON/PDF 보관본, 포트폴리오 생략, 과거 조회 및 트랜잭션 롤백을 검증한다. 기존 테이블/데이터를 수정하지 않으며 테스트 객체를 종료 시 제거한다. 기본 실행에서는 건너뛰고 `mvn -Dprovit.oracle.documentReviewTests=true -Dtest=OracleDocumentReviewPersistenceTest test`로 명시 실행한다.
+- `OracleDocumentReviewPersistenceTest`: 실제 Oracle의 격리 테이블·시퀀스로 결과/JSON/PDF 보관본, 포트폴리오 생략, 과거 조회, 짧은 트랜잭션, 실패 기록·부분 결과 롤백과 REST 반환을 검증한다. 기존 테이블·데이터를 수정하지 않으며 테스트 객체는 종료 시 제거한다. `mvn -Dprovit.oracle.documentReviewTests=true -Dtest=OracleDocumentReviewPersistenceTest test`로 실행한다. 추가로 `-Dprovit.openai.documentReviewTests=true`를 지정하면 합성 문서·PDF로 실제 유료 API 호출 1회와 Oracle 저장·재조회도 실행한다. 기본 실행에서는 외부 API를 호출하지 않는다.
 
 ## Oracle 참고
 

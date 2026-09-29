@@ -5,7 +5,9 @@
   "documents": {
     "resume": {
       "title": "백엔드 개발 지원 이력서",
+      "occupationCode": null,
       "occupationName": "IT 개발",
+      "jobCode": null,
       "jobName": "백엔드 개발자",
       "highestLevel": "대학교 졸업",
       "educationName": "대학교",

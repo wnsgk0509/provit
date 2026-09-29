@@ -107,11 +107,11 @@ function ReviewOptions({
                     aria-describedby="review-submit-hint"
                 >
                     <Sparkles size={18} aria-hidden="true" />
-                    {isSubmitting ? '더미 결과 저장 중...' : '더미 첨삭 결과 저장하기'}
+                    {isSubmitting ? 'AI 첨삭 중...' : 'AI 첨삭 시작하기'}
                 </button>
             </div>
             <p id="review-submit-hint" className="review-submit-hint">
-                AI 호출 없이 예시 결과를 저장합니다. 기준과 요청은 기록되며, 더미 내용에는 반영되지 않습니다.
+                선택한 기준에 따라 서류를 분석합니다. 첨삭과 취업 준비 추천을 함께 확인할 수 있습니다.
             </p>
         </section>
     );

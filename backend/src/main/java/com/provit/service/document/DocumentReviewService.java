@@ -6,7 +6,7 @@ import com.provit.dto.document.DocumentReviewRequestDTO;
 import com.provit.dto.document.DocumentReviewResultDTO;
 
 public interface DocumentReviewService {
-    DocumentReviewResultDTO createDummyReview(int userNum, DocumentReviewRequestDTO request);
+    DocumentReviewResultDTO createReview(int userNum, DocumentReviewRequestDTO request);
     List<DocumentReviewDTO> getReviews(int userNum, int offset, int pageSize);
     DocumentReviewResultDTO getReview(int userNum, long reviewNum);
 }

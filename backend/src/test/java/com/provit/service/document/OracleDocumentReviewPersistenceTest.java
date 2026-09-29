@@ -57,7 +57,7 @@ public class OracleDocumentReviewPersistenceTest {
     private DocumentService documents;
     private DataSourceTransactionManager transactionManager;
     private ResumeDetailDTO resume;
-    private final byte[] pdf = "%PDF-1.7\nportfolio snapshot".getBytes(StandardCharsets.US_ASCII);
+    private byte[] pdf = "%PDF-1.7\nportfolio snapshot".getBytes(StandardCharsets.US_ASCII);
     private boolean documentsDeleted;
 
     @Before
@@ -154,12 +154,12 @@ public class OracleDocumentReviewPersistenceTest {
     }
 
     @Test
-    public void storesEntireDummyResponseSnapshotsAndTwoHundredCharacterRequests() throws Exception {
+    public void storesEntireResponseSnapshotsAndTwoHundredCharacterRequests() throws Exception {
         var request = request(true);
         request.setReviewMode("custom"); request.setCustomCriteria("가".repeat(200)); request.setInstructions("나".repeat(200));
-        var saved = transaction.execute(status -> service.createDummyReview(7, request));
+        var saved = transaction.execute(status -> service.createReview(7, request));
         assertNotNull(saved.getReviewNum()); assertEquals("COMPLETED", saved.getReviewStatus());
-        assertEquals("DUMMY", saved.getResultSource()); assertNotNull(saved.getFinishedAt());
+        assertEquals("AI", saved.getResultSource()); assertNotNull(saved.getFinishedAt());
         assertEquals(request.getCustomCriteria(), saved.getCustomCriteria());
         assertEquals(request.getInstructions(), saved.getInstructions());
         assertEquals(3, saved.getDocuments().size());
@@ -197,7 +197,7 @@ public class OracleDocumentReviewPersistenceTest {
     public void withoutPortfolioPersistsOnlySelectedDocumentsAndSurvivesOriginalChanges() {
         var request = request(false);
         request.setCustomCriteria("선택하지 않은 이전 입력"); request.setInstructions("  추가 요청  ");
-        var saved = transaction.execute(status -> service.createDummyReview(7, request));
+        var saved = transaction.execute(status -> service.createReview(7, request));
         assertNull(saved.getCustomCriteria()); assertEquals("추가 요청", saved.getInstructions());
         assertNull(saved.getDocumentReviews().get("portfolio"));
         assertCounts(1, 2, 6, 2, 1, 2);
@@ -212,7 +212,7 @@ public class OracleDocumentReviewPersistenceTest {
     }
 
     @Test
-    public void childInsertFailureRollsBackEveryTableAndDoesNotLeaveProcessingRecord() {
+    public void childInsertFailureRollsBackResultButRetainsFailedRequestAndSnapshots() {
         var failingDAO = (DocumentReviewDAO) Proxy.newProxyInstance(DocumentReviewDAO.class.getClassLoader(),
                 new Class<?>[] { DocumentReviewDAO.class }, (proxy, method, args) -> {
                     if (method.getName().equals("insertSource")) throw new IllegalStateException("Injected failure");
@@ -220,13 +220,17 @@ public class OracleDocumentReviewPersistenceTest {
                     catch (java.lang.reflect.InvocationTargetException exception) { throw exception.getCause(); }
                 });
         var failingService = transactionalService(failingDAO);
-        assertThrows(IllegalStateException.class, () -> failingService.createDummyReview(7, request(true)));
-        assertCounts(0, 0, 0, 0, 0, 0);
+        var failure = assertThrows(DocumentReviewProcessingException.class, () -> failingService.createReview(7, request(true)));
+        assertCounts(1, 3, 0, 0, 0, 0);
+        var failed = service.getReview(7, failure.getReviewNum());
+        assertEquals("FAILED", failed.getReviewStatus());
+        assertNotNull(failed.getFinishedAt()); assertNotNull(failed.getErrorMessage());
+        assertNull(failed.getCareerPreparation()); assertTrue(failed.getDocumentReviews().isEmpty());
     }
 
     @Test
     public void preparationIsStoredAsJsonAndLegacyRecordsRemainReadable() throws Exception {
-        var saved = service.createDummyReview(7, request(false));
+        var saved = service.createReview(7, request(false));
         try (var query = connection.prepareStatement("SELECT CAREER_PREPARATION_JSON FROM "
                 + names.get("T_DOCUMENT_REVIEW") + " WHERE REVIEW_NUM = ?")) {
             query.setLong(1, saved.getReviewNum());
@@ -262,7 +266,7 @@ public class OracleDocumentReviewPersistenceTest {
         assertEquals(response.getContentAsString(), 201, response.getStatus());
         assertEquals("no-store", response.getHeader("Cache-Control"));
         var data = mapper.readTree(response.getContentAsByteArray()).path("data");
-        assertEquals("DUMMY", data.path("resultSource").asText());
+        assertEquals("AI", data.path("resultSource").asText());
         String url = "/api/document-reviews/" + data.path("reviewNum").asLong();
         assertEquals(url, response.getHeader("Location"));
         var reread = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(url)
@@ -273,9 +277,85 @@ public class OracleDocumentReviewPersistenceTest {
     }
 
     private DocumentReviewService transactionalService(DocumentReviewDAO reviewDAO) {
-        var proxy = new ProxyFactory(new DocumentReviewServiceImpl(reviewDAO, documents));
+        return transactionalService(reviewDAO, (request, snapshots) -> {
+            assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+            try {
+                var result = new ObjectMapper().readValue(resource("/document-review/dummy-result.json"), DocumentReviewResultDTO.class);
+                if (request.getPortfolioNum() == null) {
+                    result.getDocumentReviews().put("portfolio", null);
+                    result.getConsistencyIssues().removeIf(issue -> issue.getSources().stream()
+                            .anyMatch(source -> "portfolio".equals(source.getDocumentType())));
+                }
+                result.setCareerPreparation(new com.provit.service.document.generator.DummyCareerPreparationGenerator().generate(snapshots));
+                return result;
+            } catch (Exception exception) { throw new AssertionError(exception); }
+        });
+    }
+
+    private DocumentReviewService transactionalService(DocumentReviewDAO reviewDAO,
+            com.provit.service.document.generator.DocumentReviewGenerator generator) {
+        var proxy = new ProxyFactory(new DocumentReviewServiceImpl(reviewDAO, documents, generator, transactionManager));
         proxy.addAdvice(new TransactionInterceptor(transactionManager, new AnnotationTransactionAttributeSource()));
         return (DocumentReviewService) proxy.getProxy();
+    }
+
+    @Test
+    public void generationFailureIsCalledOnceAndSavedAsFailedRestRecord() throws Exception {
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        var failing = transactionalService(dao, (request, snapshots) -> {
+            assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+            calls.incrementAndGet();
+            throw new DocumentReviewProcessingException("AI 요청 한도에 도달했습니다.", 503);
+        });
+        JwtProvider jwt = new JwtProvider(null) {
+            @Override public boolean validateToken(String token) { return "owner".equals(token); }
+            @Override public Long getUserNum(String token) { return 7L; }
+        };
+        var mvc = MockMvcBuilders.standaloneSetup(new DocumentReviewController(failing))
+                .setCustomArgumentResolvers(new LoginUserArgumentResolver(jwt))
+                .setControllerAdvice(new GlobalExceptionHandler()).build();
+        var response = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/document-reviews")
+                .header("Authorization", "Bearer owner").contentType(MediaType.APPLICATION_JSON)
+                .content(new ObjectMapper().writeValueAsString(request(false)))).andReturn().getResponse();
+        assertEquals(1, calls.get()); assertEquals(503, response.getStatus());
+        assertEquals("no-store", response.getHeader("Cache-Control"));
+        var data = new ObjectMapper().readTree(response.getContentAsByteArray()).path("data");
+        var saved = service.getReview(7, data.path("reviewNum").asLong());
+        assertEquals("FAILED", saved.getReviewStatus());
+        assertEquals(data.path("message").asText(), saved.getErrorMessage());
+        assertCounts(1, 2, 0, 0, 0, 0);
+    }
+
+    @Test
+    public void liveOpenAiResponseIsStoredAndRereadWithPortfolioInOneRequest() throws Exception {
+        Assume.assumeTrue("Opt in separately for one paid synthetic request",
+                Boolean.getBoolean("provit.openai.documentReviewTests"));
+        var properties = new Properties();
+        try (var reader = Files.newBufferedReader(Path.of("src/main/resources/api.properties"), StandardCharsets.UTF_8)) {
+            properties.load(reader);
+        }
+        var actualGenerator = new com.provit.service.document.generator.OpenAiDocumentReviewGenerator(properties.getProperty("api.openai.key"));
+        var live = transactionalService(dao, actualGenerator);
+        try (var pdfDocument = new org.apache.pdfbox.pdmodel.PDDocument(); var bytes = new java.io.ByteArrayOutputStream()) {
+            var page = new org.apache.pdfbox.pdmodel.PDPage();
+            pdfDocument.addPage(page);
+            try (var content = new org.apache.pdfbox.pdmodel.PDPageContentStream(pdfDocument, page)) {
+                content.beginText();
+                content.setFont(new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA), 12);
+                content.newLineAtOffset(40, 700);
+                content.showText("Synthetic portfolio: developed member input validation with Spring MVC and MyBatis.");
+                content.endText();
+            }
+            pdfDocument.save(bytes);
+            pdf = bytes.toByteArray();
+        }
+        var saved = live.createReview(7, request(true));
+        assertEquals("COMPLETED", saved.getReviewStatus()); assertEquals("AI", saved.getResultSource());
+        assertEquals("gpt-6-sol", saved.getModelName()); assertEquals(3, saved.getDocuments().size());
+        assertNotNull(saved.getDocumentReviews().get("portfolio"));
+        assertEquals("84", saved.getCareerPreparation().getJobCode());
+        assertEquals(saved, service.getReview(7, saved.getReviewNum()));
+        System.out.println("Live OpenAI + Oracle: completed, saved, reread; one synthetic request.");
     }
 
     private void assertCounts(int... expected) {

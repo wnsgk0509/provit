@@ -23,6 +23,11 @@ public class DocumentReviewDAOImpl implements DocumentReviewDAO {
     @Override public int insertConsistency(Consistency consistency) { return sqlSession.insert(NS + "insertConsistency", consistency); }
     @Override public int insertSource(Source source) { return sqlSession.insert(NS + "insertSource", source); }
     @Override public int completeReview(DocumentReviewDTO review) { return sqlSession.update(NS + "completeReview", review); }
+    @Override public int failReview(DocumentReviewDTO review) { return sqlSession.update(NS + "failReview", review); }
+    @Override public int updateDocumentSummary(Document document) { return sqlSession.update(NS + "updateDocumentSummary", document); }
+    @Override public String lockReview(int userNum, long reviewNum) {
+        return sqlSession.selectOne(NS + "lockReview", Map.of("userNum", userNum, "reviewNum", reviewNum));
+    }
     @Override public DocumentReviewResultDTO selectReview(int userNum, long reviewNum) {
         return sqlSession.selectOne(NS + "selectReview", Map.of("userNum", userNum, "reviewNum", reviewNum));
     }

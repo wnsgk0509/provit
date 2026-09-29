@@ -64,6 +64,8 @@ export const REVIEW_MODE_OPTIONS = [
 export function reviewErrorMessage(error, fallback) {
     const response = error.response?.data;
     if (typeof response?.data === 'string') return response.data;
+    if (typeof response?.data?.message === 'string') return response.data.message;
+    if (error.code === 'ECONNABORTED') return '응답을 기다리는 시간이 초과되었습니다. 저장된 첨삭 기록을 새로고침해 처리 상태를 확인해 주세요.';
     return response?.responseCode?.message || error.message || fallback;
 }
 

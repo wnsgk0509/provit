@@ -32,7 +32,7 @@ export function getReviewDocument(documentType, documentNum) {
 }
 
 export async function requestDocumentReview(request) {
-    const response = await client.post('/document-reviews', request, { timeout: 30000 });
+    const response = await client.post('/document-reviews', request, { timeout: 180000 });
     return response.data.data;
 }
 
