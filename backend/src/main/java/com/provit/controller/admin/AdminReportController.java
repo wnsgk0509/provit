@@ -17,32 +17,35 @@ public class AdminReportController {
     @Autowired
     private AdminReportService adminReportService;
 
-    // 1. 신고 목록 조회 (페이징, 상태별 필터)
     @GetMapping
-    public ApiResponse<PageResponseDTO<AdminReportDTO>> getReportList(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String status,
+    public ApiResponse<?> getReportList(
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "status", required = false) String status,
             @LoginUser Long userNum) {
         
-        // TODO: 실제 어드민 권한 체크 로직 추가 필요 (현재는 일단 유저 식별자 존재 여부만 확인)
-        if (userNum == null) {
-            return ApiResponse.error(ResponseCode.AUTH_UNAUTHORIZED);
-        }
+        try {
+            if (userNum == null || !adminReportService.isAdmin(userNum)) {
+                return ApiResponse.error(ResponseCode.AUTH_UNAUTHORIZED, "관리자 권한이 없습니다.");
+            }
 
-        PageResponseDTO<AdminReportDTO> response = adminReportService.getReportList(page, size, status);
-        return ApiResponse.success(response);
+            PageResponseDTO<AdminReportDTO> response = adminReportService.getReportList(page, size, status);
+            return ApiResponse.success(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ApiResponse.error(ResponseCode.INTERNAL_SERVER_ERROR, "Error: " + e.getMessage() + " | Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "none"));
+        }
     }
 
     // 2. 신고 상태 업데이트 (반려 OR 블라인드 처리)
     @PutMapping("/{reportNum}")
     public ApiResponse<?> updateReportStatus(
-            @PathVariable Long reportNum,
+            @PathVariable("reportNum") Long reportNum,
             @RequestBody AdminReportRequestDTO requestDTO,
             @LoginUser Long userNum) {
         
-        if (userNum == null) {
-            return ApiResponse.error(ResponseCode.AUTH_UNAUTHORIZED);
+        if (userNum == null || !adminReportService.isAdmin(userNum)) {
+            return ApiResponse.error(ResponseCode.AUTH_UNAUTHORIZED, "관리자 권한이 없습니다.");
         }
 
         try {

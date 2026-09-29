@@ -9,6 +9,9 @@ public interface AdminReportDAO {
     // 전체 신고 목록 조회 (검색 및 페이징 가능하도록 파라미터 맵 활용)
     List<AdminReportDTO> selectReportList(Map<String, Object> params);
     
+    // 관리자 여부 확인
+    boolean isAdmin(Long userNum);
+    
     // 전체 신고 건수
     int selectReportCount(Map<String, Object> params);
 

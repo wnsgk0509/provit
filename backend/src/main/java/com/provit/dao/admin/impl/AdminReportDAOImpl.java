@@ -21,6 +21,12 @@ public class AdminReportDAOImpl implements AdminReportDAO {
     public List<AdminReportDTO> selectReportList(Map<String, Object> params) {
         return sqlSession.selectList(NAMESPACE + ".selectReportList", params);
     }
+    
+    @Override
+    public boolean isAdmin(Long userNum) {
+        Integer count = sqlSession.selectOne(NAMESPACE + ".isAdmin", userNum);
+        return count != null && count > 0;
+    }
 
     @Override
     public int selectReportCount(Map<String, Object> params) {

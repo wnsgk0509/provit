@@ -31,6 +31,13 @@
         OFFSET #{offset} ROWS FETCH NEXT #{limit} ROWS ONLY
     </select>
 
+    <!-- 관리자 여부 확인 -->
+    <select id="isAdmin" parameterType="long" resultType="int">
+        SELECT COUNT(*) 
+        FROM T_USER 
+        WHERE USER_NUM = #{userNum} AND USER_TYPE = 'ADMIN'
+    </select>
+
     <!-- 2. 신고 건수 카운트 -->
     <select id="selectReportCount" parameterType="map" resultType="int">
         SELECT COUNT(*) 
@@ -62,11 +69,12 @@
         WHERE REPORT_NUM = #{reportNum}
     </update>
 
-    <!-- 5. 게시글 블라인드 (내용 덮어쓰기) -->
+    <!-- 5. 게시글 블라인드 (내용 덮어쓰기 및 첨부파일 제거) -->
     <update id="blindPost" parameterType="long">
         UPDATE T_POST
         SET POST_TITLE = '관리자에 의해 블라인드 처리된 게시물입니다.',
-            POST_CONTENT = '신고 누적으로 인하여 관리자에 의해 삭제(블라인드) 조치되었습니다.'
+            POST_CONTENT = '신고 누적으로 인하여 관리자에 의해 삭제(블라인드) 조치되었습니다.',
+            POST_FILE = NULL
         WHERE POST_NUM = #{postNum}
     </update>
 

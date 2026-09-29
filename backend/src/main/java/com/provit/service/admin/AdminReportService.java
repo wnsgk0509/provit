@@ -6,6 +6,9 @@ import com.provit.dto.common.PageResponseDTO;
 
 public interface AdminReportService {
     
+    // 관리자 여부 확인
+    boolean isAdmin(Long userNum);
+    
     // 전체 신고 목록 조회 (페이징, 상태 필터링)
     PageResponseDTO<AdminReportDTO> getReportList(int page, int size, String status);
     

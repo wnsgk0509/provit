@@ -20,6 +20,11 @@ public class AdminReportServiceImpl implements AdminReportService {
     private AdminReportDAO adminReportDAO;
 
     @Override
+    public boolean isAdmin(Long userNum) {
+        return adminReportDAO.isAdmin(userNum);
+    }
+
+    @Override
     public PageResponseDTO<AdminReportDTO> getReportList(int page, int size, String status) {
         int offset = (page - 1) * size;
         
