@@ -17,7 +17,13 @@ public interface PostService {
     /**
      * 특정 게시글의 상세 정보를 조회합니다. (조회수 증가 포함)
      */
-    PostDTO getPostDetail(Long postNum);
+    PostDTO getPostDetail(Long postNum, Long userNum);
+
+    /**
+     * 특정 게시글의 좋아요 상태를 토글(On/Off)합니다.
+     * @return Map containing 'isLiked' (boolean) and 'likeCount' (int)
+     */
+    java.util.Map<String, Object> togglePostLike(Long postNum, Long userNum);
 
     /**
      * 새 게시글을 등록합니다.

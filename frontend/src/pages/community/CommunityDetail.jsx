@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { fetchPostDetail, deletePost } from '../../api/communityApi';
+import { fetchPostDetail, deletePost, togglePostLike } from '../../api/communityApi';
 import { useAuth } from '../../context/AuthContext';
 import CommentSection from '../../components/community/CommentSection';
 
@@ -47,6 +47,27 @@ function CommunityDetail() {
             } catch (error) {
                 alert('서버 오류로 삭제에 실패했습니다.');
             }
+        }
+    };
+
+    const handleLike = async () => {
+        if (!user) {
+            alert('로그인 후 이용할 수 있습니다.');
+            return;
+        }
+        try {
+            const result = await togglePostLike(postNum);
+            if (result && result.responseCode && result.responseCode.code === 200) {
+                setPost({
+                    ...post,
+                    isLiked: result.data.isLiked,
+                    postLikeCount: result.data.likeCount
+                });
+            } else {
+                alert(result.message || '처리 중 오류가 발생했습니다.');
+            }
+        } catch (error) {
+            alert('서버와의 통신 중 오류가 발생했습니다.');
         }
     };
 
@@ -115,8 +136,12 @@ function CommunityDetail() {
                 
                 {/* 좋아요 버튼 등은 나중에 추가 가능 */}
                 <div className="card-footer bg-white border-top text-center py-3">
-                    <button className="btn btn-outline-danger px-4 rounded-pill">
-                        <i className="bi bi-heart me-1"></i> 좋아요 {post.postLikeCount || 0}
+                    <button 
+                        className={`btn px-4 rounded-pill ${post.isLiked ? 'btn-danger' : 'btn-outline-danger'}`}
+                        onClick={handleLike}
+                    >
+                        <i className={`bi ${post.isLiked ? 'bi-heart-fill' : 'bi-heart'} me-1`}></i> 
+                        좋아요 {post.postLikeCount || 0}
                     </button>
                 </div>
             </div>
