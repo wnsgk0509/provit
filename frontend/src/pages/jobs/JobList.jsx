@@ -455,25 +455,27 @@ function JobList() {
                         사람인의 실시간 인기 채용공고를 탐색하고, 관심 있는 기업의 JD로 1:1 개인화 AI 모의면접을 시작해 보세요!
                     </p>
                 </div>
-                <div>
-                    <button 
-                        type="button" 
-                        className="btn btn-outline-light btn-sm d-flex align-items-center gap-2 text-nowrap"
-                        onClick={handleManualSync}
-                        disabled={syncing}
-                    >
-                        {syncing ? (
-                            <>
-                                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                공고 수집 중...
-                            </>
-                        ) : (
-                            <>
-                                <span>🔄</span> 실시간 공고 수집 (100건)
-                            </>
-                        )}
-                    </button>
-                </div>
+                {user?.userType === 'ADMIN' && (
+                    <div>
+                        <button 
+                            type="button" 
+                            className="btn btn-outline-light btn-sm d-flex align-items-center gap-2 text-nowrap"
+                            onClick={handleManualSync}
+                            disabled={syncing}
+                        >
+                            {syncing ? (
+                                <>
+                                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    공고 수집 중...
+                                </>
+                            ) : (
+                                <>
+                                    <span>🔄</span> 실시간 공고 수집 (100건)
+                                </>
+                            )}
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* 1-1. 사용자 직무 맞춤 / 실시간 인기 추천 공고 섹션 */}

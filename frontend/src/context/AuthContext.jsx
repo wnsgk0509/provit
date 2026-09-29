@@ -4,87 +4,53 @@ import client from '../api/client';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('token'));
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    try {
-      return savedUser ? JSON.parse(savedUser) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 초기 마운트 시 토큰 유효성 검증 및 최신 프로필 동기화
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      if (storedToken) {
-        try {
-          const res = await client.get('/auth/me');
-          if (res.data && res.data.data) {
-            setUser(res.data.data);
-            localStorage.setItem('user', JSON.stringify(res.data.data));
-          }
-        } catch {
-          // 토큰이 유효하지 않거나 만료된 경우
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setToken(null);
-          setUser(null);
+      try {
+        // 브라우저가 HttpOnly 인증 쿠키를 자동으로 전송합니다.
+        const res = await client.get('/auth/me');
+        if (res.data?.data) {
+          setUser(res.data.data);
         }
+      } catch {
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     initAuth();
 
-    // 401 발생 시 자동 로그아웃 리스너
-    const handleUnauthorized = () => {
-      setToken(null);
-      setUser(null);
-    };
+    const handleUnauthorized = () => setUser(null);
     window.addEventListener('auth:unauthorized', handleUnauthorized);
-
-    return () => {
-      window.removeEventListener('auth:unauthorized', handleUnauthorized);
-    };
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, []);
 
-  // 로그인 처리
-  const login = (jwtToken, userData) => {
-    setToken(jwtToken);
-    setUser(userData);
-    localStorage.setItem('token', jwtToken);
-    if (userData) {
-      localStorage.setItem('user', JSON.stringify(userData));
+  const login = (userData) => setUser(userData);
+
+  const logout = async () => {
+    try {
+      await client.post('/auth/logout');
+    } catch {
+      // 만료되었거나 유효하지 않은 쿠키여도 화면의 로그인 상태는 초기화합니다.
+    } finally {
+      setUser(null);
     }
   };
 
-  // 로그아웃 처리
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-  };
-
-  const updateUser = (userData) => {
-    // 마이페이지 수정 후 Navbar와 새로고침 뒤의 사용자 정보를 함께 갱신한다.
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
-  };
-
-  const isLoggedIn = !!token && !!user;
+  const updateUser = (userData) => setUser(userData);
+  const isLoggedIn = !!user;
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, token, isLoading, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, isLoading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-// Context와 Hook을 같은 파일에서 관리하므로 Fast Refresh 규칙의 예외로 둡니다.
 // eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);

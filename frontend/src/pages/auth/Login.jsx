@@ -34,8 +34,8 @@ function Login() {
             });
 
             if (response.data && response.data.data) {
-                const { accessToken, user } = response.data.data;
-                login(accessToken, user);
+                const { user } = response.data.data;
+                login(user);
                 navigate("/");
             } else {
                 setErrorMessage("로그인 처리 중 문제가 발생했습니다.");
