@@ -25,6 +25,8 @@ public class PostDTO {
     private Integer postLikeCount; // 좋아요 수
     private Integer viewCount;     // 조회수
     private String postFile;       // 첨부 파일 URL (선택)
+    private Boolean isLiked;       // 현재 로그인한 회원이 좋아요를 눌렀는지 여부
+
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private Date postDate;         // 작성 일시

@@ -75,4 +75,23 @@ public class PostDAOImpl implements PostDAO {
     public int deletePost(java.util.Map<String, Object> params) {
         return sqlSession.delete(NAMESPACE + ".deletePost", params);
     }
+
+    // --- 좋아요(공감) 관련 ---
+
+    public int checkPostLike(java.util.Map<String, Object> params) {
+        return sqlSession.selectOne(NAMESPACE + ".checkPostLike", params);
+    }
+
+    public int insertPostLike(java.util.Map<String, Object> params) {
+        return sqlSession.insert(NAMESPACE + ".insertPostLike", params);
+    }
+
+    public int deletePostLike(java.util.Map<String, Object> params) {
+        return sqlSession.delete(NAMESPACE + ".deletePostLike", params);
+    }
+
+    public int updatePostLikeCount(java.util.Map<String, Object> params) {
+        return sqlSession.update(NAMESPACE + ".updatePostLikeCount", params);
+    }
 }
+

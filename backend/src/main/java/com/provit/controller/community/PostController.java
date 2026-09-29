@@ -47,9 +47,23 @@ public class PostController {
      * URL 호출 예시: GET /api/community/posts/15
      */
     @GetMapping("/{postNum}")
-    public ApiResponse<PostDTO> getPostDetail(@org.springframework.web.bind.annotation.PathVariable Long postNum) {
-        PostDTO postDetail = postService.getPostDetail(postNum);
+    public ApiResponse<PostDTO> getPostDetail(
+            @org.springframework.web.bind.annotation.PathVariable Long postNum,
+            @LoginUser Long userNum) {
+        PostDTO postDetail = postService.getPostDetail(postNum, userNum);
         return ApiResponse.success(postDetail);
+    }
+
+    /**
+     * 게시글 좋아요(공감)를 토글(On/Off)합니다.
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/{postNum}/like")
+    public ApiResponse<java.util.Map<String, Object>> togglePostLike(
+            @org.springframework.web.bind.annotation.PathVariable Long postNum,
+            @LoginUser Long userNum) {
+        if (userNum == null) return new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
+        java.util.Map<String, Object> result = postService.togglePostLike(postNum, userNum);
+        return ApiResponse.success(result);
     }
 
     /**

@@ -41,12 +41,61 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
-    public PostDTO getPostDetail(Long postNum) {
+    public PostDTO getPostDetail(Long postNum, Long userNum) {
         // 1. 상세 조회 시 조회수를 1 증가시킵니다.
         postDao.updateViewCount(postNum);
         
         // 2. 최신 정보(증가된 조회수 포함)로 게시글 데이터를 조회하여 반환합니다.
-        return postDao.selectPostDetail(postNum);
+        PostDTO post = postDao.selectPostDetail(postNum);
+        
+        // 3. 로그인한 사용자라면 좋아요 여부를 확인합니다.
+        if (post != null && userNum != null) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("postNum", postNum);
+            params.put("userNum", userNum);
+            int count = postDao.checkPostLike(params);
+            post.setIsLiked(count > 0);
+        } else if (post != null) {
+            post.setIsLiked(false);
+        }
+        
+        return post;
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public java.util.Map<String, Object> togglePostLike(Long postNum, Long userNum) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("postNum", postNum);
+        params.put("userNum", userNum);
+
+        // 1. 좋아요 여부 확인
+        int check = postDao.checkPostLike(params);
+        boolean isLiked = false;
+
+        if (check > 0) {
+            // 이미 좋아요를 누른 상태 -> 취소
+            postDao.deletePostLike(params);
+            params.put("amount", -1);
+            postDao.updatePostLikeCount(params);
+            isLiked = false;
+        } else {
+            // 좋아요를 누르지 않은 상태 -> 추가
+            postDao.insertPostLike(params);
+            params.put("amount", 1);
+            postDao.updatePostLikeCount(params);
+            isLiked = true;
+        }
+
+        // 2. 최신 좋아요 수 조회
+        PostDTO post = postDao.selectPostDetail(postNum);
+        int likeCount = post != null ? (post.getPostLikeCount() != null ? post.getPostLikeCount() : 0) : 0;
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("isLiked", isLiked);
+        result.put("likeCount", likeCount);
+
+        return result;
     }
 
     @Override

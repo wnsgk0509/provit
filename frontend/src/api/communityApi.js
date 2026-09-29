@@ -70,3 +70,17 @@ export const deletePost = async (postNum) => {
         throw error;
     }
 };
+
+/**
+ * 게시글 좋아요 토글
+ * @param {number|string} postNum - 게시글 번호
+ */
+export const togglePostLike = async (postNum) => {
+    try {
+        const response = await client.post(`/community/posts/${postNum}/like`);
+        return response.data;
+    } catch (error) {
+        console.error('게시글 좋아요 토글 실패:', error);
+        throw error;
+    }
+};

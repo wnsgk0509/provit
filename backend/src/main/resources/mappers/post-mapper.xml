@@ -132,4 +132,30 @@
         WHERE POST_NUM = #{postNum} AND USER_NUM = #{userNum}
     </delete>
 
+    <!-- 8. 좋아요(공감) 확인 -->
+    <select id="checkPostLike" resultType="int" parameterType="map">
+        SELECT COUNT(*) 
+        FROM T_POST_LIKE
+        WHERE POST_NUM = #{postNum} AND USER_NUM = #{userNum}
+    </select>
+
+    <!-- 9. 좋아요 추가 -->
+    <insert id="insertPostLike" parameterType="map">
+        INSERT INTO T_POST_LIKE (POST_NUM, USER_NUM, CREATED_AT)
+        VALUES (#{postNum}, #{userNum}, SYSDATE)
+    </insert>
+
+    <!-- 10. 좋아요 취소 -->
+    <delete id="deletePostLike" parameterType="map">
+        DELETE FROM T_POST_LIKE
+        WHERE POST_NUM = #{postNum} AND USER_NUM = #{userNum}
+    </delete>
+
+    <!-- 11. 게시글 총 좋아요 수 증감 -->
+    <update id="updatePostLikeCount" parameterType="map">
+        UPDATE T_POST
+        SET POST_LIKE_COUNT = POST_LIKE_COUNT + #{amount}
+        WHERE POST_NUM = #{postNum}
+    </update>
+
 </mapper>
