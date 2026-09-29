@@ -1,3 +1,5 @@
+import ReviewEvidence from './ReviewEvidence';
+
 const categoryLabels = {
     experience: '실무·프로젝트 경험',
     skill: '기술 역량',
@@ -28,7 +30,8 @@ function CareerPreparation({ preparation, isExample }) {
                                 <article className="review-preparation-item" key={`${item.category}:${item.title}:${index}`}>
                                     <span className="review-section-label">{categoryLabels[item.category] || '준비 항목'}</span>
                                     <h4>{item.title}</h4>
-                                    <p>{item.reason}</p>
+                                    <ReviewEvidence sources={item.sources} heading="추천 판단의 배경 원문" />
+                                    <p className="review-reason"><strong>보강 판단 이유</strong>{item.reason}</p>
                                     <div className="review-preparation-action">
                                         <strong>준비 방법</strong>
                                         <p>{item.action}</p>

@@ -163,15 +163,16 @@ public class OracleDocumentReviewPersistenceTest {
         assertEquals(request.getCustomCriteria(), saved.getCustomCriteria());
         assertEquals(request.getInstructions(), saved.getInstructions());
         assertEquals(3, saved.getDocuments().size());
-        assertEquals(2, saved.getResponseVersion());
+        assertEquals(3, saved.getResponseVersion());
         assertEquals("백엔드/서버개발", saved.getCareerPreparation().getJobName());
         assertEquals(4, saved.getCareerPreparation().getRecommendations().size());
         assertCounts(1, 3, 8, 3, 2, 4);
         var mapper = new ObjectMapper();
-        var expected = mapper.readTree(resource("/document-review/dummy-result.json"));
+        var expected = mapper.valueToTree(mapper.readValue(resource("/document-review/dummy-result.json"), DocumentReviewResultDTO.class));
         var actual = mapper.valueToTree(saved);
         for (String field : List.of("summary", "strengths", "documentReviews", "consistencyIssues")) {
             removeNullPageNumbers(actual.path(field));
+            removeNullPageNumbers(expected.path(field));
             assertEquals(field, expected.path(field), actual.path(field));
         }
         String json = mapper.writeValueAsString(saved);
@@ -327,6 +328,54 @@ public class OracleDocumentReviewPersistenceTest {
     }
 
     @Test
+    public void strengthEvidenceAndPreparationSourcesSurviveSaveAndLegacyColumnsRemainReadable() throws Exception {
+        var mapper = new ObjectMapper();
+        var example = mapper.readValue(Files.readString(Path.of("docs/examples/document-review/strength.example.json")),
+                DocumentReviewResultDTO.Strength.class);
+        var strength = new DocumentReviewResultDTO.Strength();
+        strength.setTitle(example.getTitle()); strength.setReason(example.getReason()); strength.setSuggestion(example.getSuggestion());
+        var source = new DocumentReviewResultDTO.Source();
+        source.setDocumentType("resume"); source.setSection("지원 동기"); source.setText("원본 지원 동기");
+        strength.setSources(List.of(source));
+        var fixture = transactionalService(dao, (request, snapshots) -> {
+            assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+            var result = new DocumentReviewResultDTO(); result.setSummary("근거 저장 검증");
+            result.setStrengths(List.of(strength));
+            var resumeFeedback = new DocumentReviewResultDTO.Feedback(); resumeFeedback.setSummary("이력서 검토");
+            resumeFeedback.setStrengths(List.of(mapper.convertValue(strength, DocumentReviewResultDTO.Strength.class)));
+            var letterFeedback = new DocumentReviewResultDTO.Feedback(); letterFeedback.setSummary("자기소개서 검토");
+            result.getDocumentReviews().put("resume", resumeFeedback); result.getDocumentReviews().put("coverLetter", letterFeedback);
+            result.setCareerPreparation(new com.provit.service.document.generator.DummyCareerPreparationGenerator().generate(snapshots));
+            result.getCareerPreparation().getRecommendations().get(0).setSources(List.of(source));
+            return result;
+        });
+        var saved = fixture.createReview(7, request(false));
+        var reread = service.getReview(7, saved.getReviewNum());
+        assertEquals(saved, reread);
+        assertEquals(example.getReason(), reread.getStrengths().get(0).getReason());
+        assertEquals(example.getSuggestion(), reread.getStrengths().get(0).getSuggestion());
+        assertEquals("원본 지원 동기", reread.getStrengths().get(0).getSources().get(0).getText());
+        assertEquals(reread.getStrengths().get(0).getSources(), reread.getCareerPreparation().getRecommendations().get(0).getSources());
+        assertCounts(1, 2, 2, 0, 0, 0);
+        try (var query = connection.prepareStatement("SELECT STRENGTH_REASON, STRENGTH_SUGGESTION, STRENGTH_SOURCES_JSON FROM "
+                + names.get("T_REVIEW_STRENGTH") + " WHERE REVIEW_NUM = ? AND REVIEW_DOCUMENT_NUM IS NULL")) {
+            query.setLong(1, saved.getReviewNum());
+            try (var rows = query.executeQuery()) {
+                assertTrue(rows.next()); assertEquals(example.getReason(), rows.getString(1));
+                assertEquals(example.getSuggestion(), rows.getString(2));
+                assertEquals("원본 지원 동기", mapper.readTree(rows.getString(3)).get(0).path("text").asText());
+            }
+        }
+        try (var query = connection.prepareStatement("UPDATE " + names.get("T_REVIEW_STRENGTH")
+                + " SET STRENGTH_REASON = NULL, STRENGTH_SUGGESTION = NULL, STRENGTH_SOURCES_JSON = NULL WHERE REVIEW_NUM = ?")) {
+            query.setLong(1, saved.getReviewNum()); query.executeUpdate();
+        }
+        var legacy = service.getReview(7, saved.getReviewNum()).getStrengths().get(0);
+        assertEquals(example.getTitle(), legacy.getTitle()); assertNull(legacy.getReason());
+        assertNull(legacy.getSuggestion()); assertTrue(legacy.getSources().isEmpty());
+    }
+
+    @Test
     public void liveOpenAiResponseIsStoredAndRereadWithPortfolioInOneRequest() throws Exception {
         Assume.assumeTrue("Opt in separately for one paid synthetic request",
                 Boolean.getBoolean("provit.openai.documentReviewTests"));
@@ -336,6 +385,8 @@ public class OracleDocumentReviewPersistenceTest {
         }
         var actualGenerator = new com.provit.service.document.generator.OpenAiDocumentReviewGenerator(properties.getProperty("api.openai.key"));
         var live = transactionalService(dao, actualGenerator);
+        var strengthExample = new ObjectMapper().readTree(Files.readString(Path.of("docs/examples/document-review/strength.example.json")));
+        resume.getResume().setMotivation(strengthExample.path("sources").get(0).path("text").asText());
         try (var pdfDocument = new org.apache.pdfbox.pdmodel.PDDocument(); var bytes = new java.io.ByteArrayOutputStream()) {
             var page = new org.apache.pdfbox.pdmodel.PDPage();
             pdfDocument.addPage(page);
@@ -354,6 +405,14 @@ public class OracleDocumentReviewPersistenceTest {
         assertEquals("gpt-6-sol", saved.getModelName()); assertEquals(3, saved.getDocuments().size());
         assertNotNull(saved.getDocumentReviews().get("portfolio"));
         assertEquals("84", saved.getCareerPreparation().getJobCode());
+        var strengths = new ArrayList<>(saved.getStrengths());
+        saved.getDocumentReviews().values().stream().filter(java.util.Objects::nonNull)
+                .forEach(feedback -> strengths.addAll(feedback.getStrengths()));
+        assertFalse("Concrete synthetic evidence should support at least one strength", strengths.isEmpty());
+        for (var strength : strengths) {
+            assertFalse(strength.getSources().isEmpty()); assertFalse(strength.getReason().isBlank());
+            assertFalse(strength.getSuggestion().isBlank());
+        }
         assertEquals(saved, service.getReview(7, saved.getReviewNum()));
         System.out.println("Live OpenAI + Oracle: completed, saved, reread; one synthetic request.");
     }

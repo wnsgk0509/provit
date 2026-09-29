@@ -61,7 +61,7 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
         review.setInstructions(normalizeOptionalText(request.getInstructions()));
         review.setModelName(OpenAiDocumentReviewGenerator.MODEL);
         review.setPromptVersion(OpenAiDocumentReviewGenerator.PROMPT_VERSION);
-        review.setResponseVersion(2);
+        review.setResponseVersion(OpenAiDocumentReviewGenerator.RESPONSE_VERSION);
         transaction.executeWithoutResult(status -> {
             reviewDAO.insertReview(review);
             for (Document document : documents) {
@@ -164,9 +164,15 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
         }
         result.getDocumentReviews().putIfAbsent("portfolio", null);
         for (Strength strength : reviewDAO.selectStrengths(reviewNum)) {
+            if (strength.getSourcesJson() != null) {
+                try {
+                    strength.setSources(objectMapper.readValue(strength.getSourcesJson(),
+                            new com.fasterxml.jackson.core.type.TypeReference<List<Source>>() {}));
+                } catch (IOException exception) { throw new IllegalStateException("저장된 강점 근거를 읽지 못했습니다.", exception); }
+            }
             var strengths = strength.getReviewDocumentNum() == null ? result.getStrengths()
                     : feedbackByDocument.get(strength.getReviewDocumentNum()).getStrengths();
-            strengths.add(strength.getContent());
+            strengths.add(strength);
         }
         for (Improvement improvement : reviewDAO.selectImprovements(reviewNum)) {
             feedbackByDocument.get(improvement.getReviewDocumentNum()).getImprovements().add(improvement);
@@ -243,14 +249,14 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
         return document;
     }
 
-    private void saveStrengths(Long reviewNum, Long documentNum, List<String> strengths) {
+    private void saveStrengths(Long reviewNum, Long documentNum, List<Strength> strengths) {
         int order = 1;
-        for (String content : strengths) {
-            var strength = new Strength();
+        for (Strength strength : strengths) {
             strength.setReviewNum(reviewNum);
             strength.setReviewDocumentNum(documentNum);
             strength.setDisplayOrder(order++);
-            strength.setContent(content);
+            try { strength.setSourcesJson(objectMapper.writeValueAsString(strength.getSources())); }
+            catch (IOException exception) { throw new IllegalStateException("강점 근거를 저장하지 못했습니다.", exception); }
             reviewDAO.insertStrength(strength);
         }
     }

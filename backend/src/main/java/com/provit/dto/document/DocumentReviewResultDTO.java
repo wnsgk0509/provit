@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -14,7 +16,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class DocumentReviewResultDTO extends DocumentReviewDTO {
     private List<Document> documents = new ArrayList<>();
-    private List<String> strengths = new ArrayList<>();
+    private List<Strength> strengths = new ArrayList<>();
     private Map<String, Feedback> documentReviews = new LinkedHashMap<>();
     private List<Consistency> consistencyIssues = new ArrayList<>();
     private CareerPreparationDTO careerPreparation;
@@ -37,16 +39,42 @@ public class DocumentReviewResultDTO extends DocumentReviewDTO {
     @Data
     public static class Feedback {
         private String summary;
-        private List<String> strengths = new ArrayList<>();
+        private List<Strength> strengths = new ArrayList<>();
         private List<Improvement> improvements = new ArrayList<>();
     }
 
     @Data
     public static class Strength {
-        private Long reviewNum;
-        private Long reviewDocumentNum;
-        private int displayOrder;
-        private String content;
+        @JsonIgnore private Long reviewNum;
+        @JsonIgnore private Long reviewDocumentNum;
+        @JsonIgnore private int displayOrder;
+        @JsonIgnore private String sourcesJson;
+        private String title;
+        private String reason;
+        private String suggestion;
+        private List<Source> sources = new ArrayList<>();
+
+        @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+        public static Strength fromJson(JsonNode node) {
+            var strength = new Strength();
+            if (node.isTextual()) {
+                strength.setTitle(node.asText());
+                return strength;
+            }
+            if (!node.isObject()) throw new IllegalArgumentException("강점 형식이 올바르지 않습니다.");
+            strength.setTitle(node.path("title").asText(null));
+            strength.setReason(node.path("reason").asText(null));
+            strength.setSuggestion(node.path("suggestion").asText(null));
+            for (JsonNode evidence : node.path("sources")) {
+                var source = new Source();
+                source.setDocumentType(evidence.path("documentType").asText());
+                source.setSection(evidence.path("section").asText());
+                source.setText(evidence.path("text").asText());
+                source.setPageNumber(evidence.path("pageNumber").isNumber() ? evidence.path("pageNumber").asInt() : null);
+                strength.getSources().add(source);
+            }
+            return strength;
+        }
     }
 
     @Data

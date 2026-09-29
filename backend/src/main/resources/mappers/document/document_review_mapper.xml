@@ -30,8 +30,10 @@
     </insert>
     <insert id="insertStrength">
         INSERT INTO T_REVIEW_STRENGTH
-            (REVIEW_NUM, REVIEW_DOCUMENT_NUM, DISPLAY_ORDER, STRENGTH_CONTENT)
-        VALUES (#{reviewNum}, #{reviewDocumentNum,jdbcType=NUMERIC}, #{displayOrder}, #{content,jdbcType=CLOB})
+            (REVIEW_NUM, REVIEW_DOCUMENT_NUM, DISPLAY_ORDER, STRENGTH_CONTENT,
+             STRENGTH_REASON, STRENGTH_SUGGESTION, STRENGTH_SOURCES_JSON)
+        VALUES (#{reviewNum}, #{reviewDocumentNum,jdbcType=NUMERIC}, #{displayOrder}, #{title,jdbcType=CLOB},
+                #{reason,jdbcType=CLOB}, #{suggestion,jdbcType=CLOB}, #{sourcesJson,jdbcType=CLOB})
     </insert>
     <insert id="insertImprovement">
         INSERT INTO T_REVIEW_IMPROVEMENT
@@ -91,7 +93,8 @@
         ORDER BY CASE DOCUMENT_TYPE WHEN 'resume' THEN 1 WHEN 'cover-letter' THEN 2 ELSE 3 END
     </select>
     <select id="selectStrengths" resultType="com.provit.dto.document.DocumentReviewResultDTO$Strength">
-        SELECT REVIEW_NUM, REVIEW_DOCUMENT_NUM, DISPLAY_ORDER, STRENGTH_CONTENT AS CONTENT
+        SELECT REVIEW_NUM, REVIEW_DOCUMENT_NUM, DISPLAY_ORDER, STRENGTH_CONTENT AS TITLE,
+               STRENGTH_REASON AS REASON, STRENGTH_SUGGESTION AS SUGGESTION, STRENGTH_SOURCES_JSON AS SOURCES_JSON
         FROM T_REVIEW_STRENGTH WHERE REVIEW_NUM = #{reviewNum}
         ORDER BY REVIEW_DOCUMENT_NUM NULLS FIRST, DISPLAY_ORDER
     </select>

@@ -182,6 +182,67 @@ public class OpenAiDocumentReviewGeneratorTest {
         assertEquals(1, calls.get());
     }
 
+    @Test
+    public void returnsStrengthQuoteReasonAndRewriteForOverallAndDocument() throws Exception {
+        var strength = strengthExample();
+        addStrengthEvidence(strength);
+        expected.withArray("strengths").add(strength);
+        ((ObjectNode) expected.path("documentReviews").path("coverLetter")).withArray("strengths").add(strength.deepCopy());
+        completed(expected);
+        var result = generator.generate(request, documents);
+        var saved = result.getStrengths().get(0);
+        assertEquals(strength.path("title").asText(), saved.getTitle());
+        assertEquals(strength.path("reason").asText(), saved.getReason());
+        assertEquals(strength.path("suggestion").asText(), saved.getSuggestion());
+        assertEquals(strength.path("sources").get(0).path("text").asText(), saved.getSources().get(0).getText());
+        assertEquals(saved, result.getDocumentReviews().get("coverLetter").getStrengths().get(0));
+        assertFalse(mapper.writeValueAsString(saved).contains("reviewNum"));
+        assertEquals(1, calls.get());
+    }
+
+    @Test
+    public void rejectsStrengthWithoutEvidenceReasonOrRewriteAndInventedQuote() throws Exception {
+        var strength = strengthExample();
+        addStrengthEvidence(strength);
+        for (String missing : List.of("reason", "suggestion", "sources")) {
+            var bad = strength.deepCopy(); bad.remove(missing);
+            expected.putArray("strengths").add(bad); completed(expected);
+            assertThrows(DocumentReviewProcessingException.class, () -> generator.generate(request, documents));
+        }
+        var bad = strength.deepCopy(); bad.putArray("sources");
+        expected.putArray("strengths").add(bad); completed(expected);
+        assertThrows(DocumentReviewProcessingException.class, () -> generator.generate(request, documents));
+        bad = strength.deepCopy(); ((ObjectNode) bad.path("sources").get(0)).put("text", "없는 근거 원문");
+        expected.putArray("strengths").add(bad); completed(expected);
+        assertThrows(DocumentReviewProcessingException.class, () -> generator.generate(request, documents));
+        assertEquals(5, calls.get());
+    }
+
+    @Test
+    public void documentStrengthCannotCiteAnotherDocumentAndPreparationQuoteIsVerified() throws Exception {
+        var strength = strengthExample(); addStrengthEvidence(strength);
+        ((ObjectNode) expected.path("documentReviews").path("resume")).withArray("strengths").add(strength);
+        completed(expected);
+        assertThrows(DocumentReviewProcessingException.class, () -> generator.generate(request, documents));
+        ((ObjectNode) expected.path("documentReviews").path("resume")).putArray("strengths");
+        ((ObjectNode) expected.path("careerPreparation").path("recommendations").get(0).path("sources").get(0))
+                .put("text", "존재하지 않는 추천 근거");
+        completed(expected);
+        assertThrows(DocumentReviewProcessingException.class, () -> generator.generate(request, documents));
+        assertEquals(2, calls.get());
+    }
+
+    private ObjectNode strengthExample() throws Exception {
+        return (ObjectNode) mapper.readTree(Files.readString(Path.of("docs/examples/document-review/strength.example.json")));
+    }
+
+    private void addStrengthEvidence(ObjectNode strength) throws Exception {
+        var letter = (ObjectNode) mapper.readTree(documents.get(1).getSourceSnapshotJson());
+        letter.put("problemSolvingExperience", letter.path("problemSolvingExperience").asText() + "\n"
+                + strength.path("sources").get(0).path("text").asText());
+        documents.get(1).setSourceSnapshotJson(letter.toString());
+    }
+
     private void completed(ObjectNode output) throws Exception {
         var envelope = mapper.createObjectNode().put("model", "gpt-6-sol").put("status", "completed");
         var items = envelope.putArray("output"); items.addObject().put("type", "reasoning");

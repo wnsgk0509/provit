@@ -4,15 +4,15 @@
 
 DDL: [document_review_schema.sql](../src/main/resources/sql_query/document_review_schema.sql). 기존 `T_USER`가 있는 Oracle 19c 스키마에 한 번 적용하는 별도 스크립트다. 기존 `schema.sql`과 `drop.sql`에는 통합하지 않았다. 2026-09-29 로컬 DB에서 6개 테이블·5개 시퀀스와 200자 입력 컬럼을 확인했다. 이미 적용한 DB에 CREATE 스크립트를 다시 실행하지 않는다.
 
-현재 구현은 **OpenAI Responses API 생성 1회로 첨삭과 취업 준비 추천을 받아 저장한다.** `MODEL_NAME = 'gpt-6-sol'`, effort `medium`, `PROMPT_VERSION = 'document-review-v3'`, `RESPONSE_VERSION = 2`, `resultSource = 'AI'`를 사용한다. 과거 `dummy-document-review-*` 기록은 `DUMMY`로 표시하며 새 요청에는 더미 생성기를 사용하지 않는다. 실제 요청·검증·프롬프트는 [OpenAI 연결 문서](document-review-openai.md)를 참고한다.
+현재 구현은 **OpenAI Responses API 생성 1회로 첨삭과 취업 준비 추천을 받아 저장한다.** `MODEL_NAME = 'gpt-6-sol'`, effort `medium`, `PROMPT_VERSION = 'document-review-v4'`, `RESPONSE_VERSION = 3`, `resultSource = 'AI'`를 사용한다. 강점은 제목·원문·판단 이유·유지 또는 개선 문장을 가진 객체다. 과거 `dummy-document-review-*` 기록은 `DUMMY`로 표시하며 새 요청에는 더미 생성기를 사용하지 않는다. 실제 요청·검증·프롬프트는 [OpenAI 연결 문서](document-review-openai.md)를 참고한다.
 
 기존 DB에는 [migrate_document_review_preparation.sql](../src/main/resources/sql_query/migrate_document_review_preparation.sql)을 적용한다. `T_DOCUMENT_REVIEW.CAREER_PREPARATION_JSON` CLOB 컬럼과 JSON CHECK 제약만 추가하며 반복 실행할 수 있다. 신규 DB의 첨삭 DDL에는 이미 포함되어 있다. 기존 기록은 컬럼이 NULL인 채 유지하고 상세 응답의 `careerPreparation`도 null로 반환한다.
 
-2026-09-29 프로젝트에 설정된 로컬 Oracle에 이 마이그레이션을 적용했고 반복 실행, CLOB 타입, JSON 제약과 기존 기록 수 보존을 확인했다. API 연결은 이미 존재하는 상태·오류 컬럼을 사용하므로 추가 DDL은 없다. 실행 중인 Tomcat에는 수정한 백엔드의 재빌드·재게시가 필요하다.
+2026-09-29 프로젝트에 설정된 로컬 Oracle에 추천 컬럼 마이그레이션을 적용했다. 강점 근거 확장에는 [migrate_document_review_evidence.sql](../src/main/resources/sql_query/migrate_document_review_evidence.sql)을 추가 적용한다. `T_REVIEW_STRENGTH`에 `STRENGTH_REASON`, `STRENGTH_SUGGESTION`, `STRENGTH_SOURCES_JSON` CLOB과 JSON CHECK를 추가하며 반복 실행할 수 있다. 로컬 Oracle에서 적용·반복 실행·컬럼 타입·제약과 기존 기록 수 보존을 확인했다. 기존 강점의 내용은 제목으로 반환하고 새 컬럼은 NULL인 상태를 유지한다. 실행 중인 Tomcat에는 백엔드 재빌드·재게시가 필요하다.
 
 ## 별도 취업 준비 추천
 
-`careerPreparation`은 첨삭과 구분한 응답이다. 당시 이력서의 `occupationCode`, `occupationName`, `jobCode`, `jobName`과 `summary`, `coverageNote`, `recommendations[]`를 JSON 전체로 부모 기록에 보관한다. 추천 항목은 `category`(experience, skill, certification, qualification), `title`, `reason`, `action`으로 구성한다. MyBatis가 CLOB으로 저장·조회하며 별도 테이블이나 DAO는 추가하지 않았다. 현재 클라이언트는 추천 결과를 전송하지 않으며 서버가 직접 구성한다.
+`careerPreparation`은 첨삭과 구분한 응답이다. 당시 이력서의 `occupationCode`, `occupationName`, `jobCode`, `jobName`과 `summary`, `coverageNote`, `recommendations[]`를 JSON 전체로 부모 기록에 보관한다. 추천 항목은 `category`(experience, skill, certification, qualification), `title`, `sources[]`, `reason`, `action`으로 구성한다. sources는 추천 판단의 관련 원문·문서·위치이며 미보유의 증거가 아니다. 관련 문장이 없으면 빈 배열과 원문 근거의 한계 설명을 허용한다. MyBatis가 CLOB으로 저장·조회하며 별도 테이블이나 DAO는 추가하지 않았다. 과거 JSON에 sources가 없으면 빈 배열로 읽는다.
 
 AI가 선택한 이력서·자기소개서·PDF를 함께 검토해 현재 서류에 언급되지 않은 경험·기술·자격증·스펙을 0~8개 제안한다. 직군·직무 이름이 모두 없으면 추천을 비운다. 서버는 반환한 직군·직무가 이력서와 같은지, 항목 형식·분량과 제목 중복을 검증한다. 검토 범위와 PDF 읽기 제한은 coverageNote에 표시한다.
 
@@ -40,7 +40,7 @@ erDiagram
 | --- | --- | --- |
 | `T_DOCUMENT_REVIEW` | `REVIEW_NUM`, `USER_NUM`, `REVIEW_TITLE`, `REVIEW_STATUS`, `REVIEW_MODE`, `CUSTOM_CRITERIA`, `INSTRUCTIONS`, `OVERALL_SUMMARY`, `CREATED_AT`, `FINISHED_AT` | 첨삭 1회, 사용자, 선택 기준·직접 입력·추가 요청, 종합 피드백, 처리 상태·시각 |
 | `T_REVIEW_DOCUMENT` | `REVIEW_DOCUMENT_NUM`, `REVIEW_NUM`, `DOCUMENT_TYPE`, `SOURCE_DOCUMENT_NUM`, `DOCUMENT_TITLE`, `SOURCE_SNAPSHOT_JSON`, `DOCUMENT_SUMMARY` | 첨삭한 문서별 원문 보관본과 피드백 |
-| `T_REVIEW_STRENGTH` | `STRENGTH_NUM`, `REVIEW_NUM`, `REVIEW_DOCUMENT_NUM`, `DISPLAY_ORDER`, `STRENGTH_CONTENT` | 전체 강점과 문서별 강점 |
+| `T_REVIEW_STRENGTH` | `STRENGTH_NUM`, `REVIEW_NUM`, `REVIEW_DOCUMENT_NUM`, `DISPLAY_ORDER`, `STRENGTH_CONTENT`, `STRENGTH_REASON`, `STRENGTH_SUGGESTION`, `STRENGTH_SOURCES_JSON` | 전체·문서별 강점의 제목, 판단 이유, 유지·개선 문장, 원문 근거 |
 | `T_REVIEW_IMPROVEMENT` | `IMPROVEMENT_NUM`, `REVIEW_DOCUMENT_NUM`, `DISPLAY_ORDER`, `SECTION_NAME`, `IMPROVEMENT_TITLE`, `ISSUE_CONTENT`, `ORIGINAL_CONTENT`, `SUGGESTED_CONTENT`, `REASON_CONTENT` | 수정 대상 항목·제목·문제점·원문·수정 제안·이유 |
 | `T_REVIEW_CONSISTENCY` | `CONSISTENCY_NUM`, `REVIEW_NUM`, `DISPLAY_ORDER`, `ISSUE_TYPE`, `ISSUE_TITLE`, `RECOMMENDATION` | 내용 불일치·근거 보완·확인 필요와 개선 방향 |
 | `T_REVIEW_SOURCE` | `CONSISTENCY_NUM`, `DISPLAY_ORDER`, `REVIEW_NUM`, `REVIEW_DOCUMENT_NUM`, `SECTION_NAME`, `SOURCE_CONTENT`, `PAGE_NUMBER` | 일관성 항목별 비교 문서·위치·인용 원문·PDF 페이지 |
@@ -82,6 +82,8 @@ erDiagram
 
 `T_REVIEW_STRENGTH.REVIEW_DOCUMENT_NUM`이 NULL이면 전체 강점, 값이 있으면 해당 문서의 강점이다. 같은 기록·범위·표시 순서의 중복은 함수 기반 UNIQUE 인덱스로 막는다.
 
+강점의 `sources[]`는 문서 종류·항목·인용 원문·PDF 페이지를 JSON으로 저장한다. 새 AI 응답에는 실제 원문 근거가 1~3개 있어야 하고, 문서별 강점은 해당 문서만 인용한다. 과거 제목만 저장된 강점에는 근거와 설명을 새로 만들지 않는다.
+
 일관성 항목 하나는 비교 근거 여러 개를 갖는다. `T_REVIEW_SOURCE`는 비교 근거를 `(CONSISTENCY_NUM, DISPLAY_ORDER)`로 식별하고 문서 종류는 연결된 `T_REVIEW_DOCUMENT`에서 가져온다. `PAGE_NUMBER`는 구조화된 페이지 번호가 있을 때만 저장한다. 현재 예시의 `역할 소개 · 3페이지`는 `SECTION_NAME`에 그대로 보존하고, 페이지 번호를 명확하게 파악한 경우에만 별도로 3을 넣는다.
 
 복합 FK에 `REVIEW_NUM`을 포함해 다른 첨삭 기록의 문서를 강점이나 비교 근거로 연결할 수 없게 한다. `DISPLAY_ORDER`로 각 결과 배열의 순서를 보존한다.
@@ -92,6 +94,10 @@ erDiagram
 | --- | --- |
 | `summary` | `T_DOCUMENT_REVIEW.OVERALL_SUMMARY` |
 | `strengths[]` | `T_REVIEW_STRENGTH`, 문서 번호 NULL |
+| `strengths[].title` | `T_REVIEW_STRENGTH.STRENGTH_CONTENT` |
+| `strengths[].reason` | `T_REVIEW_STRENGTH.STRENGTH_REASON` |
+| `strengths[].suggestion` | `T_REVIEW_STRENGTH.STRENGTH_SUGGESTION` |
+| `strengths[].sources[]` | `T_REVIEW_STRENGTH.STRENGTH_SOURCES_JSON` CLOB |
 | `documentReviews.{resume,coverLetter,portfolio}.summary` | 해당 종류의 `T_REVIEW_DOCUMENT.DOCUMENT_SUMMARY` |
 | `documentReviews.*.strengths[]` | 해당 문서 번호의 `T_REVIEW_STRENGTH` |
 | `documentReviews.*.improvements[].section` | `T_REVIEW_IMPROVEMENT.SECTION_NAME` |
@@ -109,7 +115,7 @@ erDiagram
 
 DB의 `cover-letter`는 응답을 조립할 때 `coverLetter` 키로 변환한다. 포트폴리오를 사용하지 않은 기록에는 포트폴리오 행을 만들지 않고 응답의 `documentReviews.portfolio`는 `null`로 반환한다. 빈 강점·수정 제안·일관성 배열은 해당 자식 행 0개로 표현한다.
 
-현재 포트폴리오 포함 정적 예시를 저장한다고 가정하면 첨삭 기록 1행, 문서 3행, 강점 8행(전체 2 + 문서별 2), 수정 제안 3행, 일관성 항목 2행, 비교 근거 4행이다. 실제 서비스에서는 예시 버튼이 기록을 생성하지 않는다.
+과거 포트폴리오 포함 더미 fixture는 첨삭 기록 1행, 문서 3행, 강점 8행, 수정 제안 3행, 일관성 항목 2행, 비교 근거 4행이다. 현재 실제 결과의 행 수는 생성 배열 크기에 따르며 강점이 비어 있으면 강점 행을 저장하지 않는다. 화면 예시 버튼은 기록을 생성하지 않는다.
 
 ## 저장 및 조회 흐름
 

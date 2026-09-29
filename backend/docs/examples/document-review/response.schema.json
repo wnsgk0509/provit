@@ -7,7 +7,7 @@
     "strengths": {
       "type": "array",
       "items": {
-        "type": "string"
+        "$ref": "#/$defs/strength"
       },
       "maxItems": 3
     },
@@ -67,7 +67,7 @@
         "strengths": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/strength"
           },
           "maxItems": 3
         },
@@ -257,13 +257,54 @@
         },
         "action": {
           "type": "string"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          },
+          "minItems": 0,
+          "maxItems": 3
         }
       },
       "required": [
         "category",
         "title",
+        "sources",
         "reason",
         "action"
+      ],
+      "additionalProperties": false
+    },
+    "strength": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "원문 근거로 인정한 직무 역량"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          },
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "reason": {
+          "type": "string",
+          "description": "인용한 행동·판단·검증 결과가 왜 강점인지 설명"
+        },
+        "suggestion": {
+          "type": "string",
+          "description": "사실을 보존한 실제 유지·개선 문장"
+        }
+      },
+      "required": [
+        "title",
+        "sources",
+        "reason",
+        "suggestion"
       ],
       "additionalProperties": false
     }

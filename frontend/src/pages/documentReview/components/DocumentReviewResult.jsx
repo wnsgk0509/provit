@@ -2,6 +2,7 @@ import { CheckCircle2, ChevronDown, ClipboardCheck, Layers, LoaderCircle, Sparkl
 import { createBundleReviewExample } from '../reviewExamples';
 import { REVIEW_MODE_OPTIONS } from '../documentReviewConfig';
 import CareerPreparation from './CareerPreparation';
+import ReviewEvidence from './ReviewEvidence';
 
 const DOCUMENT_RESULTS = [
     { key: 'resume', label: '이력서' },
@@ -101,19 +102,7 @@ function DocumentReviewResult({ includePortfolio, result, isSubmitting, error, s
                                         {consistencyLabels[issue.type] || '확인 필요'}
                                     </span>
                                     <h4>{issue.title}</h4>
-                                    <div className="review-consistency-sources">
-                                        {issue.sources.map((source, sourceIndex) => (
-                                            <section
-                                                key={source.documentType + ':' + source.section + ':' + sourceIndex}
-                                            >
-                                                <strong>
-                                                    {documentLabels[source.documentType] || source.documentType} ·{' '}
-                                                    {source.section}
-                                                </strong>
-                                                <p>{source.text}</p>
-                                            </section>
-                                        ))}
-                                    </div>
+                                    <ReviewEvidence sources={issue.sources} />
                                     <p className="review-reason">
                                         <strong>확인·개선 방향</strong>
                                         {issue.recommendation}
@@ -174,11 +163,27 @@ function ReviewStrengths({ strengths }) {
             <h3>
                 <CheckCircle2 size={18} aria-hidden="true" /> 잘 드러난 강점
             </h3>
-            <ul>
-                {strengths.map((strength) => (
-                    <li key={strength}>{strength}</li>
-                ))}
-            </ul>
+            <div className="review-strength-items">
+                {strengths.map((strength, index) => {
+                    const item = typeof strength === 'string' ? { title: strength } : strength;
+                    return (
+                        <article className="review-strength-item" key={`${item.title}:${index}`}>
+                            <h4>{item.title}</h4>
+                            <ReviewEvidence sources={item.sources} />
+                            {item.reason && <p className="review-reason"><strong>강점 판단 이유</strong>{item.reason}</p>}
+                            {item.suggestion && (
+                                <div className="review-strength-suggestion">
+                                    <strong>유지·개선 문장</strong>
+                                    <p>{item.suggestion}</p>
+                                </div>
+                            )}
+                            {!item.sources?.length && !item.reason && !item.suggestion && (
+                                <p className="review-field-hint">이전 기록에는 강점의 원문 근거와 판단 이유가 저장되어 있지 않습니다.</p>
+                            )}
+                        </article>
+                    );
+                })}
+            </div>
         </section>
     );
 }
@@ -193,10 +198,10 @@ function ReviewDocumentFeedback({ feedback, isExample }) {
                     <article className="review-improvement" key={item.section + ':' + index}>
                         <span className="review-section-label">{item.section}</span>
                         <h3>{item.title}</h3>
-                        <p className="review-issue">{item.issue}</p>
+                        <p className="review-reason"><strong>보완 판단 이유</strong>{item.issue}</p>
                         <div className="review-comparison">
                             <section>
-                                <h4>원문{isExample ? ' 예시' : ''}</h4>
+                                <h4>판단 근거 원문{isExample ? ' 예시' : ''}</h4>
                                 <p>{item.original}</p>
                             </section>
                             <section className="review-suggestion">
@@ -207,7 +212,7 @@ function ReviewDocumentFeedback({ feedback, isExample }) {
                             </section>
                         </div>
                         <p className="review-reason">
-                            <strong>수정 이유</strong>
+                            <strong>수정 이유·보완 방법</strong>
                             {item.reason}
                         </p>
                     </article>

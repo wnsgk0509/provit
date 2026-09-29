@@ -1,6 +1,6 @@
 # 통합 첨삭 단일 OpenAI 요청 설계와 예시
 
-2026-09-29 실제 OpenAI Responses API 연결을 구현했다. 모델은 `gpt-6-sol`, `reasoning.effort`는 `medium`으로 고정하며 첨삭과 취업 준비 추천을 한 번의 생성 응답에서 받아 DB에 저장한다. 예시 파일의 응답은 직접 작성한 샘플이다. 응답 구조는 버전 2다.
+2026-09-29 실제 OpenAI Responses API 연결을 구현했다. 모델은 `gpt-6-sol`, `reasoning.effort`는 `medium`으로 고정하며 첨삭과 취업 준비 추천을 한 번의 생성 응답에서 받아 DB에 저장한다. 예시 파일의 응답은 직접 작성한 샘플이다. 응답 구조는 원문 근거와 판단 이유를 포함한 버전 3다.
 
 ## 1. 현재 구현 확인
 
@@ -115,7 +115,7 @@ Content-Type: application/json
   "text": {
     "format": {
       "type": "json_schema",
-      "name": "document_review_v2",
+      "name": "document_review_v3",
       "strict": true,
       "schema": "<응답 스키마 객체: 실제 요청에서는 문자열이 아님>"
     }
@@ -174,11 +174,15 @@ Responses API는 Base64 PDF 입력을 지원하며 비전 모델에서 PDF 텍�
 
 작성한 응답 예시는 [response.example.json](examples/document-review/response.example.json)이다. 지원 동기의 원문과 수정 문장, 성과를 날조하지 않는 보완 표시, 이력서의 재직 날짜와 자기소개서의 2년 경력 표현 비교를 포함한다.
 
+강점은 문자열 대신 `{ title, sources, reason, suggestion }` 객체로 생성한다. `sources[]`는 실제 원문과 문서 종류·항목·PDF 페이지를, `reason`은 해당 원문이 왜 강점인지, `suggestion`은 사실을 보존한 유지·개선 문장을 담는다. 강점 원문은 최소 1개가 필요하고 문서별 강점은 해당 문서만 인용한다. 독립적인 강점 객체 예시는 [strength.example.json](examples/document-review/strength.example.json)에 있다. 이 파일의 문장은 가상의 설명용 원문이며 `input.example.json`의 약한 문장에 강점을 억지로 부여한 결과가 아니다.
+
+보완 항목은 기존 `original → issue → suggestion → reason`으로 판단 근거 원문, 부족한 정보와 영향, 실제 수정안, 수정 이유·보완할 실제 근거를 반환한다. 원문이 비어 있으면 가짜 문장을 만들지 않고 summary에서 작성 필요를 안내한다. 취업 준비 추천에는 관련 배경 원문인 `sources[]`도 포함한다. 서류에 없는 역량 자체를 인용할 수는 없으므로 관련 문장이 없으면 빈 배열과 이유의 한계 설명을 허용하며 미보유의 증거로 단정하지 않는다.
+
 모델이 생성하는 최상위 필드는 다음 다섯 개다. `careerPreparation`은 현재 서류에 언급되지 않은 경험·기술·자격증·스펙의 준비 제안이며 현재 보유 사실이나 원문 수정안으로 취급하지 않는다. 이력서의 지원 직군·직무와 추천 이유·실행 방법을 함께 반환한다.
 
 ```text
 summary
-strengths[]
+strengths[]: { title, sources[], reason, suggestion }
 documentReviews
   resume: { summary, strengths[], improvements[] }
   coverLetter: { summary, strengths[], improvements[] }
@@ -187,7 +191,8 @@ consistencyIssues[]
   { type, title, recommendation, sources[] }
 careerPreparation
   { occupationCode, occupationName, jobCode, jobName, summary, coverageNote, recommendations[] }
-  recommendations[]: { category, title, reason, action }
+  recommendations[]: { category, title, sources[], reason, action }
+sources[]: { documentType, section, text, pageNumber }
 ```
 
 응답 예시 파일은 OpenAI HTTP 응답 전체가 아니라 모델이 생성한 JSON 본문이다. 서버는 HTTP 200 및 응답 `status == "completed"`를 확인한 후, `output` 배열의 `type == "message"` 항목 안에서 `content[].type == "output_text"`인 텍스트를 모아 JSON으로 파싱한다. `output[0]`이 메시지라고 가정하지 않는다. REST 응답 최상위에 SDK 편의 속성인 `output_text`가 있다고 가정하지 않는다. `refusal`이 있거나 텍스트가 없으면 실패다.
@@ -198,14 +203,14 @@ careerPreparation
 
 API 키는 기존 `src/main/resources/api.properties`의 `api.openai.key`를 사용하며 브라우저에 전달하지 않는다. 프롬프트와 스키마의 실행 원본은 `src/main/resources/document-review/prompt.txt`, `response-schema.json`이다. WAR classpath에서 읽으며 문서 폴더에 의존하지 않는다. 프롬프트를 변경하면 문서 예시도 함께 변경하고 버전을 갱신한다.
 
-현재 `PROMPT_VERSION`은 `document-review-v3`이며 응답 구조는 버전 2를 유지한다. 단순 기술 나열·열정·문서 작성 사실을 강점으로 인정하지 않는다. 직무 관련성, 본인의 구체적 역할·행동·판단, 검증 결과·효과·설계 근거가 함께 확인될 때만 강점을 작성한다. 전체·문서별 strengths가 비면 해당 화면 영역을 숨긴다. 요약과 개선 제안은 구체적으로 빠진 정보, 역량 판단이 어려운 이유, 실제 확인할 근거와 보완 순서를 우선 설명한다. 명시적인 성공 기준을 제시하는 [OpenAI Docs의 추론 모델 프롬프트 지침](https://developers.openai.com/api/docs/guides/reasoning-best-practices)을 참고했다.
+현재 `PROMPT_VERSION`은 `document-review-v4`, `RESPONSE_VERSION`은 3, 스키마 이름은 `document_review_v3`이다. 단순 기술 나열·열정·문서 작성 사실을 강점으로 인정하지 않는다. 직무 관련성, 본인의 구체적 역할·행동·판단, 검증 결과·효과·설계 근거가 함께 확인될 때만 강점을 작성한다. 전체·문서별 strengths가 비면 해당 화면 영역을 숨긴다. 강점은 원문·판단 이유·유지 또는 개선 문장을 표시하고, 보완 항목도 원문과 이유·수정 방향을 함께 표시한다. 명시적인 성공 기준을 제시하는 [OpenAI Docs의 추론 모델 프롬프트 지침](https://developers.openai.com/api/docs/guides/reasoning-best-practices)을 참고했다.
 
 취업 준비 보강은 기존 경험의 설명·README·포트폴리오 구성 보완과 구분한다. 경험은 새로운 문제 해결 활동과 수행 경험, 기술은 구체적인 기술·개념의 숙련, 자격증은 공식 자격·인증 취득, 기타 객관적 스펙은 자격증 외 학위·공인 어학 성적·공식 수상 실적으로 정의한다. 같은 목표를 범주만 바꿔 중복 추천하지 않고 모든 범주를 채우지 않는다. 이미 언급된 역량은 첨삭에서 근거를 보완하며 새 역량만 별도 보강 항목으로 추천한다. reason은 서류에서 확인되지 않는 수행 범위와 직무상 이유, action은 실습·확인 방법·완료 기준을 작성한다. 자격증·기타 스펙은 직접 관련성을 설명할 수 있을 때만 선택적으로 제안한다. 이 기준은 신규 생성에 적용하며 기존 저장 결과를 재작성하지 않는다.
 
 `createReview()`는 `NOT_SUPPORTED`이고 요청 저장·결과 저장·실패 갱신은 각각 `REQUIRES_NEW`인 TransactionTemplate로 실행한다. 외부 HTTP 대기 중 DB 트랜잭션을 유지하지 않는다. 결과 저장은 부모 행을 `FOR UPDATE`로 잠그고 PROCESSING을 확인한 뒤 자식 행 전체와 COMPLETED를 한 번에 커밋한다. 저장 실패 시 부분 결과를 롤백하고 이미 보관한 요청·원문에 FAILED/ERROR_MESSAGE/FINISHED_AT을 기록한다.
 
-서버 검증기는 `$ref`, `anyOf`, nullable, 타입·필수 필드·추가 필드·배열 제한, 문자열 분량, 선택 문서, 이력서 직군·직무 일치, 추천 제목 중복을 확인한다. 이력서·자기소개서의 original과 sources.text는 실제 입력 텍스트 필드의 연속 인용이어야 한다. mismatch는 두 종류 이상의 문서를 요구하고 일반 문서 pageNumber는 null, PDF 페이지는 실제 범위 안이어야 한다. PDF는 이미지로도 읽히므로 인용 문자열의 로컬 텍스트 일치는 강제하지 않는다. PDF 인용의 사실성, 추천의 부재 여부와 의미적 관련성은 프롬프트에 맡기며 서버 검증이 모든 의미를 보장하지 않는다.
+서버 검증기는 `$ref`, `anyOf`, nullable, 타입·필수 필드·추가 필드·배열 제한, 문자열 분량, 선택 문서, 이력서 직군·직무 일치, 추천 제목 중복을 확인한다. 이력서·자기소개서의 original과 모든 강점·일관성·추천 sources.text는 실제 입력 텍스트 필드의 연속 인용이어야 한다. 강점은 원문 1~3개와 비어 있지 않은 이유·수정안을 요구하고 문서별 강점이 다른 문서를 인용하면 거부한다. mismatch는 두 종류 이상의 문서를 요구하고 일반 문서 pageNumber는 null, PDF 페이지는 실제 범위 안이어야 한다. PDF는 이미지로도 읽히므로 인용 문자열의 로컬 텍스트 일치는 강제하지 않는다. PDF 인용의 사실성, 추천의 부재 여부와 의미적 관련성은 프롬프트에 맡기며 서버 검증이 모든 의미를 보장하지 않는다.
 
 API 연결 제한은 10초, 전체 응답 제한은 120초, 프론트 POST 제한은 180초다. 배포 환경의 프록시 대기 제한도 180초 이상으로 맞춘다. 자동 재시도·JSON 복구 호출·모델 대체는 하지 않는다. 실패 응답은 `{ data: { message, reviewNum }, ... }` 형태이며 400(PDF 오류), 502(응답·검증 오류), 503(인증·한도·설정), 504(대기 초과), 500(DB 결과 저장 오류)를 사용한다. 실패·처리 중 기록은 완료 피드백과 구분하여 화면에 상태와 메시지를 표시한다.
 
-프로세스 강제 종료나 DB 장애로 실패 갱신도 불가능한 경우 PROCESSING이 남을 수 있다. 이 구현은 자동 복구·재생성을 수행하지 않으며 관리자가 상태를 확인해야 한다. 기존 JSON 컬럼 마이그레이션 외에 새로운 DDL은 필요하지 않다. 변경된 백엔드는 Tomcat에서 재빌드·재게시해야 한다.
+프로세스 강제 종료나 DB 장애로 실패 갱신도 불가능한 경우 PROCESSING이 남을 수 있다. 이 구현은 자동 복구·재생성을 수행하지 않으며 관리자가 상태를 확인해야 한다. 기존 DB에는 [강점 근거 마이그레이션](../src/main/resources/sql_query/migrate_document_review_evidence.sql)을 백엔드 게시 전에 적용한다. 로컬 Oracle에는 적용·반복 실행과 기존 기록 보존을 확인했다. 변경된 백엔드는 Tomcat에서 재빌드·재게시해야 한다. 과거 강점 문자열은 제목과 비어 있는 근거 필드를 가진 객체로 조회하며 과거에 없던 원문·이유·수정안을 만들어 채우지 않는다. 화면은 과거 문자열·제목만 있는 객체도 표시한다.

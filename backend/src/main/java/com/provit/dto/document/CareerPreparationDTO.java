@@ -20,5 +20,6 @@ public class CareerPreparationDTO {
         private String title;
         private String reason;
         private String action;
+        private List<DocumentReviewResultDTO.Source> sources = new ArrayList<>();
     }
 }

@@ -918,6 +918,46 @@
     font-size: 12px;
     line-height: 1.9;
 }
+.review-strength-items {
+    display: grid;
+    gap: 14px;
+    margin-top: 12px;
+}
+.review-strength-item {
+    min-width: 0;
+    border: 1px solid #dce9e2;
+    border-radius: 10px;
+    padding: 16px;
+}
+.review-strength-item h4 {
+    margin: 0 0 12px;
+    color: #438069;
+    font-size: 14px;
+}
+.review-evidence-heading {
+    margin: 12px 0 7px;
+    color: #596273;
+    font-size: 11px;
+    font-weight: 700;
+}
+.review-strength-suggestion {
+    margin-top: 12px;
+    border-radius: 9px;
+    padding: 14px;
+    background: #f6f8ff;
+}
+.review-strength-suggestion strong {
+    color: #4964bc;
+    font-size: 11px;
+}
+.review-strength-suggestion p {
+    margin: 7px 0 0;
+    color: #596273;
+    font-size: 13px;
+    line-height: 1.9;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
 .review-improvement {
     margin-top: 22px;
     border-top: 1px solid #e8ecf3;

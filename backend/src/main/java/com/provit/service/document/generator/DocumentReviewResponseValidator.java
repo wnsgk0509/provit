@@ -9,13 +9,13 @@ final class DocumentReviewResponseValidator {
     void validate(JsonNode result, JsonNode schema, JsonNode input, int pages) {
         if (!matches(result, schema, schema)) reject();
         text(result, "summary", 500);
-        strengths(result);
         var documents = input.path("documents");
+        strengths(result, documents, pages, null);
         for (String key : new String[] { "resume", "coverLetter", "portfolio" }) {
             var feedback = result.path("documentReviews").path(key);
             if (feedback.isNull()) continue;
             text(feedback, "summary", 400);
-            strengths(feedback);
+            strengths(feedback, documents, pages, "coverLetter".equals(key) ? "cover-letter" : key);
             for (var improvement : feedback.path("improvements")) {
                 text(improvement, "section", 500); text(improvement, "title", 500);
                 text(improvement, "issue", 300); text(improvement, "original", 600);
@@ -27,16 +27,7 @@ final class DocumentReviewResponseValidator {
             text(issue, "title", 500); text(issue, "recommendation", 400);
             var types = new HashSet<String>();
             for (var source : issue.path("sources")) {
-                text(source, "section", 500); text(source, "text", 600);
-                String type = source.path("documentType").asText();
-                types.add(type);
-                var page = source.path("pageNumber");
-                if ("portfolio".equals(type)) {
-                    if (pages < 1 || (!page.isNull() && page.asInt() > pages)) reject();
-                } else {
-                    if (!page.isNull()) reject();
-                    if (!contains(documents.path("cover-letter".equals(type) ? "coverLetter" : type), source.path("text").asText())) reject();
-                }
+                types.add(source(source, documents, pages, null));
             }
             if ("mismatch".equals(issue.path("type").asText()) && types.size() < 2) reject();
         }
@@ -51,11 +42,30 @@ final class DocumentReviewResponseValidator {
         for (var recommendation : preparation.path("recommendations")) {
             text(recommendation, "title", 150); text(recommendation, "reason", 300); text(recommendation, "action", 400);
             if (!titles.add(recommendation.path("title").asText().strip().toLowerCase(java.util.Locale.ROOT))) reject();
+            for (var evidence : recommendation.path("sources")) source(evidence, documents, pages, null);
         }
     }
 
-    private void strengths(JsonNode node) {
-        for (var strength : node.path("strengths")) if (strength.asText().isBlank() || strength.asText().length() > 150) reject();
+    private void strengths(JsonNode node, JsonNode documents, int pages, String documentType) {
+        for (var strength : node.path("strengths")) {
+            text(strength, "title", 150); text(strength, "reason", 300); text(strength, "suggestion", 800);
+            for (var evidence : strength.path("sources")) source(evidence, documents, pages, documentType);
+        }
+    }
+
+    private String source(JsonNode source, JsonNode documents, int pages, String expectedType) {
+        text(source, "section", 500); text(source, "text", 600);
+        String type = source.path("documentType").asText();
+        if (expectedType != null && !expectedType.equals(type)) reject();
+        var document = documents.path("cover-letter".equals(type) ? "coverLetter" : type);
+        if (document.isMissingNode() || document.isNull()) reject();
+        var page = source.path("pageNumber");
+        if ("portfolio".equals(type)) {
+            if (pages < 1 || (!page.isNull() && page.asInt() > pages)) reject();
+        } else {
+            if (!page.isNull() || !contains(document, source.path("text").asText())) reject();
+        }
+        return type;
     }
 
     private void text(JsonNode node, String key, int max) {
