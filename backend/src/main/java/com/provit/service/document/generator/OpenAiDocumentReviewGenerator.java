@@ -25,7 +25,7 @@ import com.provit.service.document.DocumentReviewProcessingException;
 @Component
 public class OpenAiDocumentReviewGenerator implements DocumentReviewGenerator {
     public static final String MODEL = "gpt-6-sol";
-    public static final String PROMPT_VERSION = "document-review-v2";
+    public static final String PROMPT_VERSION = "document-review-v3";
     private final ObjectMapper mapper = new ObjectMapper().enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS,
             DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY);
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10))

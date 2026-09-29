@@ -85,7 +85,7 @@ public class OpenAiDocumentReviewGeneratorTest {
         assertFalse(input.toString().contains("userNum")); assertFalse(input.toString().contains("resumeNum"));
         assertEquals("null", sent.path("text").path("format").path("schema").path("properties")
                 .path("documentReviews").path("properties").path("portfolio").path("type").asText());
-        assertEquals(4, result.getCareerPreparation().getRecommendations().size());
+        assertEquals(3, result.getCareerPreparation().getRecommendations().size());
     }
 
     @Test

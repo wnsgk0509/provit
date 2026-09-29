@@ -168,6 +168,7 @@ function DocumentReviewResult({ includePortfolio, result, isSubmitting, error, s
 }
 
 function ReviewStrengths({ strengths }) {
+    if (!strengths?.length) return null;
     return (
         <section className="review-strengths">
             <h3>

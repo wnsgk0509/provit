@@ -1,8 +1,8 @@
 const categoryLabels = {
-    experience: '경험',
-    skill: '기술',
+    experience: '실무·프로젝트 경험',
+    skill: '기술 역량',
     certification: '자격증',
-    qualification: '스펙·결과물',
+    qualification: '기타 객관적 스펙',
 };
 
 function CareerPreparation({ preparation, isExample }) {
@@ -10,8 +10,8 @@ function CareerPreparation({ preparation, isExample }) {
         <section className="review-career-preparation" aria-labelledby="review-preparation-title">
             <div className="review-preparation-heading">
                 <div>
-                    <h3 id="review-preparation-title">직무별 취업 준비 추천</h3>
-                    <p>문장 첨삭과 별도로, 지원 분야에 맞는 경험·기술·자격증·스펙을 준비해 보세요.</p>
+                    <h3 id="review-preparation-title">직무별 취업 준비 보강 항목</h3>
+                    <p>서류에서 확인되지 않은 경험·기술·자격증·기타 객관적 스펙의 준비 방향입니다. 이미 보유했다면 실제 근거를 서류에 보완해 주세요.</p>
                 </div>
                 {isExample && <span className="review-example-badge">추천 예시</span>}
             </div>

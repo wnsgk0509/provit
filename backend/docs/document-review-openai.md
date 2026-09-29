@@ -198,6 +198,10 @@ careerPreparation
 
 API 키는 기존 `src/main/resources/api.properties`의 `api.openai.key`를 사용하며 브라우저에 전달하지 않는다. 프롬프트와 스키마의 실행 원본은 `src/main/resources/document-review/prompt.txt`, `response-schema.json`이다. WAR classpath에서 읽으며 문서 폴더에 의존하지 않는다. 프롬프트를 변경하면 문서 예시도 함께 변경하고 버전을 갱신한다.
 
+현재 `PROMPT_VERSION`은 `document-review-v3`이며 응답 구조는 버전 2를 유지한다. 단순 기술 나열·열정·문서 작성 사실을 강점으로 인정하지 않는다. 직무 관련성, 본인의 구체적 역할·행동·판단, 검증 결과·효과·설계 근거가 함께 확인될 때만 강점을 작성한다. 전체·문서별 strengths가 비면 해당 화면 영역을 숨긴다. 요약과 개선 제안은 구체적으로 빠진 정보, 역량 판단이 어려운 이유, 실제 확인할 근거와 보완 순서를 우선 설명한다. 명시적인 성공 기준을 제시하는 [OpenAI Docs의 추론 모델 프롬프트 지침](https://developers.openai.com/api/docs/guides/reasoning-best-practices)을 참고했다.
+
+취업 준비 보강은 기존 경험의 설명·README·포트폴리오 구성 보완과 구분한다. 경험은 새로운 문제 해결 활동과 수행 경험, 기술은 구체적인 기술·개념의 숙련, 자격증은 공식 자격·인증 취득, 기타 객관적 스펙은 자격증 외 학위·공인 어학 성적·공식 수상 실적으로 정의한다. 같은 목표를 범주만 바꿔 중복 추천하지 않고 모든 범주를 채우지 않는다. 이미 언급된 역량은 첨삭에서 근거를 보완하며 새 역량만 별도 보강 항목으로 추천한다. reason은 서류에서 확인되지 않는 수행 범위와 직무상 이유, action은 실습·확인 방법·완료 기준을 작성한다. 자격증·기타 스펙은 직접 관련성을 설명할 수 있을 때만 선택적으로 제안한다. 이 기준은 신규 생성에 적용하며 기존 저장 결과를 재작성하지 않는다.
+
 `createReview()`는 `NOT_SUPPORTED`이고 요청 저장·결과 저장·실패 갱신은 각각 `REQUIRES_NEW`인 TransactionTemplate로 실행한다. 외부 HTTP 대기 중 DB 트랜잭션을 유지하지 않는다. 결과 저장은 부모 행을 `FOR UPDATE`로 잠그고 PROCESSING을 확인한 뒤 자식 행 전체와 COMPLETED를 한 번에 커밋한다. 저장 실패 시 부분 결과를 롤백하고 이미 보관한 요청·원문에 FAILED/ERROR_MESSAGE/FINISHED_AT을 기록한다.
 
 서버 검증기는 `$ref`, `anyOf`, nullable, 타입·필수 필드·추가 필드·배열 제한, 문자열 분량, 선택 문서, 이력서 직군·직무 일치, 추천 제목 중복을 확인한다. 이력서·자기소개서의 original과 sources.text는 실제 입력 텍스트 필드의 연속 인용이어야 한다. mismatch는 두 종류 이상의 문서를 요구하고 일반 문서 pageNumber는 null, PDF 페이지는 실제 범위 안이어야 한다. PDF는 이미지로도 읽히므로 인용 문자열의 로컬 텍스트 일치는 강제하지 않는다. PDF 인용의 사실성, 추천의 부재 여부와 의미적 관련성은 프롬프트에 맡기며 서버 검증이 모든 의미를 보장하지 않는다.
