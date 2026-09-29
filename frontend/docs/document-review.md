@@ -90,4 +90,4 @@
 
 문서별 결과는 `summary`, `strengths`, `improvements`의 같은 구조를 사용한다. 포트폴리오를 선택하지 않으면 해당 결과는 `null`이고 일관성 근거에도 포트폴리오가 포함되지 않아야 한다. 일관성 항목은 `mismatch`(내용 불일치), `missingEvidence`(근거 보완), `needsConfirmation`(확인 필요)로 구분한다. 포트폴리오 근거에는 페이지 정보를 포함할 수 있다. 비교 항목이 없으면 `consistencyIssues`는 빈 배열이다.
 
-`reviewMode`는 `comprehensive`, `expression`, `consistency`, `jobFit`, `evidence`, `custom` 중 하나다. 기존 체크박스의 `focusAreas` 배열은 사용하지 않는다. 직접 입력 시 `customCriteria`는 앞뒤 공백을 제거한 필수 문자열이며 최대 200자다. 다른 기준이면 `customCriteria`는 `null`이다. 추가 요청은 200자 이하다. 서버는 필수 문서·문서 소유권·입력 크기·응답 형식을 검증해야 한다. 통합 첨삭 기록과 결과의 DB 저장은 추후 백엔드 구현 범위이며, 앞서 작성한 DB 설계의 `FOCUS_AREAS_JSON`도 구현 시 단일 기준과 직접 입력 내용을 저장하는 구조에 맞춰 변경해야 한다.
+`reviewMode`는 `comprehensive`, `expression`, `consistency`, `jobFit`, `evidence`, `custom` 중 하나다. 기존 체크박스의 `focusAreas` 배열은 사용하지 않는다. 직접 입력 시 `customCriteria`는 앞뒤 공백을 제거한 필수 문자열이며 최대 200자다. 다른 기준이면 `customCriteria`는 `null`이다. 추가 요청은 200자 이하다. 서버는 필수 문서·문서 소유권·입력 크기·응답 형식을 검증해야 한다. 첨삭 전용 DDL은 이 요청에 맞춰 `REVIEW_MODE`, `CUSTOM_CRITERIA`, `INSTRUCTIONS`를 정의한다. DB 적용과 통합 첨삭 기록·결과 저장 API는 추후 백엔드 구현 범위다.
