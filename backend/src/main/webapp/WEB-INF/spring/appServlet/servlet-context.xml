@@ -11,7 +11,10 @@
     <!-- 1. Spring MVC 애노테이션 활성화 (Jackson JSON 변환 등 자동 처리) -->
     <annotation-driven>
         <argument-resolvers>
-            <beans:bean class="com.provit.common.resolver.LoginUserArgumentResolver" />
+            <beans:bean class="com.provit.common.resolver.LoginUserArgumentResolver">
+                <beans:constructor-arg ref="jwtProvider" />
+                <beans:constructor-arg ref="authCookieService" />
+            </beans:bean>
         </argument-resolvers>
     </annotation-driven>
 
@@ -26,7 +29,7 @@
     <!-- 3. 개발 환경 CORS 전역 설정 (프론트엔드 localhost:5173 통신 허용) -->
     <cors>
         <mapping path="/api/**"
-                 allowed-origin-patterns="*"
+                 allowed-origins="http://localhost:5173, http://192.168.0.121:5173"
                  allowed-methods="GET, POST, PUT, DELETE, PATCH, OPTIONS"
                  allowed-headers="*"
                  allow-credentials="true"

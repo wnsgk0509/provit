@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,8 +15,7 @@ import lombok.Setter;
 @Builder
 public class LoginResponseDTO {
 
+    @JsonIgnore
     private String accessToken;
-    private String tokenType;
-    private long expiresIn;
     private UserResponseDTO user;
 }
