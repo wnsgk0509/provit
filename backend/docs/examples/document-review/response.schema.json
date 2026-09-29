@@ -1,0 +1,99 @@
+{
+  "type": "object",
+  "properties": {
+    "summary": { "type": "string" },
+    "strengths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "maxItems": 3
+    },
+    "documentReviews": {
+      "type": "object",
+      "properties": {
+        "resume": { "$ref": "#/$defs/feedback" },
+        "coverLetter": { "$ref": "#/$defs/feedback" },
+        "portfolio": {
+          "anyOf": [
+            { "$ref": "#/$defs/feedback" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "required": ["resume", "coverLetter", "portfolio"],
+      "additionalProperties": false
+    },
+    "consistencyIssues": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/consistency" },
+      "maxItems": 5
+    }
+  },
+  "required": ["summary", "strengths", "documentReviews", "consistencyIssues"],
+  "additionalProperties": false,
+  "$defs": {
+    "feedback": {
+      "type": "object",
+      "properties": {
+        "summary": { "type": "string" },
+        "strengths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "maxItems": 3
+        },
+        "improvements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/improvement" },
+          "maxItems": 5
+        }
+      },
+      "required": ["summary", "strengths", "improvements"],
+      "additionalProperties": false
+    },
+    "improvement": {
+      "type": "object",
+      "properties": {
+        "section": { "type": "string" },
+        "title": { "type": "string" },
+        "issue": { "type": "string" },
+        "original": { "type": "string" },
+        "suggestion": { "type": "string" },
+        "reason": { "type": "string" }
+      },
+      "required": ["section", "title", "issue", "original", "suggestion", "reason"],
+      "additionalProperties": false
+    },
+    "consistency": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["mismatch", "missingEvidence", "needsConfirmation"]
+        },
+        "title": { "type": "string" },
+        "recommendation": { "type": "string" },
+        "sources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/source" },
+          "minItems": 1,
+          "maxItems": 3
+        }
+      },
+      "required": ["type", "title", "recommendation", "sources"],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "documentType": {
+          "type": "string",
+          "enum": ["resume", "cover-letter", "portfolio"]
+        },
+        "section": { "type": "string" },
+        "text": { "type": "string" },
+        "pageNumber": { "type": ["integer", "null"], "minimum": 1 }
+      },
+      "required": ["documentType", "section", "text", "pageNumber"],
+      "additionalProperties": false
+    }
+  }
+}
