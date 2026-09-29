@@ -34,8 +34,10 @@
    - [5.4 T_COMMENT (게시글 댓글)](#54-t_comment-게시글-댓글)
    - [5.5 T_STUDY (스터디 모집 방)](#55-t_study-스터디-모집-방)
    - [5.6 T_STUDY_MEMBER (스터디 참여자 명단)](#56-t_study_member-스터디-참여자-명단)
+   - [5.7 T_REPORT (신고 내역)](#57-t_report-신고-내역)
 
 ---
+
 
 # 1. 회원 및 직무 도메인
 
@@ -476,3 +478,27 @@
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|
 | 1 | PK_T_STUDY_MEMBER_IDX | PK | Unique | STUDY_NUM, USER_NUM |
+
+---
+
+### 5.7 T_REPORT (신고 내역)
+- **테이블 물리명:** `T_REPORT`
+- **테이블 논리명:** 유저 신고 내역
+- **설명:** 부적절한 게시글 및 댓글에 대한 유저의 신고 내역과 관리자의 처리 상태 관리
+- **시퀀스:** `SEQ_T_REPORT`
+
+| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
+|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
+| 1 | REPORT_NUM | 신고 번호 | NUMBER | 18 | PK | NOT NULL | SEQ_T_REPORT.NEXTVAL | 신고 고유 식별 번호 | | 시퀀스 자동 채번 |
+| 2 | REPORTER_NUM | 신고자 번호 | NUMBER | 9 | | NOT NULL | | 신고를 접수한 회원 번호 | T_USER(USER_NUM) | ON DELETE SET NULL |
+| 3 | TARGET_TYPE | 신고 대상 타입 | VARCHAR2 | 20 | | NOT NULL | | 신고 대상 구분 | | 'POST' 또는 'COMMENT' |
+| 4 | TARGET_NUM | 신고 대상 번호 | NUMBER | 18 | | NOT NULL | | 신고 대상 게시글/댓글 번호 | | 다형성 (외래키 미지정) |
+| 5 | REPORT_REASON | 신고 사유 | VARCHAR2 | 100 | | NOT NULL | | 유저가 선택한 신고 사유 | | 예: 'SPAM', 'ABUSE' 등 |
+| 6 | REPORT_STATUS | 처리 상태 | VARCHAR2 | 20 | | NOT NULL | 'PENDING' | 관리자 처리 상태 | | 'PENDING', 'BLIND', 'REJECT' |
+| 7 | REPORT_DATE | 신고일시 | DATE | | | NOT NULL | SYSDATE | 신고 접수 일시 | | |
+
+| no | Index name | Index type | Unique | 구성 컬럼 |
+|:--:|:---|:--:|:--:|:---|
+| 1 | PK_T_REPORT_IDX | PK | Unique | REPORT_NUM |
+| 2 | IDX_REPORT_STATUS | Index | Non-Unique | REPORT_STATUS |
+| 3 | IDX_REPORT_TARGET | Index | Non-Unique | TARGET_TYPE, TARGET_NUM |

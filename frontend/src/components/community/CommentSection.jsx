@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchComments, createComment, updateComment, deleteComment } from '../../api/commentApi';
 import { useAuth } from '../../context/AuthContext';
+import ReportModal from './ReportModal';
 
 function CommentSection({ postNum }) {
     const { user } = useAuth();
@@ -16,6 +17,9 @@ function CommentSection({ postNum }) {
     // 대댓글(답글) 작성 폼 상태
     const [replyingTo, setReplyingTo] = useState(null); // commentNum
     const [replyContent, setReplyContent] = useState('');
+
+    // 신고 모달 상태
+    const [reportTargetId, setReportTargetId] = useState(null);
 
     useEffect(() => {
         loadComments();
@@ -209,6 +213,11 @@ function CommentSection({ postNum }) {
                                                     <button className="btn btn-sm btn-link text-danger text-decoration-none p-0" onClick={() => handleDelete(comment.commentNum)}>삭제</button>
                                                 </>
                                             )}
+                                            {user && user.userNum !== comment.userNum && (
+                                                <button className="btn btn-sm btn-link text-danger text-decoration-none p-0" onClick={() => setReportTargetId(comment.commentNum)}>
+                                                    신고
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -235,6 +244,13 @@ function CommentSection({ postNum }) {
                     })
                 )}
             </div>
+
+            <ReportModal 
+                show={reportTargetId !== null} 
+                onClose={() => setReportTargetId(null)} 
+                targetType="COMMENT" 
+                targetNum={reportTargetId} 
+            />
         </div>
     );
 }

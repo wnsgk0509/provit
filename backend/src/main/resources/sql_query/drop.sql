@@ -12,6 +12,7 @@
 -- ================================================================================
 
 -- 1-5. 커뮤니티 및 스터디 도메인 (자식 -> 부모 순)
+DROP TABLE T_REPORT CASCADE CONSTRAINTS PURGE;
 DROP TABLE T_STUDY_MEMBER CASCADE CONSTRAINTS PURGE;
 DROP TABLE T_STUDY CASCADE CONSTRAINTS PURGE;
 DROP TABLE T_COMMENT CASCADE CONSTRAINTS PURGE;
@@ -46,8 +47,10 @@ DROP TABLE T_FORTUNE_RECOMMEND CASCADE CONSTRAINTS PURGE;
 
 
 -- ================================================================================
--- 2. 시퀀스(Sequence) 삭제 (총 13개)
 -- ================================================================================
+-- 2. 시퀀스(Sequence) 삭제 (총 14개)
+-- ================================================================================
+DROP SEQUENCE SEQ_T_REPORT;
 DROP SEQUENCE SEQ_T_STUDY;
 DROP SEQUENCE SEQ_T_COMMENT;
 DROP SEQUENCE SEQ_T_POST;
