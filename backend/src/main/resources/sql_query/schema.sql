@@ -298,3 +298,14 @@ CREATE TABLE T_STUDY_MEMBER (
     STUDY_JOIN_DATE      DATE                DEFAULT SYSDATE NOT NULL,
     PRIMARY KEY (STUDY_NUM, USER_NUM)
 );
+
+-- ==========================================
+-- 6. 기초 데이터 (Seed Data) 삽입
+-- ==========================================
+
+-- T_CATEGORY 기본 게시판 카테고리 설정 (프론트엔드와 매핑)
+INSERT INTO T_CATEGORY (CATEGORY_NUM, CATEGORY_NAME) VALUES (1, '질문');
+INSERT INTO T_CATEGORY (CATEGORY_NUM, CATEGORY_NAME) VALUES (2, '정보');
+INSERT INTO T_CATEGORY (CATEGORY_NUM, CATEGORY_NAME) VALUES (3, '후기');
+COMMIT;
+
