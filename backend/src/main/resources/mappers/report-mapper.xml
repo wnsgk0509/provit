@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.provit.mapper.ReportMapper">
+
+    <!-- 중복 신고 체크 -->
+    <select id="checkDuplicateReport" parameterType="com.provit.dto.community.ReportDTO" resultType="int">
+        SELECT COUNT(*) 
+        FROM T_REPORT
+        WHERE REPORTER_NUM = #{reporterNum}
+          AND TARGET_TYPE = #{targetType}
+          AND TARGET_NUM = #{targetNum}
+    </select>
+
+    <!-- 신고 내역 등록 -->
+    <insert id="insertReport" parameterType="com.provit.dto.community.ReportDTO">
+        INSERT INTO T_REPORT (
+            REPORT_NUM, REPORTER_NUM, TARGET_TYPE, TARGET_NUM, REPORT_REASON, REPORT_STATUS, REPORT_DATE
+        ) VALUES (
+            SEQ_T_REPORT.NEXTVAL, #{reporterNum}, #{targetType}, #{targetNum}, #{reportReason}, 'PENDING', SYSDATE
+        )
+    </insert>
+
+</mapper>

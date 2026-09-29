@@ -84,3 +84,17 @@ export const togglePostLike = async (postNum) => {
         throw error;
     }
 };
+
+/**
+ * 게시글/댓글 신고 접수
+ * @param {Object} reportDto - 신고 데이터 { targetType, targetNum, reportReason }
+ */
+export const submitReport = async (reportDto) => {
+    try {
+        const response = await client.post('/community/report', reportDto);
+        return response.data;
+    } catch (error) {
+        console.error('신고 접수 실패:', error);
+        throw error;
+    }
+};

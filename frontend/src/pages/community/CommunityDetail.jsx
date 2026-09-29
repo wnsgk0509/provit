@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { fetchPostDetail, deletePost, togglePostLike } from '../../api/communityApi';
 import { useAuth } from '../../context/AuthContext';
 import CommentSection from '../../components/community/CommentSection';
+import ReportModal from '../../components/community/ReportModal';
 
 function CommunityDetail() {
     const { postNum } = useParams();
@@ -11,6 +12,7 @@ function CommunityDetail() {
     
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showReportModal, setShowReportModal] = useState(false);
 
     useEffect(() => {
         loadPostDetail();
@@ -71,6 +73,14 @@ function CommunityDetail() {
         }
     };
 
+    const handleReport = () => {
+        if (!user) {
+            alert('로그인 후 이용할 수 있습니다.');
+            return;
+        }
+        setShowReportModal(true);
+    };
+
     // 날짜 포맷팅 유틸 (YYYY-MM-DD HH:mm)
     const formatDateTime = (dateString) => {
         if (!dateString) return '';
@@ -113,7 +123,18 @@ function CommunityDetail() {
                             조회수 {post.viewCount}
                         </span>
                     </div>
-                    <h3 className="card-title fw-bold mb-3">{post.postTitle}</h3>
+                    <div className="d-flex justify-content-between align-items-start mb-3">
+                        <h3 className="card-title fw-bold mb-0">{post.postTitle}</h3>
+                        {!isAuthor && (
+                            <button 
+                                className="btn btn-sm btn-link text-muted text-decoration-none p-0" 
+                                onClick={handleReport}
+                                title="신고하기"
+                            >
+                                <i className="bi bi-exclamation-triangle-fill text-danger me-1"></i>신고
+                            </button>
+                        )}
+                    </div>
                     <div className="d-flex justify-content-between text-muted small">
                         <span><strong>{post.userNickname || '익명'}</strong></span>
                         <span>{formatDateTime(post.postDate)}</span>
@@ -166,6 +187,12 @@ function CommunityDetail() {
             {/* 댓글 영역 컴포넌트 마운트 */}
             <CommentSection postNum={postNum} />
 
+            <ReportModal 
+                show={showReportModal} 
+                onClose={() => setShowReportModal(false)} 
+                targetType="POST" 
+                targetNum={postNum} 
+            />
         </div>
     );
 }
