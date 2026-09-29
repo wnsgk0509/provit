@@ -355,14 +355,11 @@ public class AuthServiceImpl implements AuthService {
 
         // 5. JWT Access Token 발급
         String accessToken = jwtProvider.createToken(user);
-        long expiresIn = jwtProvider.getExpirationTime();
 
         log.info("회원 로그인 성공 (회원번호: {}, 이메일: {})", user.getUserNum(), user.getUserEmail());
 
         return LoginResponseDTO.builder()
                 .accessToken(accessToken)
-                .tokenType("Bearer")
-                .expiresIn(expiresIn)
                 .user(UserResponseDTO.from(user))
                 .build();
     }

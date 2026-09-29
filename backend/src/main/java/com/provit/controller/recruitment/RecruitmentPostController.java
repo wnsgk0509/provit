@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.provit.common.ResponseCode;
+import com.provit.common.auth.AuthCookieService;
 import com.provit.dto.recruitment.RecruitmentDTO;
 import com.provit.dto.recruitment.RecruitmentSearchDTO;
 import com.provit.dto.recruitment.UserRecommendResponseDTO;
@@ -32,11 +33,16 @@ public class RecruitmentPostController {
 
 	private final RecruitmentService recruitmentService;
 	private final JwtProvider jwtProvider;
+	private final AuthCookieService authCookieService;
 
 	@Autowired
-	public RecruitmentPostController(RecruitmentService recruitmentService, JwtProvider jwtProvider) {
+	public RecruitmentPostController(
+			RecruitmentService recruitmentService,
+			JwtProvider jwtProvider,
+			AuthCookieService authCookieService) {
 		this.recruitmentService = recruitmentService;
 		this.jwtProvider = jwtProvider;
+		this.authCookieService = authCookieService;
 	}
 
 	/**
@@ -136,12 +142,8 @@ public class RecruitmentPostController {
 	 * 요청 헤더의 JWT 토큰을 추출하여 ADMIN(관리자) 권한 보유 여부를 검증합니다.
 	 */
 	private boolean isAdmin(HttpServletRequest request) {
-		String authHeader = request.getHeader("Authorization");
-		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-			return false;
-		}
-
-		String token = authHeader.substring(7).trim();
+		String token = authCookieService.getAccessToken(request).orElse(null);
+		if (token == null) return false;
 		if (!jwtProvider.validateToken(token)) {
 			return false;
 		}
@@ -154,12 +156,8 @@ public class RecruitmentPostController {
 	 * 요청 헤더의 JWT 토큰에서 로그인 회원 식별 번호(USER_NUM)를 추출합니다.
 	 */
 	private Long getAuthenticatedUserNum(HttpServletRequest request) {
-		String authHeader = request.getHeader("Authorization");
-		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-			return null;
-		}
-
-		String token = authHeader.substring(7).trim();
+		String token = authCookieService.getAccessToken(request).orElse(null);
+		if (token == null) return null;
 		if (!jwtProvider.validateToken(token)) {
 			return null;
 		}

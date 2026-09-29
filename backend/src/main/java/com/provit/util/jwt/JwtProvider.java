@@ -65,9 +65,6 @@ public class JwtProvider {
 
         return Jwts.builder()
                 .subject(String.valueOf(user.getUserNum()))
-                .claim("email", user.getUserEmail())
-                .claim("name", user.getUserName())
-                .claim("nickname", user.getUserNickname())
                 .claim("role", user.getUserType() != null ? user.getUserType() : "USER")
                 // DB의 버전과 다르면 비밀번호 변경·탈퇴 전 발급된 토큰으로 판단한다.
                 .claim("tokenVersion", user.getUserTokenVersion() != null ? user.getUserTokenVersion() : 0)
