@@ -4,7 +4,19 @@
 
 DDL: [document_review_schema.sql](../src/main/resources/sql_query/document_review_schema.sql). 기존 `T_USER`가 있는 Oracle 19c 스키마에 한 번 적용하는 별도 스크립트다. 기존 `schema.sql`과 `drop.sql`에는 통합하지 않았다. 2026-09-29 로컬 DB에서 6개 테이블·5개 시퀀스와 200자 입력 컬럼을 확인했다. 이미 적용한 DB에 CREATE 스크립트를 다시 실행하지 않는다.
 
-현재 구현은 **AI 호출 없이 서버의 고정 예시 응답을 저장하는 더미 모드**다. 선택한 문서와 요청 설정은 실제 사용자 데이터이며 결과의 원문·피드백·비교 근거는 예시다. `MODEL_NAME = 'dummy-document-review-v1'`, `PROMPT_VERSION = 'dummy-v1'`로 출처를 기록하고 응답의 `resultSource = 'DUMMY'` 및 화면 안내로 구분한다. 기준과 추가 요청은 저장하지만 더미 피드백을 변경하지 않는다.
+현재 구현은 **AI 호출 없이 첨삭 예시 응답과 직무별 더미 추천을 저장하는 모드**다. 선택한 문서와 요청 설정은 실제 사용자 데이터이며 첨삭의 원문·피드백·비교 근거는 고정 예시다. `MODEL_NAME = 'dummy-document-review-v2'`, `PROMPT_VERSION = 'dummy-v2'`, `RESPONSE_VERSION = 2`로 출처를 기록하고 응답의 `resultSource = 'DUMMY'` 및 화면 안내로 구분한다. 기준과 추가 요청은 저장하지만 더미 첨삭 피드백을 변경하지 않는다. 별도 `careerPreparation` 추천은 이력서의 지원 직군·직무로 후보를 고르고 실제 서류 텍스트에 언급된 항목을 제외한다.
+
+기존 DB에는 [migrate_document_review_preparation.sql](../src/main/resources/sql_query/migrate_document_review_preparation.sql)을 적용한다. `T_DOCUMENT_REVIEW.CAREER_PREPARATION_JSON` CLOB 컬럼과 JSON CHECK 제약만 추가하며 반복 실행할 수 있다. 신규 DB의 첨삭 DDL에는 이미 포함되어 있다. 기존 기록은 컬럼이 NULL인 채 유지하고 상세 응답의 `careerPreparation`도 null로 반환한다.
+
+2026-09-29 프로젝트에 설정된 로컬 Oracle에 이 마이그레이션을 적용했고 반복 실행, CLOB 타입, JSON 제약과 기존 기록 수 보존을 확인했다. 단위·인증/검증·격리 Oracle 저장 테스트 16개, 프론트 빌드와 변경 파일 ESLint, 추천 화면의 예시·저장 결과·과거 NULL·빈 배열 렌더링을 검증했다. 실행 중인 Tomcat에는 수정한 백엔드의 재빌드·재게시가 필요하다.
+
+## 별도 취업 준비 추천
+
+`careerPreparation`은 첨삭과 구분한 응답이다. 당시 이력서의 `occupationCode`, `occupationName`, `jobCode`, `jobName`과 `summary`, `coverageNote`, `recommendations[]`를 JSON 전체로 부모 기록에 보관한다. 추천 항목은 `category`(experience, skill, certification, qualification), `title`, `reason`, `action`으로 구성한다. MyBatis가 CLOB으로 저장·조회하며 별도 테이블이나 DAO는 추가하지 않았다. 현재 클라이언트는 추천 결과를 전송하지 않으며 서버가 직접 구성한다.
+
+더미 생성기는 백엔드, 프론트엔드, 데이터, 인프라 직무 이름별 후보를 사용한다. 그 외에는 직무에 특정 기술·자격을 임의로 적용하지 않고 일반적인 준비 예시를 사용한다. 직군·직무 이름이 모두 없으면 추천을 비운다. 이력서·자기소개서·문서 제목과 PDFBox로 추출 가능한 PDF 텍스트에 후보 키워드가 있으면 제외한다. 이미지 속 텍스트·동의어·부정 표현까지 판단하는 AI 분석은 아니며 PDF를 읽지 못한 경우 범위 제한을 응답과 화면에 표시한다.
+
+추천은 서류에 언급되지 않은 준비 제안이며 실제 미보유 여부·취업 필수 자격을 뜻하지 않는다. 기록 상세 조회에서는 현재 원본 서류로 추천을 다시 만들지 않고 저장된 JSON을 그대로 반환한다. 따라서 원본 직무나 내용이 변경·삭제되어도 당시 추천이 유지된다. API 연결 후에도 첨삭과 추천을 한 번의 생성 응답에서 받을 수 있도록 예시 응답·스키마·프롬프트를 버전 2로 확장했다. 실제 OpenAI API 호출은 추가하지 않았다.
 
 ## 관계
 

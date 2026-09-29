@@ -1,6 +1,7 @@
 import { CheckCircle2, ChevronDown, ClipboardCheck, Layers, LoaderCircle, Sparkles, X } from 'lucide-react';
 import { createBundleReviewExample } from '../reviewExamples';
 import { REVIEW_MODE_OPTIONS } from '../documentReviewConfig';
+import CareerPreparation from './CareerPreparation';
 
 const DOCUMENT_RESULTS = [
     { key: 'resume', label: '이력서' },
@@ -134,6 +135,10 @@ function DocumentReviewResult({ includePortfolio, result, isSubmitting, error, s
                             ),
                         )}
                     </div>
+                    <CareerPreparation
+                        preparation={displayedResult.careerPreparation}
+                        isExample={isExample || isDummy}
+                    />
                 </div>
             ) : (
                 <div className="review-result-empty">

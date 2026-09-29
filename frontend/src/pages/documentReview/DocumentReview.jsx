@@ -158,7 +158,7 @@ function DocumentReview() {
                     <h1>
                         AI원클릭첨삭 <Sparkles size={27} aria-hidden="true" />
                     </h1>
-                    <p>이력서와 자기소개서, 포트폴리오를 함께 살펴보고 서류 간 일관성까지 확인하세요.</p>
+                    <p>서류 간 일관성과 문서별 첨삭을 확인하고, 지원 직무에 맞는 취업 준비 항목도 살펴보세요.</p>
                 </div>
                 <Link to="/mypage">
                     <FolderOpen size={16} aria-hidden="true" /> 취업 문서 관리{' '}
@@ -167,7 +167,7 @@ function DocumentReview() {
             </header>
             <div className="review-availability" role="status">
                 <span>더미 결과 저장 모드</span>
-                <p>선택한 서류와 요청 설정, 예시 결과를 DB에 저장합니다. AI 분석은 아직 연결하지 않았습니다.</p>
+                <p>선택한 서류와 요청 설정, 첨삭 예시와 직무별 더미 추천을 DB에 저장합니다. AI 분석은 아직 연결하지 않았습니다.</p>
             </div>
             <div className="review-bundle-guide">
                 <Layers size={22} aria-hidden="true" />

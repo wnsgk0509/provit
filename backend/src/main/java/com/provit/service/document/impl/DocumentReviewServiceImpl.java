@@ -16,8 +16,10 @@ import com.provit.dto.document.DocumentReviewDTO;
 import com.provit.dto.document.DocumentReviewRequestDTO;
 import com.provit.dto.document.DocumentReviewResultDTO;
 import com.provit.dto.document.DocumentReviewResultDTO.*;
+import com.provit.dto.document.CareerPreparationDTO;
 import com.provit.service.document.DocumentReviewService;
 import com.provit.service.document.DocumentService;
+import com.provit.service.document.generator.DummyCareerPreparationGenerator;
 
 @Service
 public class DocumentReviewServiceImpl implements DocumentReviewService {
@@ -27,6 +29,7 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
     private final DocumentReviewDAO reviewDAO;
     private final DocumentService documentService;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final DummyCareerPreparationGenerator preparationGenerator = new DummyCareerPreparationGenerator();
 
     public DocumentReviewServiceImpl(DocumentReviewDAO reviewDAO, DocumentService documentService) {
         this.reviewDAO = reviewDAO;
@@ -46,10 +49,15 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
         review.setReviewMode(request.getReviewMode());
         review.setCustomCriteria("custom".equals(request.getReviewMode()) ? request.getCustomCriteria().strip() : null);
         review.setInstructions(normalizeOptionalText(request.getInstructions()));
-        review.setModelName("dummy-document-review-v1");
-        review.setPromptVersion("dummy-v1");
-        review.setResponseVersion(1);
+        review.setModelName("dummy-document-review-v2");
+        review.setPromptVersion("dummy-v2");
+        review.setResponseVersion(2);
         review.setSummary(example.getSummary());
+        try {
+            review.setCareerPreparationJson(objectMapper.writeValueAsString(preparationGenerator.generate(documents)));
+        } catch (IOException exception) {
+            throw new IllegalStateException("취업 준비 추천 결과를 저장할 수 없습니다.", exception);
+        }
         reviewDAO.insertReview(review);
 
         Map<String, Document> documentsByType = new LinkedHashMap<>();
@@ -101,6 +109,13 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
         if (reviewNum < 1) throw new IllegalArgumentException("첨삭 기록 번호가 올바르지 않습니다.");
         var result = reviewDAO.selectReview(userNum, reviewNum);
         if (result == null) throw new NoSuchElementException("첨삭 기록을 찾을 수 없습니다.");
+        if (result.getCareerPreparationJson() != null) {
+            try {
+                result.setCareerPreparation(objectMapper.readValue(result.getCareerPreparationJson(), CareerPreparationDTO.class));
+            } catch (IOException exception) {
+                throw new IllegalStateException("저장된 취업 준비 추천 결과를 읽지 못했습니다.", exception);
+            }
+        }
         result.setDocuments(reviewDAO.selectDocuments(reviewNum));
         result.setStrengths(new ArrayList<>());
         result.setDocumentReviews(new LinkedHashMap<>());

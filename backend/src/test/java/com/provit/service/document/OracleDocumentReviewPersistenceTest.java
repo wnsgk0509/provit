@@ -102,6 +102,8 @@ public class OracleDocumentReviewPersistenceTest {
         var resumeInfo = new ResumeDTO();
         resumeInfo.setUserNum(7); resumeInfo.setResumeNum(11); resumeInfo.setResumeTitle("저장 당시 이력서");
         resumeInfo.setMotivation("원본 지원 동기");
+        resumeInfo.setOccupationCode("2"); resumeInfo.setOccupationName("IT개발·데이터");
+        resumeInfo.setJobCode("84"); resumeInfo.setJobName("백엔드/서버개발");
         resumeInfo.setUpdatedAt(new java.util.Date(1_750_000_000_000L));
         resume.setResume(resumeInfo); resume.setCareerList(List.of());
         resume.setEducationList(List.of()); resume.setCertificationList(List.of());
@@ -161,6 +163,9 @@ public class OracleDocumentReviewPersistenceTest {
         assertEquals(request.getCustomCriteria(), saved.getCustomCriteria());
         assertEquals(request.getInstructions(), saved.getInstructions());
         assertEquals(3, saved.getDocuments().size());
+        assertEquals(2, saved.getResponseVersion());
+        assertEquals("백엔드/서버개발", saved.getCareerPreparation().getJobName());
+        assertEquals(4, saved.getCareerPreparation().getRecommendations().size());
         assertCounts(1, 3, 8, 3, 2, 4);
         var mapper = new ObjectMapper();
         var expected = mapper.readTree(resource("/document-review/dummy-result.json"));
@@ -171,6 +176,7 @@ public class OracleDocumentReviewPersistenceTest {
         }
         String json = mapper.writeValueAsString(saved);
         assertFalse(json.contains("sourceSnapshotJson")); assertFalse(json.contains("pdfSnapshot"));
+        assertFalse(json.contains("careerPreparationJson"));
         assertFalse(json.contains("D:/private")); assertFalse(json.contains("private.pdf"));
         try (var query = connection.prepareStatement("SELECT SOURCE_SNAPSHOT_JSON, PDF_SNAPSHOT FROM "
                 + names.get("T_REVIEW_DOCUMENT") + " WHERE DOCUMENT_TYPE = ?")) {
@@ -199,6 +205,7 @@ public class OracleDocumentReviewPersistenceTest {
         var reread = transaction.execute(status -> service.getReview(7, saved.getReviewNum()));
         assertEquals("저장 당시 이력서", reread.getDocuments().get(0).getDocumentTitle());
         assertEquals(saved.getSummary(), reread.getSummary());
+        assertEquals(saved.getCareerPreparation(), reread.getCareerPreparation());
         assertEquals(1, service.getReviews(7, 0, 20).size()); assertEquals(0, service.getReviews(7, 1, 20).size());
         assertEquals(0, service.getReviews(8, 0, 20).size());
         assertThrows(NoSuchElementException.class, () -> service.getReview(8, saved.getReviewNum()));
@@ -215,6 +222,28 @@ public class OracleDocumentReviewPersistenceTest {
         var failingService = transactionalService(failingDAO);
         assertThrows(IllegalStateException.class, () -> failingService.createDummyReview(7, request(true)));
         assertCounts(0, 0, 0, 0, 0, 0);
+    }
+
+    @Test
+    public void preparationIsStoredAsJsonAndLegacyRecordsRemainReadable() throws Exception {
+        var saved = service.createDummyReview(7, request(false));
+        try (var query = connection.prepareStatement("SELECT CAREER_PREPARATION_JSON FROM "
+                + names.get("T_DOCUMENT_REVIEW") + " WHERE REVIEW_NUM = ?")) {
+            query.setLong(1, saved.getReviewNum());
+            try (var rows = query.executeQuery()) {
+                assertTrue(rows.next());
+                var json = new ObjectMapper().readTree(rows.getString(1));
+                assertEquals("84", json.path("jobCode").asText());
+                assertEquals(4, json.path("recommendations").size());
+            }
+        }
+        resume.getResume().setJobName("프론트엔드");
+        assertEquals("백엔드/서버개발", service.getReview(7, saved.getReviewNum()).getCareerPreparation().getJobName());
+        try (var query = connection.prepareStatement("UPDATE " + names.get("T_DOCUMENT_REVIEW")
+                + " SET CAREER_PREPARATION_JSON = NULL, RESPONSE_VERSION = 1 WHERE REVIEW_NUM = ?")) {
+            query.setLong(1, saved.getReviewNum()); query.executeUpdate();
+        }
+        assertNull(service.getReview(7, saved.getReviewNum()).getCareerPreparation());
     }
 
     @Test

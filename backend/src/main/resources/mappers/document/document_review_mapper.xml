@@ -12,10 +12,10 @@
         </selectKey>
         INSERT INTO T_DOCUMENT_REVIEW
             (REVIEW_NUM, USER_NUM, REVIEW_TITLE, REVIEW_STATUS, REVIEW_MODE, CUSTOM_CRITERIA,
-             INSTRUCTIONS, MODEL_NAME, PROMPT_VERSION, RESPONSE_VERSION)
+             INSTRUCTIONS, MODEL_NAME, PROMPT_VERSION, RESPONSE_VERSION, CAREER_PREPARATION_JSON)
         VALUES (#{reviewNum}, #{userNum}, #{reviewTitle}, 'PROCESSING', #{reviewMode},
                 #{customCriteria,jdbcType=VARCHAR}, #{instructions,jdbcType=VARCHAR},
-                #{modelName}, #{promptVersion}, #{responseVersion})
+                #{modelName}, #{promptVersion}, #{responseVersion}, #{careerPreparationJson,jdbcType=CLOB})
     </insert>
     <insert id="insertDocument">
         <selectKey keyProperty="reviewDocumentNum" resultType="long" order="BEFORE">
@@ -61,7 +61,7 @@
     </update>
 
     <select id="selectReview" resultType="com.provit.dto.document.DocumentReviewResultDTO">
-        SELECT <include refid="reviewColumns"/>, OVERALL_SUMMARY AS SUMMARY
+        SELECT <include refid="reviewColumns"/>, OVERALL_SUMMARY AS SUMMARY, CAREER_PREPARATION_JSON
         FROM T_DOCUMENT_REVIEW WHERE REVIEW_NUM = #{reviewNum} AND USER_NUM = #{userNum}
     </select>
     <select id="selectReviews" resultType="com.provit.dto.document.DocumentReviewDTO">

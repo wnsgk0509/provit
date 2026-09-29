@@ -17,6 +17,8 @@ public class DocumentReviewDTO {
     private String instructions;
     private String summary;
     @JsonIgnore
+    private String careerPreparationJson;
+    @JsonIgnore
     private String modelName;
     private String promptVersion;
     private int responseVersion;

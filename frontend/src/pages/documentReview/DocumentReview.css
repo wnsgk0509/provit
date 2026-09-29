@@ -996,6 +996,38 @@
     border-radius: 20px;
     background: #fff;
 }
+.review-career-preparation {
+    border: 1px solid #dce4f8;
+    border-radius: 14px;
+    padding: 20px;
+    background: #f8faff;
+    overflow-wrap: anywhere;
+}
+.review-preparation-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+.review-preparation-heading h3 { margin: 0; font-size: 17px; }
+.review-preparation-heading p, .review-preparation-summary {
+    margin: 10px 0;
+    font-size: 13px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+}
+.review-preparation-target { color: #4059b5; font-size: 12px; font-weight: 700; }
+.review-preparation-list { display: grid; gap: 12px; margin-top: 18px; }
+.review-preparation-item {
+    border: 1px solid #e4e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    background: #fff;
+}
+.review-preparation-item h4 { margin: 10px 0; font-size: 15px; }
+.review-preparation-item p { margin: 0; font-size: 13px; line-height: 1.8; white-space: pre-wrap; }
+.review-preparation-action { display: grid; gap: 6px; margin-top: 14px; color: #596273; }
+.review-preparation-action strong { font-size: 12px; }
 .review-history h2 { margin: 0; font-size: 19px; }
 .review-history-list { display: grid; gap: 10px; padding: 0; list-style: none; }
 .review-history-list button {

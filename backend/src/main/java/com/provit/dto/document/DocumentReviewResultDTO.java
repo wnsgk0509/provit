@@ -17,6 +17,7 @@ public class DocumentReviewResultDTO extends DocumentReviewDTO {
     private List<String> strengths = new ArrayList<>();
     private Map<String, Feedback> documentReviews = new LinkedHashMap<>();
     private List<Consistency> consistencyIssues = new ArrayList<>();
+    private CareerPreparationDTO careerPreparation;
 
     @Data
     public static class Document {

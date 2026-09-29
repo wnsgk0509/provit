@@ -62,6 +62,40 @@ export function createBundleReviewExample(includePortfolio) {
             coverLetter: DOCUMENT_EXAMPLES['cover-letter'],
             portfolio: includePortfolio ? DOCUMENT_EXAMPLES.portfolio : null,
         },
+        careerPreparation: {
+            occupationCode: '2',
+            occupationName: 'IT개발·데이터',
+            jobCode: '84',
+            jobName: '백엔드/서버개발',
+            summary: '백엔드 개발 직무의 취업 준비 추천 예시입니다. 실제 미보유 여부나 채용 필수 조건을 뜻하지 않습니다.',
+            coverageNote: '화면 구성을 위한 정적 예시이며 선택한 서류를 분석한 결과가 아닙니다.',
+            recommendations: [
+                {
+                    category: 'experience',
+                    title: 'API 자동화 테스트 경험',
+                    reason: '정상·오류 상황을 검증한 경험으로 API 안정성을 설명할 수 있습니다.',
+                    action: '작은 API에 단위·통합 테스트를 작성하고 검증한 실패 사례와 개선 내용을 정리해 보세요.',
+                },
+                {
+                    category: 'skill',
+                    title: 'Docker 기반 실행 환경 구성',
+                    reason: '서버 실행 환경을 재현하는 과정으로 배포와 운영에 대한 이해를 보여줄 수 있습니다.',
+                    action: '직접 구현한 서버를 Docker로 실행하고 환경 변수와 실행 절차를 문서화해 보세요.',
+                },
+                {
+                    category: 'certification',
+                    title: 'SQLD 학습·자격 검토',
+                    reason: '데이터 모델과 SQL 기초 지식을 정리하는 선택적 학습 목표입니다.',
+                    action: '지원 공고의 우대 조건과 학습 목표를 확인하고 공식 안내에서 응시 조건을 검토해 보세요.',
+                },
+                {
+                    category: 'qualification',
+                    title: '프로젝트 결과물과 기술 문서 공개',
+                    reason: '직접 구현한 결과물과 판단 근거를 함께 정리하면 경험을 설명하기 쉽습니다.',
+                    action: '공개 가능한 저장소에 README, 본인 역할과 기술 선택 이유를 정리해 보세요.',
+                },
+            ],
+        },
         consistencyIssues: [
             {
                 type: 'mismatch',
