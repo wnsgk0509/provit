@@ -11,16 +11,26 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import "./JobList.css";
 
-// 주요 지역 필터 옵션
+// 주요 지역 필터 옵션 (대한민국 17개 표준 시·도 정규화)
 const LOCATIONS = [
     { value: "", label: "지역 전체" },
     { value: "서울", label: "서울" },
     { value: "경기", label: "경기" },
     { value: "인천", label: "인천" },
-    { value: "판교", label: "판교·분당" },
-    { value: "대전", label: "대전·충청" },
-    { value: "대구", label: "대구·경북" },
-    { value: "부산", label: "부산·경남" },
+    { value: "대전", label: "대전" },
+    { value: "세종", label: "세종" },
+    { value: "충북", label: "충북 (청주·충주 등)" },
+    { value: "충남", label: "충남 (천안·아산 등)" },
+    { value: "광주", label: "광주" },
+    { value: "전북", label: "전북 (전주·익산 등)" },
+    { value: "전남", label: "전남 (여수·순천 등)" },
+    { value: "대구", label: "대구" },
+    { value: "경북", label: "경북 (포항·구미 등)" },
+    { value: "부산", label: "부산" },
+    { value: "울산", label: "울산" },
+    { value: "경남", label: "경남 (창원·김해 등)" },
+    { value: "강원", label: "강원" },
+    { value: "제주", label: "제주" },
 ];
 
 // 경력 조건 필터 옵션
@@ -796,6 +806,11 @@ function JobList() {
                             📂{" "}
                             {occupations.find((o) => String(o.occupationCode) === String(selectedOccupation))
                                 ?.occupationName || "직군"}
+                        </span>
+                    )}
+                    {params.location && (
+                        <span className="badge bg-secondary text-white border">
+                            📍 {LOCATIONS.find((l) => l.value === params.location)?.label || params.location}
                         </span>
                     )}
                     {params.keyword && (
