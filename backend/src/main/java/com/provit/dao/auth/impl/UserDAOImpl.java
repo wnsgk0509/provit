@@ -57,6 +57,11 @@ public class UserDAOImpl implements UserDAO {
     }
 
     @Override
+    public int updatePasswordByEmail(UserDTO userDTO) {
+        return sqlSession.update(NAMESPACE + ".updatePasswordByEmail", userDTO);
+    }
+
+    @Override
     public int incrementTokenVersion(Long userNum) {
         return sqlSession.update(NAMESPACE + ".incrementTokenVersion", userNum);
     }
