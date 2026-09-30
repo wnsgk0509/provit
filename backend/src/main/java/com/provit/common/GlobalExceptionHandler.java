@@ -116,7 +116,7 @@ public class GlobalExceptionHandler {
 
 		// 체이닝(.status().body()) 대신 순수 new 생성자 방식 사용
 		ApiResponse<String> response = new ApiResponse<>(ResponseCode.INTERNAL_SERVER_ERROR,
-				"서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요. 상세: " + e.toString());
+				"서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
 		return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 }

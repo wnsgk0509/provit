@@ -14,10 +14,13 @@
             R.REPORT_REASON as reportReason,
             R.REPORT_STATUS as reportStatus,
             R.REPORT_DATE as reportDate,
-            CASE 
-                WHEN R.TARGET_TYPE = 'POST' THEN SUBSTR(P.POST_TITLE, 1, 50)
-                WHEN R.TARGET_TYPE = 'COMMENT' THEN SUBSTR(C.COMMENT_CONTENT, 1, 50)
-            END as targetContentPreview
+            NVL(
+                CASE 
+                    WHEN R.TARGET_TYPE = 'POST' THEN SUBSTR(P.POST_TITLE, 1, 50)
+                    WHEN R.TARGET_TYPE = 'COMMENT' THEN SUBSTR(C.COMMENT_CONTENT, 1, 50)
+                END, 
+                '내용 없음 (삭제됨)'
+            ) as targetContentPreview
         FROM T_REPORT R
         LEFT JOIN T_USER U ON R.REPORTER_NUM = U.USER_NUM
         LEFT JOIN T_POST P ON R.TARGET_TYPE = 'POST' AND R.TARGET_NUM = P.POST_NUM
