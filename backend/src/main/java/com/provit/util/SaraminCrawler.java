@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,22 +35,37 @@ public class SaraminCrawler {
     private static final Pattern DATE_PATTERN = Pattern.compile("~\\s*(\\d{1,2})/(\\d{1,2})");
 
     /**
-     * 사람인 인기 상위 공고 크롤링
+     * 사람인 인기 상위 공고 크롤링 (방안 1: 결손 자동 보충 동적 페이징)
      * 
-     * @param maxCount 수집할 최대 공고 개수 (예: 1000)
-     * @return 수집 및 정제된 RecruitmentDTO 리스트
+     * @param maxCount 수집할 목표 공고 개수 (예: 1000)
+     * @return 수집 및 정제된 RecruitmentDTO 리스트 (중복 제거 및 유효성 검증 완료)
      */
     public List<RecruitmentDTO> crawlTopRecruitments(int maxCount) {
         List<RecruitmentDTO> recruitments = new ArrayList<>();
-        // 검색 결과는 1페이지당 40건 노출됨
-        int maxPage = (int) Math.ceil((double) maxCount / 40.0);
-        if (maxPage < 1) maxPage = 1;
+        Set<String> seenJobIds = new HashSet<>();
 
-        log.info(">> [SaraminCrawler] 사람인 인기 상위 공고 크롤링 시작 (목표: 최대 {}건 / {}페이지)", maxCount, maxPage);
+        if (maxCount <= 0) {
+            return recruitments;
+        }
 
-        for (int page = 1; page <= maxPage; page++) {
+        // 기본 필요 페이지 수 (사람인은 1페이지당 40건)
+        int basePages = (int) Math.ceil((double) maxCount / 40.0);
+        if (basePages < 1) basePages = 1;
+        // 안전 상한 페이지: 예상 페이지 + 10페이지 (최소 10페이지 이상 버퍼 허용)
+        int safetyMaxPage = basePages + Math.max(10, (int) (basePages * 0.4));
+
+        log.info(">> [SaraminCrawler] 사람인 인기 공고 동적 크롤링 시작 (목표: {}건 / 기본 예상: {}페이지 / 최대 탐색 상한: {}페이지)", 
+                maxCount, basePages, safetyMaxPage);
+
+        int page = 1;
+        int consecutiveEmptyPages = 0;
+        int consecutiveErrors = 0;
+
+        // [방안 1 핵심]: 고정 for문이 아닌, 실제 수집된 공고 수가 maxCount에 도달할 때까지 동적으로 다음 페이지 탐색
+        while (recruitments.size() < maxCount && page <= safetyMaxPage) {
             String targetUrl = SEARCH_URL + page;
-            log.info(">> [SaraminCrawler] {}/{} 페이지 수집 요청: {}", page, maxPage, targetUrl);
+            log.info(">> [SaraminCrawler] {}페이지 수집 요청 (현재 확보: {}/{}건) -> {}", 
+                    page, recruitments.size(), maxCount, targetUrl);
 
             try {
                 Document doc = Jsoup.connect(targetUrl)
@@ -61,22 +78,40 @@ public class SaraminCrawler {
 
                 Elements items = doc.select("div.item_recruit");
                 if (items.isEmpty()) {
-                    log.warn(">> [SaraminCrawler] {}페이지에서 공고 요소를 찾지 못해 수집을 종료합니다.", page);
-                    break;
+                    consecutiveEmptyPages++;
+                    log.warn(">> [SaraminCrawler] {}페이지에서 공고 요소를 찾지 못함 (연속 {}회)", page, consecutiveEmptyPages);
+                    if (consecutiveEmptyPages >= 3) {
+                        log.warn(">> [SaraminCrawler] 3회 연속 검색 결과 미발견으로 수집을 조기 종료합니다.");
+                        break;
+                    }
+                    page++;
+                    continue;
                 }
 
+                // 정상 응답 시 연속 빈 페이지/에러 카운터 리셋
+                consecutiveEmptyPages = 0;
+                consecutiveErrors = 0;
+
+                int pageAdded = 0;
                 for (Element item : items) {
                     RecruitmentDTO dto = parseItem(item);
-                    if (dto != null) {
-                        recruitments.add(dto);
-                        if (recruitments.size() >= maxCount) {
-                            break;
+                    // 유효하고 중복되지 않은 사람인 공고(SARAMIN_JOB_ID)만 추가
+                    if (dto != null && dto.getSaraminJobId() != null) {
+                        if (seenJobIds.add(dto.getSaraminJobId())) {
+                            recruitments.add(dto);
+                            pageAdded++;
+                            if (recruitments.size() >= maxCount) {
+                                break;
+                            }
                         }
                     }
                 }
 
+                log.info(">> [SaraminCrawler] {}페이지 파싱 완료: 신규 {}건 추가 (누적: {}/{}건)", 
+                        page, pageAdded, recruitments.size(), maxCount);
+
                 if (recruitments.size() >= maxCount) {
-                    log.info(">> [SaraminCrawler] 목표 수량({}건)에 도달하여 수집을 마칩니다.", maxCount);
+                    log.info(">> [SaraminCrawler] 목표 수량({}건)에 도달하여 수집을 성공적으로 완료합니다.", maxCount);
                     break;
                 }
 
@@ -84,17 +119,33 @@ public class SaraminCrawler {
                 Thread.sleep(DELAY_MS);
 
             } catch (IOException e) {
-                log.error(">> [SaraminCrawler] {}페이지 수집 중 네트워크 오류 발생: {}", page, e.getMessage());
-                // 네트워크 일시 오류 시 다음 페이지 또는 현재까지 수집본 유지
-                break;
+                consecutiveErrors++;
+                log.error(">> [SaraminCrawler] {}페이지 수집 중 네트워크 오류 발생 (연속 {}회): {}", 
+                        page, consecutiveErrors, e.getMessage());
+
+                if (consecutiveErrors >= 3) {
+                    log.error(">> [SaraminCrawler] 네트워크 오류 3회 연속 발생으로 크롤링을 중단합니다.");
+                    break;
+                }
+
+                // 일시적 오류일 수 있으므로 잠시 대기 후 다음 페이지 탐색
+                try {
+                    Thread.sleep(DELAY_MS * 2);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+
             } catch (InterruptedException e) {
                 log.warn(">> [SaraminCrawler] 크롤링 스레드 인터럽트 발생");
                 Thread.currentThread().interrupt();
                 break;
             }
+
+            page++;
         }
 
-        log.info(">> [SaraminCrawler] 크롤링 완료: 총 {}건 수집됨", recruitments.size());
+        log.info(">> [SaraminCrawler] 크롤링 완료: 최종 {}건 수집됨 (총 {}페이지 탐색)", recruitments.size(), page > safetyMaxPage ? safetyMaxPage : page);
         return recruitments;
     }
 
@@ -112,6 +163,7 @@ public class SaraminCrawler {
                 return null;
             }
             saraminJobId = saraminJobId.trim();
+            if (saraminJobId.length() > 50) saraminJobId = saraminJobId.substring(0, 50);
 
             // 2. 기업명
             Element corpElem = item.selectFirst("div.area_corp strong.corp_name a");
@@ -136,6 +188,7 @@ public class SaraminCrawler {
             if (!jobUrl.startsWith("http")) {
                 jobUrl = BASE_URL + jobUrl;
             }
+            if (jobUrl.length() > 500) jobUrl = jobUrl.substring(0, 500);
 
             // 5. 근무지 & 경력 요건
             String locationName = "";
@@ -175,6 +228,9 @@ public class SaraminCrawler {
             String dateText = dateElem != null ? dateElem.text().trim() : "";
             Date expirationDate = parseExpirationDate(dateText);
             String closeType = determineCloseType(dateText);
+            if (closeType != null && closeType.length() > 50) {
+                closeType = closeType.substring(0, 50);
+            }
 
             return RecruitmentDTO.builder()
                     .saraminJobId(saraminJobId)

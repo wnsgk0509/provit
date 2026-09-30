@@ -41,10 +41,13 @@ const EXPERIENCES = [
 const updateScrapStatusInList = (list, targetId, forcedStatus = null) => {
     if (!Array.isArray(list)) return list;
     return list.map(job => {
-        if (job.recruitmentNum !== targetId) return job;
+        if (Number(job.recruitmentNum) !== Number(targetId)) return job;
+        const nextStatus = (forcedStatus !== null && forcedStatus !== undefined)
+            ? Boolean(forcedStatus)
+            : !job.isScrapped;
         return {
             ...job,
-            isScrapped: forcedStatus !== null ? forcedStatus : !job.isScrapped
+            isScrapped: nextStatus
         };
     });
 };
@@ -276,11 +279,16 @@ function JobList() {
         try {
             const res = await toggleJobScrap(recruitmentNum);
             if (res && res.data) {
+                // isScrapped 또는 scrapped 프로퍼티 호환성 방어 추출
+                const serverStatus = res.data.isScrapped !== undefined 
+                    ? res.data.isScrapped 
+                    : res.data.scrapped;
+
                 // 5. 서버에서 최종 확정된 isScrapped 상태로 UI 정합성 동기화
-                updateScrapStatus(recruitmentNum, res.data.isScrapped);
+                updateScrapStatus(recruitmentNum, serverStatus);
 
                 // 만약 스크랩만 모아보기 상태에서 스크랩을 취소했다면 목록 새로고침
-                if (params.scrapOnly && !res.data.isScrapped) {
+                if (params.scrapOnly && !serverStatus) {
                     loadRecruitments();
                 }
             }
