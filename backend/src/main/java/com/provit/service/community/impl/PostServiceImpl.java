@@ -20,11 +20,13 @@ import java.util.Map;
 public class PostServiceImpl implements PostService {
 
     private final PostDAO postDao;
+    private final com.provit.dao.auth.UserDAO userDAO;
 
     // DAO(창고 관리인)를 주입받습니다.
     @Autowired
-    public PostServiceImpl(PostDAO postDao) {
+    public PostServiceImpl(PostDAO postDao, com.provit.dao.auth.UserDAO userDAO) {
         this.postDao = postDao;
+        this.userDAO = userDAO;
     }
 
     @Override
@@ -118,9 +120,11 @@ public class PostServiceImpl implements PostService {
     @Override
     @org.springframework.transaction.annotation.Transactional
     public void deletePost(Long postNum, Long userNum) {
+        com.provit.dto.auth.UserDTO user = userDAO.selectByUserNum(userNum);
         Map<String, Object> params = new HashMap<>();
         params.put("postNum", postNum);
         params.put("userNum", userNum);
+        params.put("userType", user != null ? user.getUserType() : "USER");
         int affectedRows = postDao.deletePost(params);
         if (affectedRows == 0) {
             throw new IllegalArgumentException("게시글이 존재하지 않거나 권한이 없습니다.");

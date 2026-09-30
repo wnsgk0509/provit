@@ -106,8 +106,8 @@ function Study() {
                                         <span className="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill">
                                             <i className="bi bi-people-fill me-1"></i> {study.memberCount}명 참여중
                                         </span>
-                                        {/* 방장일 경우 삭제 버튼 표출 */}
-                                        {user && user.userNum === study.userNum && (
+                                        {/* 방장 또는 관리자일 경우 삭제 버튼 표출 */}
+                                        {user && (user.userNum === study.userNum || user.userType === 'ADMIN') && (
                                             <button 
                                                 className="btn btn-sm btn-link text-danger p-0 text-decoration-none"
                                                 onClick={() => handleDelete(study.studyNum)}

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.provit.mapper.AdminUserMapper">
+
+    <select id="selectUserList" parameterType="map" resultType="com.provit.dto.admin.AdminUserDTO">
+        SELECT 
+            USER_NUM as userNum,
+            USER_EMAIL as userEmail,
+            USER_NAME as userName,
+            USER_NICKNAME as userNickname,
+            USER_TYPE as userType,
+            USER_REGISTER_DATE as userRegisterDate,
+            USER_IS_DELETED as userIsDeleted,
+            BLOCKED_DATE as blockedDate
+        FROM T_USER
+        <where>
+            USER_TYPE != 'ADMIN'
+            <if test="keyword != null and keyword != ''">
+                AND (USER_EMAIL LIKE '%' || #{keyword} || '%' OR USER_NICKNAME LIKE '%' || #{keyword} || '%')
+            </if>
+            <if test="status == 'BLOCKED'">
+                AND BLOCKED_DATE > SYSDATE
+            </if>
+            <if test="status == 'ACTIVE'">
+                AND (BLOCKED_DATE IS NULL OR SYSDATE >= BLOCKED_DATE)
+            </if>
+        </where>
+        ORDER BY USER_NUM DESC
+        OFFSET #{offset} ROWS FETCH NEXT #{limit} ROWS ONLY
+    </select>
+
+    <select id="selectUserCount" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM T_USER
+        <where>
+            USER_TYPE != 'ADMIN'
+            <if test="keyword != null and keyword != ''">
+                AND (USER_EMAIL LIKE '%' || #{keyword} || '%' OR USER_NICKNAME LIKE '%' || #{keyword} || '%')
+            </if>
+            <if test="status == 'BLOCKED'">
+                AND BLOCKED_DATE > SYSDATE
+            </if>
+            <if test="status == 'ACTIVE'">
+                AND (BLOCKED_DATE IS NULL OR SYSDATE >= BLOCKED_DATE)
+            </if>
+        </where>
+    </select>
+
+    <update id="updateBlockedDate" parameterType="map">
+        UPDATE T_USER
+        <set>
+            <if test="blockDays == 0">
+                BLOCKED_DATE = NULL
+            </if>
+            <if test="blockDays > 0 and blockDays &lt; 9999">
+                BLOCKED_DATE = SYSDATE + #{blockDays}
+            </if>
+            <if test="blockDays == 9999">
+                BLOCKED_DATE = TO_DATE('2099-12-31', 'YYYY-MM-DD')
+            </if>
+        </set>
+        WHERE USER_NUM = #{userNum}
+    </update>
+
+</mapper>

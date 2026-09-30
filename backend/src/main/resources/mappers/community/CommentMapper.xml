@@ -64,7 +64,11 @@
         SET
             IS_DELETED = 1,
             COMMENT_CONTENT = '삭제된 댓글입니다.'
-        WHERE COMMENT_NUM = #{commentNum} AND USER_NUM = #{userNum} AND IS_DELETED = 0
+        WHERE COMMENT_NUM = #{commentNum} 
+        <if test="userType != 'ADMIN'">
+            AND USER_NUM = #{userNum} 
+        </if>
+        AND IS_DELETED = 0
     </update>
 
     <!-- 5. 특정 댓글 상세 조회 (대댓글 검증용) -->

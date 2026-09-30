@@ -207,13 +207,15 @@ function CommentSection({ postNum }) {
                                                     답글 달기
                                                 </button>
                                             )}
-                                            {user && user.userNum === comment.userNum && (
+                                            {user && (user.userNum === comment.userNum || user.userType === 'ADMIN') && (
                                                 <>
-                                                    <button className="btn btn-sm btn-link text-muted text-decoration-none p-0" onClick={() => handleEditStart(comment)}>수정</button>
+                                                    {user.userNum === comment.userNum && (
+                                                        <button className="btn btn-sm btn-link text-muted text-decoration-none p-0 me-2" onClick={() => handleEditStart(comment)}>수정</button>
+                                                    )}
                                                     <button className="btn btn-sm btn-link text-danger text-decoration-none p-0" onClick={() => handleDelete(comment.commentNum)}>삭제</button>
                                                 </>
                                             )}
-                                            {user && user.userNum !== comment.userNum && (
+                                            {user && user.userNum !== comment.userNum && user.userType !== 'ADMIN' && (
                                                 <button className="btn btn-sm btn-link text-danger text-decoration-none p-0" onClick={() => setReportTargetId(comment.commentNum)}>
                                                     신고
                                                 </button>

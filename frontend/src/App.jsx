@@ -23,6 +23,7 @@ import Signup from './pages/auth/Signup';
 import PasswordReset from './pages/auth/PasswordReset';
 import BootstrapTemplate from './pages/bootstrap';
 import AdminReportList from './pages/admin/AdminReportList';
+import AdminUserList from './pages/admin/AdminUserList';
 
 function RequireAuth({ children, alertMessage }) {
   const { isLoading, isLoggedIn } = useAuth();
@@ -100,9 +101,9 @@ function App() {
             <Route path="/documents/:documentType/:documentId" element={<RequireAuth><DocumentRead /></RequireAuth>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/password-reset" element={<PasswordReset />} />
             {/* 관리자 라우트 */}
             <Route path="/admin/reports" element={<RequireAdmin alertMessage="관리자만 접근 가능합니다."><AdminReportList /></RequireAdmin>} />
+            <Route path="/admin/users" element={<RequireAdmin alertMessage="관리자만 접근 가능합니다."><AdminUserList /></RequireAdmin>} />
             {/* 팀원 참고용 부트스트랩 템플릿 화면 */}
             <Route path="/bootstrap" element={<BootstrapTemplate />} />
           </Routes>

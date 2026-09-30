@@ -49,29 +49,43 @@ const AdminReportList = () => {
 
   return (
     <div className="container py-5">
-      <h2 className="fw-bold mb-4">신고 관리 (모더레이션)</h2>
+      <h2 className="fw-bold mb-4">관리자 대시보드</h2>
 
-      {/* 필터 탭 */}
+      {/* 관리자 서브 네비게이션 */}
       <ul className="nav nav-tabs mb-4">
         <li className="nav-item">
+          <Link to="/admin/users" className="nav-link text-muted">
+            회원 관리
+          </Link>
+        </li>
+        <li className="nav-item">
+          <Link to="/admin/reports" className="nav-link active fw-bold text-primary">
+            신고 관리 (모더레이션)
+          </Link>
+        </li>
+      </ul>
+
+      {/* 필터 탭 (신고 전용) */}
+      <ul className="nav nav-pills mb-4">
+        <li className="nav-item me-2">
           <button 
-            className={`nav-link ${statusFilter === "" ? "active fw-bold text-primary" : "text-muted"}`} 
+            className={`nav-link ${statusFilter === "" ? "active" : "bg-light text-dark border"}`} 
             onClick={() => { setStatusFilter(""); setPage(1); }}
           >
             전체
           </button>
         </li>
-        <li className="nav-item">
+        <li className="nav-item me-2">
           <button 
-            className={`nav-link ${statusFilter === "PENDING" ? "active fw-bold text-primary" : "text-muted"}`} 
+            className={`nav-link ${statusFilter === "PENDING" ? "active" : "bg-light text-dark border"}`} 
             onClick={() => { setStatusFilter("PENDING"); setPage(1); }}
           >
             대기중
           </button>
         </li>
-        <li className="nav-item">
+        <li className="nav-item me-2">
           <button 
-            className={`nav-link ${statusFilter === "RESOLVED" ? "active fw-bold text-primary" : "text-muted"}`} 
+            className={`nav-link ${statusFilter === "RESOLVED" ? "active" : "bg-light text-dark border"}`} 
             onClick={() => { setStatusFilter("RESOLVED"); setPage(1); }}
           >
             블라인드 완료
@@ -79,7 +93,7 @@ const AdminReportList = () => {
         </li>
         <li className="nav-item">
           <button 
-            className={`nav-link ${statusFilter === "REJECTED" ? "active fw-bold text-primary" : "text-muted"}`} 
+            className={`nav-link ${statusFilter === "REJECTED" ? "active" : "bg-light text-dark border"}`} 
             onClick={() => { setStatusFilter("REJECTED"); setPage(1); }}
           >
             반려됨

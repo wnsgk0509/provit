@@ -1,4 +1,4 @@
-package com.provit.dto.auth;
+package com.provit.dto.admin;
 
 import java.util.Date;
 
@@ -7,27 +7,19 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = "userPw")
-public class UserDTO {
-
+public class AdminUserDTO {
     private Long userNum;
+    private String userEmail;
     private String userName;
     private String userNickname;
-    private Date userBirthDate;
-    private String userEmail;
-    private String userPw;
-    private Date userRegisterDate;
     private String userType;
-    private String occupationCode;
-    private String jobCode;
+    private Date userRegisterDate;
     private Integer userIsDeleted;
-    private Integer userTokenVersion;
     private Date blockedDate;
 }
