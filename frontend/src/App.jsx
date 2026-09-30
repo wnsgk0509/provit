@@ -20,13 +20,12 @@ import DocumentRead from './pages/documentRead/DocumentRead';
 import DocumentEdit from './pages/documentEdit/DocumentEdit';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
-import PasswordReset from './pages/auth/PasswordReset';
 import BootstrapTemplate from './pages/bootstrap';
 import AdminReportList from './pages/admin/AdminReportList';
 import AdminUserList from './pages/admin/AdminUserList';
 
 function RequireAuth({ children, alertMessage }) {
-  const { isLoading, isLoggedIn } = useAuth();
+  const { isLoading, isLoggedIn, isSessionExpired, clearSessionExpired } = useAuth();
   const navigate = useNavigate();
   const hasRedirected = useRef(false);
 
@@ -34,11 +33,15 @@ function RequireAuth({ children, alertMessage }) {
     if (isLoading || isLoggedIn || hasRedirected.current) return;
 
     hasRedirected.current = true;
-    if (alertMessage) {
-      window.alert(alertMessage);
+    const message = isSessionExpired
+      ? '로그인 시간이 만료되었습니다. 다시 로그인해 주세요.'
+      : alertMessage;
+    if (message) {
+      window.alert(message);
     }
+    if (isSessionExpired) clearSessionExpired();
     navigate('/login', { replace: true });
-  }, [alertMessage, isLoading, isLoggedIn, navigate]);
+  }, [alertMessage, clearSessionExpired, isLoading, isLoggedIn, isSessionExpired, navigate]);
 
   if (isLoading || !isLoggedIn) return null;
 

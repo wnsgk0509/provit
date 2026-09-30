@@ -117,6 +117,16 @@
         FROM T_RECRUITMENT R
         <where>
             R.IS_ACTIVE = 1
+            <if test="occupationCode != null and occupationCode != ''">
+                AND EXISTS (
+                    SELECT 1 FROM T_JOB J
+                    WHERE J.OCCUPATION_CODE = #{occupationCode}
+                      AND (
+                          LOWER(R.JOB_NAME) LIKE '%' || LOWER(J.JOB_NAME) || '%'
+                          OR LOWER(R.TITLE) LIKE '%' || LOWER(J.JOB_NAME) || '%'
+                      )
+                )
+            </if>
             <if test="keyword != null and keyword != ''">
                 AND (
                     LOWER(R.TITLE) LIKE '%' || LOWER(#{keyword}) || '%'
@@ -147,6 +157,16 @@
         FROM T_RECRUITMENT R
         <where>
             R.IS_ACTIVE = 1
+            <if test="occupationCode != null and occupationCode != ''">
+                AND EXISTS (
+                    SELECT 1 FROM T_JOB J
+                    WHERE J.OCCUPATION_CODE = #{occupationCode}
+                      AND (
+                          LOWER(R.JOB_NAME) LIKE '%' || LOWER(J.JOB_NAME) || '%'
+                          OR LOWER(R.TITLE) LIKE '%' || LOWER(J.JOB_NAME) || '%'
+                      )
+                )
+            </if>
             <if test="keyword != null and keyword != ''">
                 AND (
                     LOWER(R.TITLE) LIKE '%' || LOWER(#{keyword}) || '%'

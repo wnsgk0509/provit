@@ -18,6 +18,7 @@ public class RecruitmentSearchDTO {
     private String keyword;
     private String location;
     private String experienceLevel;
+    private String occupationCode;
 
     // 로그인한 요청자 회원 번호 (스크랩 여부 확인 및 스크랩 필터링용)
     private Long userNum;

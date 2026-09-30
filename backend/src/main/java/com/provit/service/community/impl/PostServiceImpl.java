@@ -43,9 +43,11 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
-    public PostDTO getPostDetail(Long postNum, Long userNum) {
-        // 1. 상세 조회 시 조회수를 1 증가시킵니다.
-        postDao.updateViewCount(postNum);
+    public PostDTO getPostDetail(Long postNum, Long userNum, boolean shouldIncreaseViewCount) {
+        // 1. 조건에 따라 조회수를 1 증가시킵니다.
+        if (shouldIncreaseViewCount) {
+            postDao.updateViewCount(postNum);
+        }
         
         // 2. 최신 정보(증가된 조회수 포함)로 게시글 데이터를 조회하여 반환합니다.
         PostDTO post = postDao.selectPostDetail(postNum);
@@ -129,5 +131,10 @@ public class PostServiceImpl implements PostService {
         if (affectedRows == 0) {
             throw new IllegalArgumentException("게시글이 존재하지 않거나 권한이 없습니다.");
         }
+    }
+
+    @Override
+    public java.util.List<PostDTO> getPopularPosts(int limit) {
+        return postDao.selectPopularPosts(limit);
     }
 }
