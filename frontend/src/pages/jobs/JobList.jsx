@@ -83,6 +83,7 @@ function JobList() {
     const [params, setParams] = useState({
         page: 1,
         size: 9, // 한 페이지당 9개 카드 (3x3 그리드)
+        occupationCode: "",
         keyword: "",
         location: "",
         experienceLevel: "",
@@ -210,52 +211,45 @@ function JobList() {
         }));
     };
 
-    // 대분류 직군 변경 시: 하위 세부 직무 목록 로드 트리거 + 직군 대표 키워드로 즉시 1차 필터링
+    // 대분류 직군 변경 시: 하위 세부 직무 목록 로드 트리거 + 직군 코드(occupationCode)로 DB 관계 기반 포괄 검색
     const handleOccupationChange = (e) => {
         const occCode = e.target.value;
         setSelectedOccupation(occCode);
         setSelectedJob(""); // 직군이 변경되면 이전 세부 직무 선택 초기화
+        setKeywordInput(""); // 검색창 입력값 초기화
 
         if (!occCode) {
-            // 직군을 '전체'로 푼 경우 키워드도 초기화
-            setKeywordInput("");
+            // 직군을 '전체'로 푼 경우 직군 코드 및 키워드 초기화
             setParams((prev) => ({
                 ...prev,
                 page: 1,
+                occupationCode: "",
                 keyword: "",
             }));
             return;
         }
 
-        // 선택한 직군 객체 찾기 (예: "IT개발·데이터")
-        const occObj = occupations.find((o) => String(o.occupationCode) === String(occCode));
-        if (occObj && occObj.occupationName) {
-            // "IT개발·데이터" -> "IT개발", "기획·전략" -> "기획" 등 특수문자/구분기호 앞단 핵심 키워드 정제
-            const cleanOccName = occObj.occupationName.split(/[·/,]/)[0].trim();
-            setKeywordInput(cleanOccName);
-            setParams((prev) => ({
-                ...prev,
-                page: 1,
-                keyword: cleanOccName,
-            }));
-        }
+        // 방안 1 적용: 대분류는 DB 관계 기반 포괄 검색(occupationCode)으로 전달
+        setParams((prev) => ({
+            ...prev,
+            page: 1,
+            occupationCode: occCode,
+            keyword: "",
+        }));
     };
 
-    // 소분류 직무 드롭다운 변경 시 검색 키워드에 바로 반영
+    // 소분류 직무 드롭다운 변경 시 검색 키워드에 반영 (부모 occupationCode는 유지)
     const handleJobChange = (e) => {
         const jobName = e.target.value;
         setSelectedJob(jobName);
 
         if (!jobName) {
-            // 세부 직무를 '전체'로 선택한 경우: 상위 대분류 직군 키워드로 복원
-            const occObj = occupations.find((o) => String(o.occupationCode) === String(selectedOccupation));
-            const fallbackKeyword =
-                occObj && occObj.occupationName ? occObj.occupationName.split(/[·/,]/)[0].trim() : "";
-            setKeywordInput(fallbackKeyword);
+            // 세부 직무를 '전체'로 선택한 경우: 키워드를 비워 대분류 직군 전체 포괄 검색으로 복원
+            setKeywordInput("");
             setParams((prev) => ({
                 ...prev,
                 page: 1,
-                keyword: fallbackKeyword,
+                keyword: "",
             }));
             return;
         }
@@ -277,6 +271,7 @@ function JobList() {
         setParams({
             page: 1,
             size: 9,
+            occupationCode: "",
             keyword: "",
             location: "",
             experienceLevel: "",
@@ -788,16 +783,21 @@ function JobList() {
 
             {/* 3. 검색 결과 요약 */}
             <div className="d-flex justify-content-between align-items-center mb-3 px-1">
-                <div>
+                <div className="d-flex align-items-center flex-wrap gap-2">
                     <span className="small text-muted">
                         총 <strong className="text-primary">{pageInfo.totalElements.toLocaleString()}</strong>건의 채용
                         공고
                     </span>
                     {params.scrapOnly && (
-                        <span className="badge bg-warning text-dark border ms-2">⭐ 내 관심 공고만 필터링됨</span>
+                        <span className="badge bg-warning text-dark border">⭐ 내 관심 공고만 필터링됨</span>
                     )}
+                    {selectedOccupation && (
+                        <span className="badge bg-primary text-white border">
+                            📂 {occupations.find((o) => String(o.occupationCode) === String(selectedOccupation))?.occupationName || "직군"}
+                        </span>
+                    )}
+                    {params.keyword && <span className="badge bg-light text-dark border">검색어: "{params.keyword}"</span>}
                 </div>
-                {params.keyword && <span className="badge bg-light text-dark border">검색어: "{params.keyword}"</span>}
             </div>
 
             {/* 4. 공고 카드 그리드 */}
