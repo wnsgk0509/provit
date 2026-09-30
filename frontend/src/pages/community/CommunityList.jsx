@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { fetchPostList } from '../../api/communityApi';
 import { Link, useSearchParams } from 'react-router-dom';
 import StudyListSection from '../../components/study/StudyListSection';
+import PopularPostsWidget from '../../components/community/PopularPostsWidget';
+import PolicyWidget from '../../components/community/PolicyWidget';
 
 const CATEGORIES = [
     { id: '', name: '전체' },
@@ -19,7 +21,7 @@ function CommunityList() {
     const [posts, setPosts] = useState([]);
     const [pageInfo, setPageInfo] = useState({});
     const [loading, setLoading] = useState(false);
-    
+
     // 검색 파라미터 상태
     const [params, setParams] = useState({
         page: 1,
@@ -37,7 +39,7 @@ function CommunityList() {
     // 게시글 목록 가져오기 (카테고리가 'study'가 아닐 때만 호출)
     const loadPosts = async () => {
         if (params.categoryNum === 'study') return;
-        
+
         setLoading(true);
         try {
             const result = await fetchPostList(params);
@@ -115,26 +117,19 @@ function CommunityList() {
             {params.categoryNum !== 'study' && (
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <form className="d-flex gap-2" onSubmit={handleSearch}>
-                        <select
-                            className="form-select w-auto"
-                            value={searchInput.searchType}
-                            onChange={(e) => setSearchInput({ ...searchInput, searchType: e.target.value })}
-                        >
-                            <option value="TITLE">제목</option>
-                            <option value="CONTENT">내용</option>
-                            <option value="WRITER">작성자</option>
-                        </select>
-                        <input
-                            type="text"
-                            className="form-control"
-                            placeholder="게시글, 기업, 직무를 검색하세요"
-                            value={searchInput.keyword}
-                            onChange={(e) => setSearchInput({ ...searchInput, keyword: e.target.value })}
-                            style={{ width: '300px' }}
-                        />
-                        <button className="btn btn-primary" type="submit">검색</button>
+                        <div className="position-relative">
+                            <input
+                                type="text"
+                                className="form-control px-4"
+                                placeholder="게시글, 기업, 직무를 검색하세요"
+                                value={searchInput.keyword}
+                                onChange={(e) => setSearchInput({ ...searchInput, keyword: e.target.value })}
+                                style={{ width: '270px', borderRadius: '20px' }}
+                            />
+                        </div>
+                        <button className="btn btn-primary rounded-pill px-3" type="submit">검색</button>
                     </form>
-                    
+
                     {/* 글쓰기 버튼 */}
                     <Link to="/community/write" className="btn btn-primary px-4">
                         글쓰기
@@ -142,126 +137,126 @@ function CommunityList() {
                 </div>
             )}
 
-            {/* 카테고리 탭 */}
-            <ul className="nav nav-tabs mb-4">
-                {CATEGORIES.map((cat) => (
-                    <li className="nav-item" key={cat.id === '' ? 'all' : cat.id}>
-                        <button
-                            className={`nav-link ${params.categoryNum === cat.id ? 'active fw-bold' : 'text-secondary'}`}
-                            onClick={() => handleCategoryClick(cat.id)}
-                            type="button"
-                        >
-                            {cat.name}
-                        </button>
-                    </li>
-                ))}
-            </ul>
+            <div className="row">
+                <div className="col-lg-8">
+                    {/* 카테고리 탭 */}
+                    <ul className="nav nav-tabs mb-4">
+                        {CATEGORIES.map((cat) => (
+                            <li className="nav-item" key={cat.id === '' ? 'all' : cat.id}>
+                                <button
+                                    className={`nav-link ${params.categoryNum === cat.id ? 'active fw-bold' : 'text-secondary'}`}
+                                    onClick={() => handleCategoryClick(cat.id)}
+                                    type="button"
+                                >
+                                    {cat.name}
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
 
-            {/* 카테고리가 '스터디 모집'인 경우: 스터디 카드 목록 및 개설 영역 렌더링 */}
-            {params.categoryNum === 'study' ? (
-                <StudyListSection />
-            ) : (
-                /* 일반 게시판 영역 */
-                <>
+                    {/* 카테고리가 '스터디 모집'인 경우: 스터디 카드 목록 및 개설 영역 렌더링 */}
+                    {params.categoryNum === 'study' ? (
+                        <StudyListSection />
+                    ) : (
+                        /* 일반 게시판 영역 */
+                        <>
 
 
-                    {/* 게시글 목록 테이블 */}
-                    <div className="table-responsive">
-                        <table className="table table-hover align-middle text-center border-top">
-                            <thead className="table-light">
-                                <tr>
-                                    <th scope="col" style={{ width: '8%' }}>번호</th>
-                                    <th scope="col" style={{ width: '12%' }}>분류</th>
-                                    <th scope="col" style={{ width: '40%' }}>제목</th>
-                                    <th scope="col" style={{ width: '15%' }}>작성자</th>
-                                    <th scope="col" style={{ width: '10%' }}>작성일</th>
-                                    <th scope="col" style={{ width: '7%' }}>조회</th>
-                                    <th scope="col" style={{ width: '8%' }}>추천</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                            {/* 게시글 목록 카드 뷰 */}
+                            <div className="d-flex flex-column gap-3">
                                 {loading ? (
-                                    <tr>
-                                        <td colSpan="7" className="py-5 text-center text-muted">
-                                            <div className="spinner-border text-primary" role="status">
-                                                <span className="visually-hidden">Loading...</span>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <div className="text-center text-muted py-5">
+                                        <div className="spinner-border text-primary" role="status">
+                                            <span className="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
                                 ) : posts.length > 0 ? (
                                     posts.map((post) => (
-                                        <tr key={post.postNum}>
-                                            <td>{post.postNum}</td>
-                                            <td>
-                                                <span className={`badge ${
-                                                    post.categoryNum === 1 ? 'bg-primary' :
-                                                    post.categoryNum === 2 ? 'bg-success' :
-                                                    post.categoryNum === 3 ? 'bg-info text-dark' : 'bg-secondary'
-                                                }`}>
-                                                    {post.categoryName}
-                                                </span>
-                                            </td>
-                                            <td className="text-start">
-                                                <Link to={`/community/${post.postNum}`} className="text-decoration-none text-dark fw-semibold">
-                                                    {post.postTitle}
-                                                </Link>
-                                                {post.commentCount > 0 && (
-                                                    <span className="text-danger small ms-2 fw-bold">[{post.commentCount}]</span>
-                                                )}
-                                            </td>
-                                            <td>{post.userNickname || '익명'}</td>
-                                            <td className="text-muted small">{formatDate(post.postDate)}</td>
-                                            <td>{post.viewCount || 0}</td>
-                                            <td>{post.postLikeCount || 0}</td>
-                                        </tr>
+                                        <Link
+                                            to={`/community/${post.postNum}`}
+                                            key={post.postNum}
+                                            className="text-decoration-none text-dark"
+                                        >
+                                            <div className="card border-0 rounded-4 p-3 shadow-sm" style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
+                                                onMouseOver={(e) => e.currentTarget.classList.add('shadow')}
+                                                onMouseOut={(e) => e.currentTarget.classList.remove('shadow')}>
+                                                <div className="d-flex align-items-center gap-2 mb-2">
+                                                    <span className={`badge rounded-pill fw-medium ${post.categoryNum === 1 ? 'bg-primary bg-opacity-10 text-primary' :
+                                                        post.categoryNum === 2 ? 'bg-success bg-opacity-10 text-success' :
+                                                            post.categoryNum === 3 ? 'bg-info bg-opacity-10 text-info' : 'bg-secondary bg-opacity-10 text-secondary'
+                                                        }`}>
+                                                        {post.categoryName}
+                                                    </span>
+                                                    <h6 className="fw-bold mb-0 text-truncate" style={{ maxWidth: '70%' }}>{post.postTitle}</h6>
+                                                    {post.commentCount > 0 && (
+                                                        <span className="text-danger small fw-bold">[{post.commentCount}]</span>
+                                                    )}
+                                                </div>
+                                                <div className="d-flex align-items-center justify-content-between text-muted small mt-1">
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <span>{post.userNickname || '익명'}</span>
+                                                        <span style={{ fontSize: '10px' }}>•</span>
+                                                        <span>{formatDate(post.postDate)}</span>
+                                                    </div>
+                                                    <div className="d-flex flex-column align-items-end gap-1" style={{ fontSize: '11px' }}>
+                                                        <span>조회수 {post.viewCount || 0}</span>
+                                                        <span>좋아요 {post.postLikeCount || 0}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Link>
                                     ))
                                 ) : (
-                                    <tr>
-                                        <td colSpan="7" className="py-5 text-center text-muted">
-                                            게시글이 존재하지 않습니다.
-                                        </td>
-                                    </tr>
+                                    <div className="text-center text-muted py-5 border rounded-4 bg-light">
+                                        등록된 게시글이 없습니다.
+                                    </div>
                                 )}
-                            </tbody>
-                        </table>
-                    </div>
+                            </div>
 
-                    {/* 페이징 컴포넌트 */}
-                    {pageInfo.totalPages > 0 && (
-                        <nav aria-label="Page navigation" className="mt-4">
-                            <ul className="pagination justify-content-center">
-                                <li className={`page-item ${!pageInfo.hasPrevious ? 'disabled' : ''}`}>
-                                    <button
-                                        className="page-link"
-                                        onClick={() => handlePageChange(pageInfo.startPage - 1)}
-                                        disabled={!pageInfo.hasPrevious}
-                                    >
-                                        이전
-                                    </button>
-                                </li>
-                                
-                                {Array.from({ length: pageInfo.endPage - pageInfo.startPage + 1 }, (_, i) => pageInfo.startPage + i).map(num => (
-                                    <li key={num} className={`page-item ${pageInfo.currentPage === num ? 'active' : ''}`}>
-                                        <button className="page-link" onClick={() => handlePageChange(num)}>
-                                            {num}
-                                        </button>
-                                    </li>
-                                ))}
+                            {/* 페이징 컴포넌트 */}
+                            {pageInfo.totalPages > 0 && (
+                                <nav aria-label="Page navigation" className="mt-4">
+                                    <ul className="pagination justify-content-center">
+                                        <li className={`page-item ${!pageInfo.hasPrevious ? 'disabled' : ''}`}>
+                                            <button
+                                                className="page-link"
+                                                onClick={() => handlePageChange(pageInfo.startPage - 1)}
+                                                disabled={!pageInfo.hasPrevious}
+                                            >
+                                                이전
+                                            </button>
+                                        </li>
 
-                                <li className={`page-item ${!pageInfo.hasNext ? 'disabled' : ''}`}>
-                                    <button
-                                        className="page-link"
-                                        onClick={() => handlePageChange(pageInfo.endPage + 1)}
-                                        disabled={!pageInfo.hasNext}
-                                    >
-                                        다음
-                                    </button>
-                                </li>
-                            </ul>
-                        </nav>
+                                        {Array.from({ length: pageInfo.endPage - pageInfo.startPage + 1 }, (_, i) => pageInfo.startPage + i).map(num => (
+                                            <li key={num} className={`page-item ${pageInfo.currentPage === num ? 'active' : ''}`}>
+                                                <button className="page-link" onClick={() => handlePageChange(num)}>
+                                                    {num}
+                                                </button>
+                                            </li>
+                                        ))}
+
+                                        <li className={`page-item ${!pageInfo.hasNext ? 'disabled' : ''}`}>
+                                            <button
+                                                className="page-link"
+                                                onClick={() => handlePageChange(pageInfo.endPage + 1)}
+                                                disabled={!pageInfo.hasNext}
+                                            >
+                                                다음
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            )}
+                        </>
                     )}
-                </>
-            )}
+                </div>
+
+                {/* 우측 인기글 및 정책 위젯 */}
+                <div className="col-lg-4">
+                    <PopularPostsWidget />
+                    <PolicyWidget />
+                </div>
+            </div>
         </div>
     );
 }

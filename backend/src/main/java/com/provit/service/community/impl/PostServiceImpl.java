@@ -130,4 +130,9 @@ public class PostServiceImpl implements PostService {
             throw new IllegalArgumentException("게시글이 존재하지 않거나 권한이 없습니다.");
         }
     }
+
+    @Override
+    public java.util.List<PostDTO> getPopularPosts(int limit) {
+        return postDao.selectPopularPosts(limit);
+    }
 }
