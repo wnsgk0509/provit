@@ -49,25 +49,27 @@ public class RecruitmentServiceImpl implements RecruitmentService {
     }
 
     @Override
-    @Transactional
     public int syncSaraminRecruitments(int limit) {
-        log.info(">> [Service] 사람인 실시간 인기 공고 크롤링 동기화 시작 (요청 상한: {}건)", limit);
+        log.info(">> [Service] 사람인 실시간 인기 공고 동기화 시작 (목표 수량: {}건)", limit);
 
         List<RecruitmentDTO> recruitments = saraminCrawler.crawlTopRecruitments(limit);
-        log.info(">> [Service] 크롤러 수집 완료: 총 {}건 파싱됨", recruitments.size());
+        log.info(">> [Service] 크롤러 수집 완료: 총 {}건 유효 공고 확보됨", recruitments.size());
 
         int successCount = 0;
+        int failureCount = 0;
         for (RecruitmentDTO dto : recruitments) {
             try {
                 recruitmentDAO.mergeRecruitment(dto);
                 successCount++;
             } catch (Exception e) {
+                failureCount++;
                 log.warn(">> [Service] 공고(ID: {}) 적재 중 오류 발생 (스킵): {}", dto.getSaraminJobId(), e.getMessage());
             }
         }
 
         int expiredCount = recruitmentDAO.deactivateExpiredRecruitments();
-        log.info(">> [Service] 공고 동기화 완료: {}건 저장/갱신, {}건 만료 비활성화", successCount, expiredCount);
+        log.info(">> [Service] 공고 동기화 완료: 총 {}건 중 {}건 저장/갱신 성공 (실패: {}건), {}건 만료 비활성화", 
+                recruitments.size(), successCount, failureCount, expiredCount);
 
         return successCount;
     }

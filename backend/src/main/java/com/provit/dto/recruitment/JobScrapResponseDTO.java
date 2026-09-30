@@ -1,5 +1,7 @@
 package com.provit.dto.recruitment;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,6 +22,9 @@ public class JobScrapResponseDTO {
 
     private Long recruitmentNum;
     private Long userNum;
-    private boolean isScrapped;
+
+    @JsonProperty("isScrapped")
+    private Boolean isScrapped;
+
     private String message;
 }
