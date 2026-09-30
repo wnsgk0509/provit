@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,11 +19,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.provit.common.ResponseCode;
+import com.provit.common.auth.AuthCookieService;
 import com.provit.dto.auth.EmailSendRequestDTO;
 import com.provit.dto.auth.EmailVerifyRequestDTO;
 import com.provit.dto.auth.LoginRequestDTO;
 import com.provit.dto.auth.LoginResponseDTO;
 import com.provit.dto.auth.MyPageUpdateRequestDTO;
+import com.provit.dto.auth.PasswordResetRequestDTO;
 import com.provit.dto.auth.SignupRequestDTO;
 import com.provit.dto.auth.UserResponseDTO;
 import com.provit.dto.auth.WithdrawalRequestDTO;
@@ -39,11 +42,13 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtProvider jwtProvider;
+    private final AuthCookieService authCookieService;
 
     @Autowired
-    public AuthController(AuthService authService, JwtProvider jwtProvider) {
+    public AuthController(AuthService authService, JwtProvider jwtProvider, AuthCookieService authCookieService) {
         this.authService = authService;
         this.jwtProvider = jwtProvider;
+        this.authCookieService = authCookieService;
     }
 
     /**
@@ -55,6 +60,13 @@ public class AuthController {
         ResponseCode code = available ? ResponseCode.AUTH_EMAIL_AVAILABLE : ResponseCode.AUTH_EMAIL_DUPLICATE;
         ApiResponse<Map<String, Boolean>> response = new ApiResponse<>(code, Collections.singletonMap("available", available));
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.SET_COOKIE, authCookieService.clearAccessTokenCookie().toString());
+        return new ResponseEntity<>(new ApiResponse<>(ResponseCode.SUCCESS_EMPTY, null), headers, HttpStatus.OK);
     }
 
     /**
@@ -89,6 +101,30 @@ public class AuthController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @PostMapping("/password-reset/send-code")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> sendPasswordResetVerificationCode(
+            @RequestBody EmailSendRequestDTO requestDTO) {
+        long expiresAt = authService.sendPasswordResetVerificationEmail(requestDTO.getEmail());
+        ApiResponse<Map<String, Long>> response = new ApiResponse<>(ResponseCode.AUTH_CODE_SENT,
+                Collections.singletonMap("expiresAt", expiresAt));
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping("/password-reset/verify-code")
+    public ResponseEntity<ApiResponse<Map<String, String>>> verifyPasswordResetCode(
+            @RequestBody EmailVerifyRequestDTO requestDTO) {
+        String verificationToken = authService.verifyPasswordResetCode(requestDTO.getEmail(), requestDTO.getCode());
+        ApiResponse<Map<String, String>> response = new ApiResponse<>(ResponseCode.AUTH_CODE_VERIFIED,
+                Collections.singletonMap("verificationToken", verificationToken));
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping("/password-reset")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody PasswordResetRequestDTO requestDTO) {
+        authService.resetPassword(requestDTO);
+        return new ResponseEntity<>(new ApiResponse<>(ResponseCode.SUCCESS_EMPTY, null), HttpStatus.OK);
+    }
+
     /**
      * 5. 신규 회원가입
      */
@@ -106,7 +142,11 @@ public class AuthController {
     public ResponseEntity<ApiResponse<LoginResponseDTO>> login(@RequestBody LoginRequestDTO requestDTO) {
         LoginResponseDTO loginResponse = authService.login(requestDTO);
         ApiResponse<LoginResponseDTO> response = new ApiResponse<>(ResponseCode.AUTH_LOGIN_SUCCESS, loginResponse);
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.SET_COOKIE, authCookieService
+                .createAccessTokenCookie(loginResponse.getAccessToken(), jwtProvider.getExpirationTime())
+                .toString());
+        return new ResponseEntity<>(response, headers, HttpStatus.OK);
     }
 
     /**
@@ -114,17 +154,10 @@ public class AuthController {
      */
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponseDTO>> getMyProfile(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            ApiResponse<UserResponseDTO> response = new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
-            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
-        }
-
-        String token = authHeader.substring(7).trim();
+        String token = authCookieService.getAccessToken(request).orElse(null);
+        if (token == null) return unauthorizedProfileResponse(null);
         if (!jwtProvider.validateToken(token)) {
-            ResponseCode code = jwtProvider.isTokenExpired(token) ? ResponseCode.AUTH_TOKEN_EXPIRED : ResponseCode.AUTH_TOKEN_INVALID;
-            ApiResponse<UserResponseDTO> response = new ApiResponse<>(code, null);
-            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+            return unauthorizedProfileResponse(token);
         }
 
         Long userNum = jwtProvider.getUserNum(token);
@@ -138,17 +171,10 @@ public class AuthController {
     public ResponseEntity<ApiResponse<UserResponseDTO>> updateMyProfile(
             HttpServletRequest request,
             @RequestBody MyPageUpdateRequestDTO requestDTO) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            ApiResponse<UserResponseDTO> response = new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
-            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
-        }
-
-        String token = authHeader.substring(7).trim();
+        String token = authCookieService.getAccessToken(request).orElse(null);
+        if (token == null) return unauthorizedProfileResponse(null);
         if (!jwtProvider.validateToken(token)) {
-            ResponseCode code = jwtProvider.isTokenExpired(token) ? ResponseCode.AUTH_TOKEN_EXPIRED : ResponseCode.AUTH_TOKEN_INVALID;
-            ApiResponse<UserResponseDTO> response = new ApiResponse<>(code, null);
-            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+            return unauthorizedProfileResponse(token);
         }
 
         // 요청 본문의 회원 번호를 신뢰하지 않고 JWT의 회원 번호를 사용한다.
@@ -163,21 +189,32 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> withdrawMyAccount(
             HttpServletRequest request,
             @RequestBody WithdrawalRequestDTO requestDTO) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            ApiResponse<Void> response = new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
-            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
-        }
-
-        String token = authHeader.substring(7).trim();
+        String token = authCookieService.getAccessToken(request).orElse(null);
+        if (token == null) return unauthorizedResponse(null);
         if (!jwtProvider.validateToken(token)) {
-            ResponseCode code = jwtProvider.isTokenExpired(token) ? ResponseCode.AUTH_TOKEN_EXPIRED : ResponseCode.AUTH_TOKEN_INVALID;
-            ApiResponse<Void> response = new ApiResponse<>(code, null);
-            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+            return unauthorizedResponse(token);
         }
 
         authService.withdrawMyAccount(jwtProvider.getUserNum(token), requestDTO);
         ApiResponse<Void> response = new ApiResponse<>(ResponseCode.SUCCESS_EMPTY, null);
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.SET_COOKIE, authCookieService.clearAccessTokenCookie().toString());
+        return new ResponseEntity<>(response, headers, HttpStatus.OK);
+    }
+
+    private ResponseEntity<ApiResponse<UserResponseDTO>> unauthorizedProfileResponse(String token) {
+        ResponseCode code = token == null ? ResponseCode.AUTH_UNAUTHORIZED
+                : jwtProvider.isTokenExpired(token) ? ResponseCode.AUTH_TOKEN_EXPIRED : ResponseCode.AUTH_TOKEN_INVALID;
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.SET_COOKIE, authCookieService.clearAccessTokenCookie().toString());
+        return new ResponseEntity<>(new ApiResponse<>(code, null), headers, HttpStatus.UNAUTHORIZED);
+    }
+
+    private ResponseEntity<ApiResponse<Void>> unauthorizedResponse(String token) {
+        ResponseCode code = token == null ? ResponseCode.AUTH_UNAUTHORIZED
+                : jwtProvider.isTokenExpired(token) ? ResponseCode.AUTH_TOKEN_EXPIRED : ResponseCode.AUTH_TOKEN_INVALID;
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.SET_COOKIE, authCookieService.clearAccessTokenCookie().toString());
+        return new ResponseEntity<>(new ApiResponse<>(code, null), headers, HttpStatus.UNAUTHORIZED);
     }
 }

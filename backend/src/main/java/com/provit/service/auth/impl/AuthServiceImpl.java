@@ -23,6 +23,7 @@ import com.provit.dao.auth.UserDAO;
 import com.provit.dto.auth.LoginRequestDTO;
 import com.provit.dto.auth.LoginResponseDTO;
 import com.provit.dto.auth.MyPageUpdateRequestDTO;
+import com.provit.dto.auth.PasswordResetRequestDTO;
 import com.provit.dto.auth.SignupRequestDTO;
 import com.provit.dto.auth.UserDTO;
 import com.provit.dto.auth.UserResponseDTO;
@@ -51,6 +52,9 @@ public class AuthServiceImpl implements AuthService {
     private final Map<String, VerificationTokenInfo> verifiedTokenMap = new ConcurrentHashMap<>();
     // 동일 이메일의 인증 메일 반복 발송 방지용 쿨다운
     private final Map<String, Long> emailSendCooldownMap = new ConcurrentHashMap<>();
+    private final Map<String, VerificationCodeInfo> passwordResetCodeMap = new ConcurrentHashMap<>();
+    private final Map<String, VerificationTokenInfo> passwordResetTokenMap = new ConcurrentHashMap<>();
+    private final Map<String, Long> passwordResetSendCooldownMap = new ConcurrentHashMap<>();
 
     private static final long CODE_EXPIRE_MILLIS = 3 * 60 * 1000L; // 3분
     private static final long TOKEN_EXPIRE_MILLIS = 30 * 60 * 1000L; // 30분
@@ -213,6 +217,112 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public long sendPasswordResetVerificationEmail(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        UserDTO user = userDAO.selectByEmail(normalizedEmail);
+        if (user == null || Integer.valueOf(1).equals(user.getUserIsDeleted())) {
+            throw new IllegalArgumentException("가입된 이메일 주소가 아닙니다.");
+        }
+
+        Long nextSendAt = passwordResetSendCooldownMap.get(normalizedEmail);
+        long now = System.currentTimeMillis();
+        if (nextSendAt != null && nextSendAt > now) {
+            long remainingSeconds = (nextSendAt - now + 999) / 1000;
+            throw new IllegalStateException("인증번호는 " + remainingSeconds + "초 후에 다시 발송할 수 있습니다.");
+        }
+
+        String code = String.valueOf(100000 + SECURE_RANDOM.nextInt(900000));
+        long expireAt = now + CODE_EXPIRE_MILLIS;
+        passwordResetCodeMap.put(normalizedEmail, new VerificationCodeInfo(code, expireAt));
+
+        if (!mailService.sendPasswordResetVerificationCode(normalizedEmail, code)) {
+            passwordResetCodeMap.remove(normalizedEmail);
+            throw new IllegalStateException("인증 이메일 발송에 실패했습니다. 이메일 주소를 확인해 주세요.");
+        }
+
+        passwordResetSendCooldownMap.put(normalizedEmail, now + SEND_COOLDOWN_MILLIS);
+        return expireAt;
+    }
+
+    @Override
+    public String verifyPasswordResetCode(String email, String code) {
+        if (CommonUtil.isEmpty(email) || CommonUtil.isEmpty(code)) {
+            throw new IllegalArgumentException("이메일과 인증번호를 모두 입력해 주세요.");
+        }
+
+        String normalizedEmail = normalizeEmail(email);
+        String trimmedCode = code.trim();
+        if (!trimmedCode.matches("\\d{6}")) {
+            throw new IllegalArgumentException("인증번호 6자리를 입력해 주세요.");
+        }
+
+        VerificationCodeInfo info = passwordResetCodeMap.get(normalizedEmail);
+        if (info == null) {
+            throw new IllegalArgumentException("인증번호가 발송되지 않았거나 만료되었습니다. 다시 발송해 주세요.");
+        }
+        if (info.isExpired()) {
+            passwordResetCodeMap.remove(normalizedEmail);
+            throw new IllegalArgumentException("인증번호 유효시간(3분)이 만료되었습니다. 다시 발송해 주세요.");
+        }
+        if (!info.code.equals(trimmedCode)) {
+            info.failedAttempts++;
+            if (info.failedAttempts >= MAX_VERIFICATION_ATTEMPTS) {
+                passwordResetCodeMap.remove(normalizedEmail);
+                throw new IllegalArgumentException("인증번호 입력 가능 횟수를 초과했습니다. 다시 발송해 주세요.");
+            }
+            throw new IllegalArgumentException("인증번호가 일치하지 않습니다. 다시 확인해 주세요.");
+        }
+
+        passwordResetCodeMap.remove(normalizedEmail);
+        String verificationToken = UUID.randomUUID().toString();
+        passwordResetTokenMap.put(verificationToken,
+                new VerificationTokenInfo(normalizedEmail, System.currentTimeMillis() + TOKEN_EXPIRE_MILLIS));
+        return verificationToken;
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(PasswordResetRequestDTO requestDTO) {
+        if (requestDTO == null || CommonUtil.isEmpty(requestDTO.getVerificationToken())) {
+            throw new IllegalArgumentException("이메일 인증을 먼저 완료해 주세요.");
+        }
+        if (CommonUtil.isEmpty(requestDTO.getNewPassword())) {
+            throw new IllegalArgumentException("새 비밀번호를 입력해 주세요.");
+        }
+        if (!PASSWORD_PATTERN.matcher(requestDTO.getNewPassword()).matches()) {
+            throw new IllegalArgumentException("비밀번호는 8자 이상이며 영문 대소문자, 숫자, 특수문자를 각각 포함해야 합니다.");
+        }
+        if (!requestDTO.getNewPassword().equals(requestDTO.getConfirmPassword())) {
+            throw new IllegalArgumentException("새 비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+        }
+
+        String verificationToken = requestDTO.getVerificationToken();
+        // remove를 먼저 수행해 동일 토큰으로 동시에 여러 번 비밀번호를 바꾸는 것을 막는다.
+        VerificationTokenInfo tokenInfo = passwordResetTokenMap.remove(verificationToken);
+        if (tokenInfo == null || tokenInfo.isExpired()) {
+            throw new IllegalArgumentException("비밀번호 재설정 인증이 유효하지 않거나 만료되었습니다. 다시 인증해 주세요.");
+        }
+
+        UserDTO user = userDAO.selectByEmail(tokenInfo.email);
+        if (user == null || Integer.valueOf(1).equals(user.getUserIsDeleted())) {
+            throw new IllegalArgumentException("비밀번호를 재설정할 수 없는 계정입니다.");
+        }
+
+        UserDTO updateUser = UserDTO.builder()
+                .userEmail(tokenInfo.email)
+                .userPw(passwordEncoder.encode(requestDTO.getNewPassword()))
+                .build();
+        if (userDAO.updatePasswordByEmail(updateUser) != 1) {
+            throw new IllegalStateException("비밀번호 변경에 실패했습니다.");
+        }
+        if (userDAO.incrementTokenVersion(user.getUserNum()) != 1) {
+            throw new IllegalStateException("기존 로그인 정보를 만료하지 못했습니다.");
+        }
+
+        log.info("비밀번호 재설정이 완료되었습니다. (회원번호: {})", user.getUserNum());
+    }
+
+    @Override
     @Transactional
     public UserResponseDTO signup(SignupRequestDTO requestDTO) {
         // 1. 필수 입력값 검증
@@ -361,14 +471,11 @@ public class AuthServiceImpl implements AuthService {
 
         // 5. JWT Access Token 발급
         String accessToken = jwtProvider.createToken(user);
-        long expiresIn = jwtProvider.getExpirationTime();
 
         log.info("회원 로그인 성공 (회원번호: {}, 이메일: {})", user.getUserNum(), user.getUserEmail());
 
         return LoginResponseDTO.builder()
                 .accessToken(accessToken)
-                .tokenType("Bearer")
-                .expiresIn(expiresIn)
                 .user(UserResponseDTO.from(user))
                 .build();
     }

@@ -3,6 +3,7 @@ package com.provit.service.auth;
 import com.provit.dto.auth.LoginRequestDTO;
 import com.provit.dto.auth.LoginResponseDTO;
 import com.provit.dto.auth.MyPageUpdateRequestDTO;
+import com.provit.dto.auth.PasswordResetRequestDTO;
 import com.provit.dto.auth.SignupRequestDTO;
 import com.provit.dto.auth.UserResponseDTO;
 import com.provit.dto.auth.WithdrawalRequestDTO;
@@ -31,6 +32,21 @@ public interface AuthService {
      * 이메일 인증번호 검증 (성공 시 가입용 검증 토큰 반환)
      */
     String verifyEmailCode(String email, String code);
+
+    /**
+     * 가입된 계정의 비밀번호 재설정용 인증번호를 발송한다.
+     */
+    long sendPasswordResetVerificationEmail(String email);
+
+    /**
+     * 비밀번호 재설정용 인증번호를 검증하고 재설정 토큰을 발급한다.
+     */
+    String verifyPasswordResetCode(String email, String code);
+
+    /**
+     * 이메일 인증이 완료된 계정의 비밀번호를 변경한다.
+     */
+    void resetPassword(PasswordResetRequestDTO requestDTO);
 
     /**
      * 신규 회원가입 처리
