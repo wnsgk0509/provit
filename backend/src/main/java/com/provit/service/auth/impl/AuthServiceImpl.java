@@ -347,6 +347,12 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다.");
         }
 
+        // 3-1. 정지된 계정 여부 확인 (BLOCKED_DATE 활용)
+        if (user.getBlockedDate() != null && user.getBlockedDate().after(new java.util.Date())) {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy년 MM월 dd일");
+            throw new SecurityException("관리자에 의해 정지된 계정입니다. (정지 해제일: " + sdf.format(user.getBlockedDate()) + ")");
+        }
+
         // 4. BCrypt 비밀번호 일치 검증
         if (!passwordEncoder.matches(requestDTO.getUserPw(), user.getUserPw())) {
             // 이메일 존재 여부가 노출되지 않도록 인증 실패 메시지를 통일한다.

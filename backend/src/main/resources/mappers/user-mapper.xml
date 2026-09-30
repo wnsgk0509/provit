@@ -18,6 +18,7 @@
         <result property="jobCode" column="JOB_CODE" />
         <result property="userIsDeleted" column="USER_IS_DELETED" />
         <result property="userTokenVersion" column="USER_TOKEN_VERSION" />
+        <result property="blockedDate" column="BLOCKED_DATE" />
     </resultMap>
 
     <!-- 1. 이메일로 회원 단건 조회 -->
@@ -34,7 +35,8 @@
             OCCUPATION_CODE,
             JOB_CODE,
             USER_IS_DELETED,
-            USER_TOKEN_VERSION
+            USER_TOKEN_VERSION,
+            BLOCKED_DATE
         FROM T_USER
         WHERE USER_EMAIL = #{userEmail}
     </select>
@@ -53,7 +55,8 @@
             OCCUPATION_CODE,
             JOB_CODE,
             USER_IS_DELETED,
-            USER_TOKEN_VERSION
+            USER_TOKEN_VERSION,
+            BLOCKED_DATE
         FROM T_USER
         WHERE USER_NICKNAME = #{userNickname}
           AND USER_IS_DELETED = 0
@@ -73,7 +76,8 @@
             OCCUPATION_CODE,
             JOB_CODE,
             USER_IS_DELETED,
-            USER_TOKEN_VERSION
+            USER_TOKEN_VERSION,
+            BLOCKED_DATE
         FROM T_USER
         WHERE USER_NUM = #{userNum}
     </select>
