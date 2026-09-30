@@ -1,3 +1,18 @@
+-- 기존 DB의 T_USER 스키마 누락을 보정합니다.
+DECLARE
+    column_count NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO column_count
+    FROM USER_TAB_COLUMNS
+    WHERE TABLE_NAME = 'T_USER'
+      AND COLUMN_NAME = 'BLOCKED_DATE';
+
+    IF column_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE T_USER ADD (BLOCKED_DATE TIMESTAMP)';
+    END IF;
+END;
+/
+
 -- 기존 Oracle DB에 Refresh Token 저장소를 추가합니다.
 CREATE TABLE T_REFRESH_TOKEN (
     TOKEN_ID             VARCHAR2(36)        PRIMARY KEY,
