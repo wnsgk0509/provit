@@ -1,5 +1,6 @@
 .home-page { max-width: 1120px; margin: 0 auto; padding: 1rem 0 3rem; color: #18273a; }
 .home-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(330px, .92fr); gap: 2rem; overflow: hidden; padding: clamp(1.6rem, 4vw, 2.75rem); color: #fff; background: #162439; border-radius: 1.75rem; }
+.home-hero.is-guest { grid-template-columns: 1fr; }
 .home-hero::after { position: absolute; top: -14rem; right: -11rem; width: 26rem; height: 26rem; content: ""; background: #526ee8; border-radius: 50%; opacity: .55; }
 .home-hero-copy, .home-score-card { position: relative; z-index: 1; }
 .home-eyebrow { margin-bottom: .55rem; color: #6f8cff; font-size: .76rem; font-weight: 800; letter-spacing: .09em; }

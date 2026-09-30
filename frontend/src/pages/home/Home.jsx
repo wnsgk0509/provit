@@ -96,7 +96,7 @@ function Home() {
 
   return (
     <section className="home-page" aria-labelledby="homeTitle">
-      <div className="home-hero">
+      <div className={`home-hero ${isLoggedIn ? "" : "is-guest"}`}>
         <div className="home-hero-copy">
           <div className="home-eyebrow">{isLoggedIn ? "MY INTERVIEW DASHBOARD" : "PROVIT CAREER COACHING"}</div>
           <h1 id="homeTitle">{heroTitle.split("\n").map((line) => <span key={line}>{line}</span>)}</h1>
@@ -109,7 +109,7 @@ function Home() {
           </div>
         </div>
 
-        <article className="home-score-card" aria-live="polite">
+        {isLoggedIn && <article className="home-score-card" aria-live="polite">
           {isLoadingResults ? <p className="home-card-message">최근 면접 결과를 불러오는 중입니다.</p> : latestResult ? (
             <>
               <div className="home-score-top">
@@ -120,8 +120,8 @@ function Home() {
                 <svg viewBox="0 0 420 145" role="img" aria-label="최근 모의면접 점수 추이 그래프">
                   <defs><linearGradient id="homeScoreGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#6f8cff" stopOpacity="0.55" /><stop offset="1" stopColor="#6f8cff" stopOpacity="0" /></linearGradient></defs>
                   <path className="home-chart-grid" d="M10 30H410M10 75H410M10 120H410" />
-                  <polygon className="home-chart-area" points={chartArea} />
-                  <polyline className="home-chart-line" points={chartLine} />
+                  {chartPoints.length > 1 && <polygon className="home-chart-area" points={chartArea} />}
+                  {chartPoints.length > 1 && <polyline className="home-chart-line" points={chartLine} />}
                   {chartPoints.map(({ x, y, score }) => <circle key={`${x}-${score}`} className="home-chart-dot" cx={x} cy={y} r="5" />)}
                 </svg>
               </div>
@@ -130,7 +130,7 @@ function Home() {
           ) : (
             <div className="home-empty-score"><strong>아직 면접 결과가 없어요.</strong><p>첫 모의면접을 완료하면 점수와 성장 추이를 이곳에서 확인할 수 있습니다.</p><Link to={isLoggedIn ? "/interview" : "/login"}>첫 모의면접 시작하기 →</Link></div>
           )}
-        </article>
+        </article>}
       </div>
 
       <div className="home-section-heading"><div><h2>필요한 기능을 바로 시작하세요</h2><p>취업 준비에 자주 쓰는 기능을 빠르게 이어갑니다.</p></div></div>
