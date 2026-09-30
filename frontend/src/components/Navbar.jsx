@@ -70,7 +70,8 @@ function Navbar() {
                     <div className="provit-navbar-auth">
                         {isLoggedIn ? (
                             <>
-                                <Link className="provit-navbar-mypage" to="/mypage">
+                                <Link className="provit-navbar-mypage" to={user?.userType === 'ADMIN' ? "/admin/reports" : "/mypage"}>
+                                    {user?.userType === 'ADMIN' && <span title="관리자 페이지" className="me-1">🛡️</span>}
                                     {user?.userNickname || user?.userName || user?.name || "사용자"}님
                                 </Link>
                                 <button type="button" className="provit-navbar-logout" onClick={handleLogout}>

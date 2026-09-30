@@ -21,6 +21,7 @@ import DocumentEdit from './pages/documentEdit/DocumentEdit';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import BootstrapTemplate from './pages/bootstrap';
+import AdminReportList from './pages/admin/AdminReportList';
 
 function RequireAuth({ children, alertMessage }) {
   const { isLoading, isLoggedIn } = useAuth();
@@ -38,6 +39,28 @@ function RequireAuth({ children, alertMessage }) {
   }, [alertMessage, isLoading, isLoggedIn, navigate]);
 
   if (isLoading || !isLoggedIn) return null;
+
+  return children;
+}
+
+function RequireAdmin({ children, alertMessage }) {
+  const { isLoading, isLoggedIn, user } = useAuth();
+  const navigate = useNavigate();
+  const hasRedirected = useRef(false);
+
+  useEffect(() => {
+    if (isLoading || hasRedirected.current) return;
+
+    if (!isLoggedIn || user?.userType !== 'ADMIN') {
+      hasRedirected.current = true;
+      if (alertMessage) {
+        window.alert(alertMessage);
+      }
+      navigate('/home', { replace: true });
+    }
+  }, [alertMessage, isLoading, isLoggedIn, user, navigate]);
+
+  if (isLoading || !isLoggedIn || user?.userType !== 'ADMIN') return null;
 
   return children;
 }
@@ -76,6 +99,8 @@ function App() {
             <Route path="/documents/:documentType/:documentId" element={<RequireAuth><DocumentRead /></RequireAuth>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            {/* 관리자 라우트 */}
+            <Route path="/admin/reports" element={<RequireAdmin alertMessage="관리자만 접근 가능합니다."><AdminReportList /></RequireAdmin>} />
             {/* 팀원 참고용 부트스트랩 템플릿 화면 */}
             <Route path="/bootstrap" element={<BootstrapTemplate />} />
           </Routes>

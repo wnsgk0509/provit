@@ -27,11 +27,11 @@ function ReportModal({ show, onClose, targetType, targetNum }) {
                 alert('신고가 정상적으로 접수되었습니다.');
                 onClose();
             } else {
-                alert(result.message || '신고 처리에 실패했습니다.');
+                // 백엔드에서 에러 발생 시 data(예외 메시지) 또는 responseCode.message를 보여줌
+                alert(result.data || result.responseCode?.message || '신고 처리에 실패했습니다.');
             }
         } catch (error) {
-            // Spring Boot에서 던진 400 에러 등의 메시지 파싱
-            alert(error.response?.data?.message || '신고 접수 중 오류가 발생했습니다.');
+            alert(error.response?.data?.data || error.response?.data?.responseCode?.message || '신고 접수 중 오류가 발생했습니다.');
         } finally {
             setLoading(false);
         }
