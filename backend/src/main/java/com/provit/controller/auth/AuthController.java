@@ -25,6 +25,7 @@ import com.provit.dto.auth.EmailVerifyRequestDTO;
 import com.provit.dto.auth.LoginRequestDTO;
 import com.provit.dto.auth.LoginResponseDTO;
 import com.provit.dto.auth.MyPageUpdateRequestDTO;
+import com.provit.dto.auth.PasswordResetRequestDTO;
 import com.provit.dto.auth.SignupRequestDTO;
 import com.provit.dto.auth.UserResponseDTO;
 import com.provit.dto.auth.WithdrawalRequestDTO;
@@ -98,6 +99,30 @@ public class AuthController {
         String verificationToken = authService.verifyEmailCode(requestDTO.getEmail(), requestDTO.getCode());
         ApiResponse<Map<String, String>> response = new ApiResponse<>(ResponseCode.AUTH_CODE_VERIFIED, Collections.singletonMap("verificationToken", verificationToken));
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping("/password-reset/send-code")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> sendPasswordResetVerificationCode(
+            @RequestBody EmailSendRequestDTO requestDTO) {
+        long expiresAt = authService.sendPasswordResetVerificationEmail(requestDTO.getEmail());
+        ApiResponse<Map<String, Long>> response = new ApiResponse<>(ResponseCode.AUTH_CODE_SENT,
+                Collections.singletonMap("expiresAt", expiresAt));
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping("/password-reset/verify-code")
+    public ResponseEntity<ApiResponse<Map<String, String>>> verifyPasswordResetCode(
+            @RequestBody EmailVerifyRequestDTO requestDTO) {
+        String verificationToken = authService.verifyPasswordResetCode(requestDTO.getEmail(), requestDTO.getCode());
+        ApiResponse<Map<String, String>> response = new ApiResponse<>(ResponseCode.AUTH_CODE_VERIFIED,
+                Collections.singletonMap("verificationToken", verificationToken));
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping("/password-reset")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody PasswordResetRequestDTO requestDTO) {
+        authService.resetPassword(requestDTO);
+        return new ResponseEntity<>(new ApiResponse<>(ResponseCode.SUCCESS_EMPTY, null), HttpStatus.OK);
     }
 
     /**
