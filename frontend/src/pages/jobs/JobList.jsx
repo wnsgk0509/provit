@@ -209,10 +209,57 @@ function JobList() {
         }));
     };
 
-    // 직무 드롭다운 변경 시 검색 키워드에 바로 반영
+    // 대분류 직군 변경 시: 하위 세부 직무 목록 로드 트리거 + 직군 대표 키워드로 즉시 1차 필터링
+    const handleOccupationChange = (e) => {
+        const occCode = e.target.value;
+        setSelectedOccupation(occCode);
+        setSelectedJob(''); // 직군이 변경되면 이전 세부 직무 선택 초기화
+
+        if (!occCode) {
+            // 직군을 '전체'로 푼 경우 키워드도 초기화
+            setKeywordInput('');
+            setParams(prev => ({
+                ...prev,
+                page: 1,
+                keyword: ''
+            }));
+            return;
+        }
+
+        // 선택한 직군 객체 찾기 (예: "IT개발·데이터")
+        const occObj = occupations.find(o => String(o.occupationCode) === String(occCode));
+        if (occObj && occObj.occupationName) {
+            // "IT개발·데이터" -> "IT개발", "기획·전략" -> "기획" 등 특수문자/구분기호 앞단 핵심 키워드 정제
+            const cleanOccName = occObj.occupationName.split(/[·/,]/)[0].trim();
+            setKeywordInput(cleanOccName);
+            setParams(prev => ({
+                ...prev,
+                page: 1,
+                keyword: cleanOccName
+            }));
+        }
+    };
+
+    // 소분류 직무 드롭다운 변경 시 검색 키워드에 바로 반영
     const handleJobChange = (e) => {
         const jobName = e.target.value;
         setSelectedJob(jobName);
+
+        if (!jobName) {
+            // 세부 직무를 '전체'로 선택한 경우: 상위 대분류 직군 키워드로 복원
+            const occObj = occupations.find(o => String(o.occupationCode) === String(selectedOccupation));
+            const fallbackKeyword = occObj && occObj.occupationName 
+                ? occObj.occupationName.split(/[·/,]/)[0].trim() 
+                : '';
+            setKeywordInput(fallbackKeyword);
+            setParams(prev => ({
+                ...prev,
+                page: 1,
+                keyword: fallbackKeyword
+            }));
+            return;
+        }
+
         setKeywordInput(jobName);
         setParams(prev => ({
             ...prev,
@@ -595,7 +642,7 @@ function JobList() {
                             <select 
                                 className="form-select form-select-sm"
                                 value={selectedOccupation}
-                                onChange={(e) => setSelectedOccupation(e.target.value)}
+                                onChange={handleOccupationChange}
                             >
                                 <option value="">전체 직군 선택</option>
                                 {occupations.map(occ => (
@@ -615,7 +662,7 @@ function JobList() {
                                 onChange={handleJobChange}
                                 disabled={!selectedOccupation || jobs.length === 0}
                             >
-                                <option value="">{selectedOccupation ? '세부 직무 선택' : '직군을 먼저 선택하세요'}</option>
+                                <option value="">{selectedOccupation ? '세부 직무 전체' : '직군을 먼저 선택하세요'}</option>
                                 {jobs.map(job => (
                                     <option key={job.jobCode} value={job.jobName}>
                                         {job.jobName}
