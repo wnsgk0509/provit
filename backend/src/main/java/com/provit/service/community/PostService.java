@@ -39,4 +39,9 @@ public interface PostService {
      * 특정 게시글을 삭제합니다.
      */
     void deletePost(Long postNum, Long userNum);
+
+    /**
+     * 인기 게시글을 조회합니다.
+     */
+    java.util.List<PostDTO> getPopularPosts(int limit);
 }

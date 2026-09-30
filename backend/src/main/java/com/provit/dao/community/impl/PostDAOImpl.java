@@ -93,5 +93,9 @@ public class PostDAOImpl implements PostDAO {
     public int updatePostLikeCount(java.util.Map<String, Object> params) {
         return sqlSession.update(NAMESPACE + ".updatePostLikeCount", params);
     }
+
+    public java.util.List<com.provit.dto.community.PostDTO> selectPopularPosts(int limit) {
+        return sqlSession.selectList(NAMESPACE + ".selectPopularPosts", limit);
+    }
 }
 

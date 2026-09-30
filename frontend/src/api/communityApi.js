@@ -16,6 +16,20 @@ export const fetchPostList = async (params) => {
 };
 
 /**
+ * 인기 게시글 목록 조회
+ * @param {number} limit - 가져올 게시글 수
+ */
+export const fetchPopularPosts = async (limit = 4) => {
+    try {
+        const response = await client.get(`/community/posts/popular?limit=${limit}`);
+        return response.data;
+    } catch (error) {
+        console.error('인기 게시글 목록 조회 실패:', error);
+        throw error;
+    }
+};
+
+/**
  * 게시글 상세 조회
  * @param {number|string} postNum - 게시글 번호
  */

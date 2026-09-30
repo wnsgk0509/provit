@@ -43,6 +43,16 @@ public class PostController {
     }
 
     /**
+     * 인기 게시글 목록을 조회합니다.
+     */
+    @GetMapping("/popular")
+    public ApiResponse<java.util.List<PostDTO>> getPopularPosts(
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "5") int limit) {
+        java.util.List<PostDTO> popularPosts = postService.getPopularPosts(limit);
+        return ApiResponse.success(popularPosts);
+    }
+
+    /**
      * 게시글 상세 정보를 조회합니다.
      * URL 호출 예시: GET /api/community/posts/15
      */
