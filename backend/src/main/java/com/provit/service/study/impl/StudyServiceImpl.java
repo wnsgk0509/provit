@@ -15,10 +15,12 @@ import java.util.Map;
 public class StudyServiceImpl implements StudyService {
 
     private final StudyDAO studyDao;
+    private final com.provit.dao.auth.UserDAO userDAO;
 
     @Autowired
-    public StudyServiceImpl(StudyDAO studyDao) {
+    public StudyServiceImpl(StudyDAO studyDao, com.provit.dao.auth.UserDAO userDAO) {
         this.studyDao = studyDao;
+        this.userDAO = userDAO;
     }
 
     @Override
@@ -75,9 +77,11 @@ public class StudyServiceImpl implements StudyService {
     public void deleteStudy(Long studyNum, Long userNum) {
         // DB 테이블에 ON DELETE CASCADE가 걸려 있으므로, 
         // 방을 지우면 참여자 명단도 자동으로 지워짐
+        com.provit.dto.auth.UserDTO user = userDAO.selectByUserNum(userNum);
         Map<String, Object> params = new HashMap<>();
         params.put("studyNum", studyNum);
         params.put("userNum", userNum);
+        params.put("userType", user != null ? user.getUserType() : "USER");
         int affectedRows = studyDao.deleteStudy(params);
         if (affectedRows == 0) {
             throw new IllegalArgumentException("스터디 방이 존재하지 않거나 권한이 없습니다.");

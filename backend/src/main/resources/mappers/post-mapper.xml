@@ -129,7 +129,10 @@
     <!-- 7. 게시글 삭제 -->
     <delete id="deletePost" parameterType="map">
         DELETE FROM T_POST
-        WHERE POST_NUM = #{postNum} AND USER_NUM = #{userNum}
+        WHERE POST_NUM = #{postNum}
+        <if test="userType != 'ADMIN'">
+            AND USER_NUM = #{userNum}
+        </if>
     </delete>
 
     <!-- 8. 좋아요(공감) 확인 -->

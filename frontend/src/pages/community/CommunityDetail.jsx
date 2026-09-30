@@ -105,6 +105,7 @@ function CommunityDetail() {
 
     // 작성자인지 확인
     const isAuthor = user && user.userNum === post.userNum;
+    const isAdmin = user && user.userType === 'ADMIN';
 
     return (
         <div className="container py-4" style={{ maxWidth: '900px' }}>
@@ -172,11 +173,13 @@ function CommunityDetail() {
                     목록으로
                 </Link>
                 
-                {isAuthor && (
+                {(isAuthor || isAdmin) && (
                     <div className="gap-2 d-flex">
-                        <Link to={`/community/edit/${postNum}`} className="btn btn-outline-primary">
-                            수정
-                        </Link>
+                        {isAuthor && (
+                            <Link to={`/community/edit/${postNum}`} className="btn btn-outline-primary">
+                                수정
+                            </Link>
+                        )}
                         <button className="btn btn-outline-danger" onClick={handleDelete}>
                             삭제
                         </button>

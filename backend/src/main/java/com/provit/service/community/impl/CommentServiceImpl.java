@@ -13,10 +13,12 @@ import java.util.List;
 public class CommentServiceImpl implements CommentService {
 
     private final CommentDAO commentDao;
+    private final com.provit.dao.auth.UserDAO userDAO;
 
     @Autowired
-    public CommentServiceImpl(CommentDAO commentDao) {
+    public CommentServiceImpl(CommentDAO commentDao, com.provit.dao.auth.UserDAO userDAO) {
         this.commentDao = commentDao;
+        this.userDAO = userDAO;
     }
 
     @Override
@@ -58,9 +60,11 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public void deleteComment(Long commentNum, Long userNum) {
+        com.provit.dto.auth.UserDTO user = userDAO.selectByUserNum(userNum);
         java.util.Map<String, Object> params = new java.util.HashMap<>();
         params.put("commentNum", commentNum);
         params.put("userNum", userNum);
+        params.put("userType", user != null ? user.getUserType() : "USER");
         int affectedRows = commentDao.deleteComment(params);
         if (affectedRows == 0) {
             throw new IllegalArgumentException("댓글이 존재하지 않거나 권한이 없습니다.");

@@ -185,19 +185,29 @@ function StudyListSection() {
 
                                             {/* 방장인 경우 수정/삭제, 일반 유저는 참여/취소 버튼 */}
                                             {(!user || user.userNum !== study.userNum) ? (
-                                                study.isJoined ? (
-                                                    <button className="btn btn-secondary btn-sm px-3 rounded-pill" onClick={(e) => handleLeave(e, study.studyNum)}>
-                                                        참여 취소
-                                                    </button>
-                                                ) : (
-                                                    <button 
-                                                        className={`btn ${study.memberCount >= study.maxMembers ? 'btn-outline-danger' : 'btn-outline-primary'} btn-sm px-3 rounded-pill`} 
-                                                        onClick={(e) => handleJoin(e, study.studyNum)}
-                                                        disabled={study.memberCount >= study.maxMembers}
-                                                    >
-                                                        {study.memberCount >= study.maxMembers ? '모집 마감' : '참여하기'}
-                                                    </button>
-                                                )
+                                                <div className="d-flex align-items-center gap-2">
+                                                    {study.isJoined ? (
+                                                        <button className="btn btn-secondary btn-sm px-3 rounded-pill" onClick={(e) => handleLeave(e, study.studyNum)}>
+                                                            참여 취소
+                                                        </button>
+                                                    ) : (
+                                                        <button 
+                                                            className={`btn ${study.memberCount >= study.maxMembers ? 'btn-outline-danger' : 'btn-outline-primary'} btn-sm px-3 rounded-pill`} 
+                                                            onClick={(e) => handleJoin(e, study.studyNum)}
+                                                            disabled={study.memberCount >= study.maxMembers}
+                                                        >
+                                                            {study.memberCount >= study.maxMembers ? '모집 마감' : '참여하기'}
+                                                        </button>
+                                                    )}
+                                                    {user && user.userType === 'ADMIN' && (
+                                                        <button 
+                                                            className="btn btn-sm text-danger p-0 ms-2"
+                                                            onClick={(e) => handleDelete(e, study.studyNum)}
+                                                        >
+                                                            삭제
+                                                        </button>
+                                                    )}
+                                                </div>
                                             ) : (
                                                 <div>
                                                     <button 
