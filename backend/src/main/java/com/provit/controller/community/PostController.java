@@ -78,10 +78,10 @@ public class PostController {
         // 조회하지 않은 경우에만 조회수를 증가시킵니다.
         PostDTO postDetail = postService.getPostDetail(postNum, userNum, !hasViewed);
 
-        // 첫 조회라면 쿠키를 생성하여 응답에 추가합니다. (하루 동안 유지)
+        // 첫 조회라면 쿠키를 생성하여 응답에 추가합니다. (1시간 동안 유지)
         if (!hasViewed) {
             javax.servlet.http.Cookie cookie = new javax.servlet.http.Cookie("viewed_post_" + postNum, "true");
-            cookie.setMaxAge(60 * 60 * 24); // 24시간
+            cookie.setMaxAge(60 * 60); // 1시간 (3600초)
             cookie.setPath("/");
             response.addCookie(cookie);
         }

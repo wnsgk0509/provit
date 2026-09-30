@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { fetchPostDetail, deletePost, togglePostLike } from '../../api/communityApi';
 import { useAuth } from '../../context/AuthContext';
@@ -13,8 +13,11 @@ function CommunityDetail() {
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showReportModal, setShowReportModal] = useState(false);
+    const fetchRef = useRef(null);
 
     useEffect(() => {
+        if (fetchRef.current === postNum) return;
+        fetchRef.current = postNum;
         loadPostDetail();
     }, [postNum]);
 
