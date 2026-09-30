@@ -38,7 +38,11 @@
                         AND u.USER_NICKNAME LIKE '%' || #{keyword} || '%'
                     </when>
                     <otherwise>
-                        AND p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                        AND (
+                            p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                            OR p.POST_CONTENT LIKE '%' || #{keyword} || '%'
+                            OR u.USER_NICKNAME LIKE '%' || #{keyword} || '%'
+                        )
                     </otherwise>
                 </choose>
             </if>
@@ -91,7 +95,11 @@
                         AND u.USER_NICKNAME LIKE '%' || #{keyword} || '%'
                     </when>
                     <otherwise>
-                        AND p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                        AND (
+                            p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                            OR p.POST_CONTENT LIKE '%' || #{keyword} || '%'
+                            OR u.USER_NICKNAME LIKE '%' || #{keyword} || '%'
+                        )
                     </otherwise>
                 </choose>
             </if>
