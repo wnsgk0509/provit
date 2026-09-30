@@ -2,6 +2,7 @@ package com.provit.util.jwt;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.SecretKey;
@@ -35,6 +36,9 @@ public class JwtProvider {
     @Value("${jwt.expiration:86400000}")
     private long expirationTime; // 밀리초 (기본 24시간)
 
+    @Value("${jwt.refresh-expiration:1800000}")
+    private long refreshExpirationTime;
+
     private SecretKey secretKey;
 
     // 비밀번호 변경 뒤 기존 토큰을 즉시 차단하기 위한 사용자별 발급 기준 시각이다.
@@ -60,17 +64,43 @@ public class JwtProvider {
      * 회원 정보를 바탕으로 JWT Access Token 생성 (비밀번호 제외)
      */
     public String createToken(UserDTO user) {
+        return createToken(user, "access", expirationTime);
+    }
+
+    public String createRefreshToken(UserDTO user) {
+        return createToken(user, "refresh", refreshExpirationTime);
+    }
+
+    public String createToken(Long userNum) {
+        return createToken(getActiveUser(userNum));
+    }
+
+    public String createRefreshToken(Long userNum) {
+        return createRefreshToken(getActiveUser(userNum));
+    }
+
+    private UserDTO getActiveUser(Long userNum) {
+        UserDTO user = userDAO.selectByUserNum(userNum);
+        if (user == null || Integer.valueOf(1).equals(user.getUserIsDeleted())) {
+            throw new IllegalArgumentException("존재하지 않거나 탈퇴한 회원입니다.");
+        }
+        return user;
+    }
+
+    private String createToken(UserDTO user, String tokenType, long expiresInMillis) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expirationTime);
+        Date expiryDate = new Date(now.getTime() + expiresInMillis);
 
         return Jwts.builder()
                 .subject(String.valueOf(user.getUserNum()))
                 .claim("role", user.getUserType() != null ? user.getUserType() : "USER")
+                .claim("tokenType", tokenType)
                 // DB의 버전과 다르면 비밀번호 변경·탈퇴 전 발급된 토큰으로 판단한다.
                 .claim("tokenVersion", user.getUserTokenVersion() != null ? user.getUserTokenVersion() : 0)
                 // DB의 버전과 다르면 비밀번호 변경·탈퇴 전 발급된 토큰으로 판단한다.
                 .issuedAt(now)
                 .expiration(expiryDate)
+                .id(UUID.randomUUID().toString())
                 .signWith(secretKey)
                 .compact();
     }
@@ -79,6 +109,14 @@ public class JwtProvider {
      * 토큰 유효성 및 만료 여부 검증 (토큰 자체는 로그에 남기지 않음)
      */
     public boolean validateToken(String token) {
+        return validateToken(token, "access");
+    }
+
+    public boolean validateRefreshToken(String token) {
+        return validateToken(token, "refresh");
+    }
+
+    private boolean validateToken(String token, String expectedTokenType) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(secretKey)
@@ -87,6 +125,9 @@ public class JwtProvider {
                     .getPayload();
 
             Long userNum = Long.parseLong(claims.getSubject());
+            if (!expectedTokenType.equals(claims.get("tokenType", String.class))) {
+                return false;
+            }
             Object tokenVersionValue = claims.get("tokenVersion");
             if (!(tokenVersionValue instanceof Number)) {
                 return false;
@@ -158,6 +199,18 @@ public class JwtProvider {
 
     public long getExpirationTime() {
         return expirationTime;
+    }
+
+    public long getRefreshExpirationTime() {
+        return refreshExpirationTime;
+    }
+
+    public String getTokenId(String token) {
+        return getClaims(token).getId();
+    }
+
+    public Date getExpiration(String token) {
+        return getClaims(token).getExpiration();
     }
 
     /**

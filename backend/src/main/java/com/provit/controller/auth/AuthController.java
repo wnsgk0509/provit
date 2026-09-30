@@ -1,6 +1,7 @@
 package com.provit.controller.auth;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -17,15 +18,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.provit.common.ResponseCode;
 import com.provit.common.auth.AuthCookieService;
+import com.provit.dao.auth.RefreshTokenDAO;
 import com.provit.dto.auth.EmailSendRequestDTO;
 import com.provit.dto.auth.EmailVerifyRequestDTO;
 import com.provit.dto.auth.LoginRequestDTO;
 import com.provit.dto.auth.LoginResponseDTO;
 import com.provit.dto.auth.MyPageUpdateRequestDTO;
 import com.provit.dto.auth.PasswordResetRequestDTO;
+import com.provit.dto.auth.RefreshTokenDTO;
 import com.provit.dto.auth.SignupRequestDTO;
 import com.provit.dto.auth.UserResponseDTO;
 import com.provit.dto.auth.WithdrawalRequestDTO;
@@ -43,12 +47,15 @@ public class AuthController {
     private final AuthService authService;
     private final JwtProvider jwtProvider;
     private final AuthCookieService authCookieService;
+    private final RefreshTokenDAO refreshTokenDAO;
 
     @Autowired
-    public AuthController(AuthService authService, JwtProvider jwtProvider, AuthCookieService authCookieService) {
+    public AuthController(AuthService authService, JwtProvider jwtProvider, AuthCookieService authCookieService,
+            RefreshTokenDAO refreshTokenDAO) {
         this.authService = authService;
         this.jwtProvider = jwtProvider;
         this.authCookieService = authCookieService;
+        this.refreshTokenDAO = refreshTokenDAO;
     }
 
     /**
@@ -63,10 +70,10 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.SET_COOKIE, authCookieService.clearAccessTokenCookie().toString());
-        return new ResponseEntity<>(new ApiResponse<>(ResponseCode.SUCCESS_EMPTY, null), headers, HttpStatus.OK);
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request) {
+        authCookieService.getRefreshToken(request).ifPresent(this::deleteRefreshToken);
+        return new ResponseEntity<>(new ApiResponse<>(ResponseCode.SUCCESS_EMPTY, null), clearAuthCookies(), HttpStatus.OK);
     }
 
     /**
@@ -139,14 +146,51 @@ public class AuthController {
      * 6. 로그인 (JWT 발급)
      */
     @PostMapping("/login")
+    @Transactional
     public ResponseEntity<ApiResponse<LoginResponseDTO>> login(@RequestBody LoginRequestDTO requestDTO) {
         LoginResponseDTO loginResponse = authService.login(requestDTO);
+        refreshTokenDAO.deleteExpired();
+        saveRefreshToken(loginResponse.getRefreshToken());
         ApiResponse<LoginResponseDTO> response = new ApiResponse<>(ResponseCode.AUTH_LOGIN_SUCCESS, loginResponse);
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.SET_COOKIE, authCookieService
                 .createAccessTokenCookie(loginResponse.getAccessToken(), jwtProvider.getExpirationTime())
                 .toString());
+        headers.add(HttpHeaders.SET_COOKIE, authCookieService
+                .createRefreshTokenCookie(loginResponse.getRefreshToken(), jwtProvider.getRefreshExpirationTime())
+                .toString());
         return new ResponseEntity<>(response, headers, HttpStatus.OK);
+    }
+
+    @PostMapping("/refresh")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> refresh(HttpServletRequest request) {
+        String refreshToken = authCookieService.getRefreshToken(request).orElse(null);
+        if (refreshToken == null || !jwtProvider.validateRefreshToken(refreshToken)) {
+            return unauthorizedRefreshResponse();
+        }
+
+        String tokenId = jwtProvider.getTokenId(refreshToken);
+        RefreshTokenDTO storedToken = refreshTokenDAO.selectByTokenId(tokenId);
+        Long userNum = jwtProvider.getUserNum(refreshToken);
+        if (storedToken == null || !userNum.equals(storedToken.getUserNum())
+                || storedToken.getExpiresAt() == null || !storedToken.getExpiresAt().after(new Date())) {
+            refreshTokenDAO.deleteByTokenId(tokenId);
+            return unauthorizedRefreshResponse();
+        }
+
+        refreshTokenDAO.deleteExpired();
+        refreshTokenDAO.deleteByTokenId(tokenId);
+        String newAccessToken = jwtProvider.createToken(userNum);
+        String newRefreshToken = jwtProvider.createRefreshToken(userNum);
+        saveRefreshToken(newRefreshToken);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.SET_COOKIE, authCookieService
+                .createAccessTokenCookie(newAccessToken, jwtProvider.getExpirationTime()).toString());
+        headers.add(HttpHeaders.SET_COOKIE, authCookieService
+                .createRefreshTokenCookie(newRefreshToken, jwtProvider.getRefreshExpirationTime()).toString());
+        return new ResponseEntity<>(new ApiResponse<>(ResponseCode.SUCCESS_EMPTY, null), headers, HttpStatus.OK);
     }
 
     /**
@@ -197,9 +241,36 @@ public class AuthController {
 
         authService.withdrawMyAccount(jwtProvider.getUserNum(token), requestDTO);
         ApiResponse<Void> response = new ApiResponse<>(ResponseCode.SUCCESS_EMPTY, null);
+        return new ResponseEntity<>(response, clearAuthCookies(), HttpStatus.OK);
+    }
+
+    private void saveRefreshToken(String refreshToken) {
+        refreshTokenDAO.insert(RefreshTokenDTO.builder()
+                .tokenId(jwtProvider.getTokenId(refreshToken))
+                .userNum(jwtProvider.getUserNum(refreshToken))
+                .expiresAt(jwtProvider.getExpiration(refreshToken))
+                .build());
+    }
+
+    private void deleteRefreshToken(String refreshToken) {
+        try {
+            refreshTokenDAO.deleteByTokenId(jwtProvider.getTokenId(refreshToken));
+        } catch (RuntimeException ignored) {
+            // 만료되었거나 형식이 잘못된 쿠키는 만료 정리 시 삭제됩니다.
+        }
+        refreshTokenDAO.deleteExpired();
+    }
+
+    private HttpHeaders clearAuthCookies() {
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.SET_COOKIE, authCookieService.clearAccessTokenCookie().toString());
-        return new ResponseEntity<>(response, headers, HttpStatus.OK);
+        headers.add(HttpHeaders.SET_COOKIE, authCookieService.clearRefreshTokenCookie().toString());
+        return headers;
+    }
+
+    private ResponseEntity<ApiResponse<Void>> unauthorizedRefreshResponse() {
+        return new ResponseEntity<>(new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null), clearAuthCookies(),
+                HttpStatus.UNAUTHORIZED);
     }
 
     private ResponseEntity<ApiResponse<UserResponseDTO>> unauthorizedProfileResponse(String token) {

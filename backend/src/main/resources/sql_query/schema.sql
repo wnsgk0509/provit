@@ -59,6 +59,15 @@ CREATE TABLE T_USER (
 CREATE UNIQUE INDEX UQ_T_USER_ACTIVE_NICKNAME
 ON T_USER (CASE WHEN USER_IS_DELETED = 0 THEN USER_NICKNAME END);
 
+-- 로그인 세션별 Refresh Token 식별자 보관. JWT 원문은 저장하지 않는다.
+CREATE TABLE T_REFRESH_TOKEN (
+    TOKEN_ID             VARCHAR2(36)        PRIMARY KEY,
+    USER_NUM             NUMBER(9)           NOT NULL REFERENCES T_USER(USER_NUM) ON DELETE CASCADE,
+    EXPIRES_AT           TIMESTAMP           NOT NULL
+);
+
+CREATE INDEX IDX_REFRESH_TOKEN_EXPIRES_AT ON T_REFRESH_TOKEN(EXPIRES_AT);
+
 
 -- ================================================================================
 -- 2. 유저 이력 문서 도메인 (이력서 / 자소서 / 포트폴리오)
