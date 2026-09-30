@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.provit.common.ResponseCode;
+import com.provit.common.auth.AuthCookieService;
 import com.provit.common.file.FileCategory;
 import com.provit.dto.file.FileUploadResponseDTO;
 import com.provit.dto.response.ApiResponse;
@@ -38,11 +39,16 @@ public class FileUploadController {
 
     private final FileUploadService fileUploadService;
     private final JwtProvider jwtProvider;
+    private final AuthCookieService authCookieService;
 
     @Autowired
-    public FileUploadController(FileUploadService fileUploadService, JwtProvider jwtProvider) {
+    public FileUploadController(
+            FileUploadService fileUploadService,
+            JwtProvider jwtProvider,
+            AuthCookieService authCookieService) {
         this.fileUploadService = fileUploadService;
         this.jwtProvider = jwtProvider;
+        this.authCookieService = authCookieService;
     }
 
     /**
@@ -154,14 +160,11 @@ public class FileUploadController {
     }
 
     /**
-     * 요청 헤더의 Authorization 토큰을 추출하고 유효성을 검증합니다.
+     * HttpOnly 인증 쿠키의 토큰을 추출하고 유효성을 검증합니다.
      */
     private String extractToken(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
-        String token = authHeader.substring(7).trim();
+        String token = authCookieService.getAccessToken(request).orElse(null);
+        if (token == null) return null;
         return jwtProvider.validateToken(token) ? token : null;
     }
 }

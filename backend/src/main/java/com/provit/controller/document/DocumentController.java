@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.provit.common.ResponseCode;
+import com.provit.common.auth.AuthCookieService;
 import com.provit.dto.document.CoverLetterDTO;
 import com.provit.dto.document.DocumentSummaryDTO;
 import com.provit.dto.document.PortfolioCreateRequestDTO;
@@ -40,11 +41,16 @@ public class DocumentController {
 
     private final DocumentService documentService;
     private final JwtProvider jwtProvider;
+    private final AuthCookieService authCookieService;
 
     @Autowired
-    public DocumentController(DocumentService documentService, JwtProvider jwtProvider) {
+    public DocumentController(
+            DocumentService documentService,
+            JwtProvider jwtProvider,
+            AuthCookieService authCookieService) {
         this.documentService = documentService;
         this.jwtProvider = jwtProvider;
+        this.authCookieService = authCookieService;
     }
 
     @PostMapping("/resumes")
@@ -303,12 +309,8 @@ public class DocumentController {
     }
 
     private Long getAuthenticatedUserNum(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
-
-        String token = authHeader.substring(7).trim();
+        String token = authCookieService.getAccessToken(request).orElse(null);
+        if (token == null) return null;
         try {
             return jwtProvider.validateToken(token) ? jwtProvider.getUserNum(token) : null;
         } catch (JwtException | IllegalArgumentException exception) {

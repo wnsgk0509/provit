@@ -7,6 +7,8 @@ import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.servlet.http.Cookie;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.io.ByteArrayResource;
@@ -18,6 +20,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provit.common.GlobalExceptionHandler;
+import com.provit.common.auth.AuthCookieService;
 import com.provit.dao.auth.UserDAO;
 import com.provit.dao.document.DocumentDAO;
 import com.provit.dto.auth.UserDTO;
@@ -33,6 +36,7 @@ public class PortfolioSecurityTest {
     private final AtomicInteger deletes = new AtomicInteger();
     private PortfolioDTO portfolio;
     private JwtProvider jwt;
+    private AuthCookieService authCookieService;
     private MockMvc mvc;
     private Map<Long, UserDTO> users;
 
@@ -50,6 +54,8 @@ public class PortfolioSecurityTest {
         ReflectionTestUtils.setField(jwt, "secretKeyPlain", "portfolio-security-test-key-with-32-bytes-minimum");
         ReflectionTestUtils.setField(jwt, "expirationTime", 60000L);
         jwt.init();
+        authCookieService = new AuthCookieService();
+        ReflectionTestUtils.setField(authCookieService, "cookieName", "provit_access");
 
         portfolio = new PortfolioDTO();
         portfolio.setPortfolioNum(15);
@@ -77,7 +83,7 @@ public class PortfolioSecurityTest {
                     assertEquals(portfolio.getFileUrl(), args[0]);
                     return new ByteArrayResource(pdf);
                 });
-        var controller = new DocumentController(new DocumentServiceImpl(dao, storage), jwt);
+        var controller = new DocumentController(new DocumentServiceImpl(dao, storage), jwt, authCookieService);
         mvc = MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
@@ -85,10 +91,10 @@ public class PortfolioSecurityTest {
     public void missingInvalidAndExpiredJwtReturn401BeforeReadingPortfolio() throws Exception {
         assertEquals(401, mvc.perform(get("/api/documents/portfolios/15/file")).andReturn().getResponse().getStatus());
         assertEquals(401, mvc.perform(get("/api/documents/portfolios/15/file")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-jwt")).andReturn().getResponse().getStatus());
+                .cookie(new Cookie("provit_access", "invalid-jwt"))).andReturn().getResponse().getStatus());
         ReflectionTestUtils.setField(jwt, "expirationTime", -1000L);
         assertEquals(401, mvc.perform(get("/api/documents/portfolios/15/file")
-                .header(HttpHeaders.AUTHORIZATION, token(7))).andReturn().getResponse().getStatus());
+                .cookie(token(7))).andReturn().getResponse().getStatus());
         assertEquals(0, portfolioReads.get());
         assertEquals(0, fileReads.get());
     }
@@ -101,10 +107,10 @@ public class PortfolioSecurityTest {
                 throw new io.jsonwebtoken.ExpiredJwtException(null, null, "Expired during claim extraction");
             }
         };
-        var expirationMvc = MockMvcBuilders.standaloneSetup(new DocumentController(null, expiringJwt))
+        var expirationMvc = MockMvcBuilders.standaloneSetup(new DocumentController(null, expiringJwt, authCookieService))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
         assertEquals(401, expirationMvc.perform(get("/api/documents/portfolios/15/file")
-                .accept(MediaType.APPLICATION_PDF).header(HttpHeaders.AUTHORIZATION, "Bearer fixture"))
+                .accept(MediaType.APPLICATION_PDF).cookie(new Cookie("provit_access", "fixture")))
                 .andReturn().getResponse().getStatus());
     }
 
@@ -112,7 +118,7 @@ public class PortfolioSecurityTest {
     public void anotherUserCannotDownloadEvenWithAdminRoleOrSpoofedUserParameter() throws Exception {
         var response = mvc.perform(get("/api/documents/portfolios/15/file").param("userNum", "7")
                 .accept(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.AUTHORIZATION, token(8))).andReturn().getResponse();
+                .cookie(token(8))).andReturn().getResponse();
         assertEquals(403, response.getStatus());
         assertEquals(0, fileReads.get());
     }
@@ -120,7 +126,7 @@ public class PortfolioSecurityTest {
     @Test
     public void ownerDownloadsPdfWithPrivateCacheHeadersAndOriginalFilename() throws Exception {
         var response = mvc.perform(get("/api/documents/portfolios/15/file").param("userNum", "8")
-                .header(HttpHeaders.AUTHORIZATION, token(7))).andReturn().getResponse();
+                .cookie(token(7))).andReturn().getResponse();
         assertEquals(200, response.getStatus());
         assertArrayEquals(pdf, response.getContentAsByteArray());
         assertEquals("application/pdf", response.getContentType());
@@ -134,7 +140,7 @@ public class PortfolioSecurityTest {
     public void legacyFileWithoutOriginalFilenameStillDownloads() throws Exception {
         portfolio.setOriginalFileName(null);
         var response = mvc.perform(get("/api/documents/portfolios/15/file")
-                .header(HttpHeaders.AUTHORIZATION, token(7))).andReturn().getResponse();
+                .cookie(token(7))).andReturn().getResponse();
         assertEquals(200, response.getStatus());
         assertEquals("15.pdf", org.springframework.http.ContentDisposition
                 .parse(response.getHeader(HttpHeaders.CONTENT_DISPOSITION)).getFilename());
@@ -144,9 +150,9 @@ public class PortfolioSecurityTest {
     public void metadataRequiresOwnerAndNeverRevealsPhysicalPathOrSavedFilename() throws Exception {
         assertEquals(401, mvc.perform(get("/api/documents/portfolios/15")).andReturn().getResponse().getStatus());
         assertEquals(403, mvc.perform(get("/api/documents/portfolios/15")
-                .header(HttpHeaders.AUTHORIZATION, token(8))).andReturn().getResponse().getStatus());
+                .cookie(token(8))).andReturn().getResponse().getStatus());
         var response = mvc.perform(get("/api/documents/portfolios/15")
-                .header(HttpHeaders.AUTHORIZATION, token(7))).andReturn().getResponse();
+                .cookie(token(7))).andReturn().getResponse();
         assertEquals(200, response.getStatus());
         var data = new ObjectMapper().readTree(response.getContentAsByteArray()).path("data");
         assertEquals("지원 포트폴리오.pdf", data.path("originalFileName").asText());
@@ -159,14 +165,16 @@ public class PortfolioSecurityTest {
     public void missingPortfolioReturns404AndForeignDeleteReturns403() throws Exception {
         assertEquals(404, mvc.perform(get("/api/documents/portfolios/99/file")
                 .accept(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.AUTHORIZATION, token(7))).andReturn().getResponse().getStatus());
+                .cookie(token(7))).andReturn().getResponse().getStatus());
         assertEquals(403, mvc.perform(delete("/api/documents/portfolios/15")
-                .header(HttpHeaders.AUTHORIZATION, token(8))).andReturn().getResponse().getStatus());
+                .cookie(token(8))).andReturn().getResponse().getStatus());
         assertEquals(0, deletes.get());
         assertEquals(0, fileReads.get());
     }
 
-    private String token(int userNum) { return "Bearer " + jwt.createToken(users.get((long) userNum)); }
+    private Cookie token(int userNum) {
+        return new Cookie("provit_access", jwt.createToken(users.get((long) userNum)));
+    }
 
     private UserDTO user(int number, String role) {
         UserDTO user = new UserDTO();
