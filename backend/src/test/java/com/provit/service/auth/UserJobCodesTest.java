@@ -107,6 +107,9 @@ public class UserJobCodesTest {
             JwtProvider jwt = new JwtProvider(dao) {
                 @Override
                 public String createToken(UserDTO user) { return "local-test-token"; }
+
+                @Override
+                public String createRefreshToken(UserDTO user) { return "local-test-refresh-token"; }
             };
             service = new AuthServiceImpl(dao, new BCryptPasswordEncoder(4), jwt,
                     (email, code) -> { verificationCode.set(code); return true; });

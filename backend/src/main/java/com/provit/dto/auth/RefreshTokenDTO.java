@@ -1,23 +1,21 @@
 package com.provit.dto.auth;
 
+import java.util.Date;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class LoginResponseDTO {
+public class RefreshTokenDTO {
 
-    @JsonIgnore
-    private String accessToken;
-    @JsonIgnore
-    private String refreshToken;
-    private UserResponseDTO user;
+    private String tokenId;
+    private Long userNum;
+    private Date expiresAt;
 }
