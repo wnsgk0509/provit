@@ -1,4 +1,8 @@
+import { useNavigate } from 'react-router-dom';
+
 function Fortune() {
+    const navigate = useNavigate();
+
     return (
         <div className="container my-4">
             <div className="card shadow-sm">
@@ -12,6 +16,17 @@ function Fortune() {
                     </div>
                 </div>
             </div>
+
+            <section className="card border-0 shadow-sm mt-4 overflow-hidden">
+                <div className="card-body p-4 p-md-5 text-white" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+                    <span className="badge text-bg-light text-primary mb-3">취업 준비 성향 테스트</span>
+                    <h3 className="fw-bold">나의 취업 MBTI는?</h3>
+                    <p className="mb-4 opacity-75">12개의 질문으로 취업 준비와 면접 상황에서의 나의 성향을 알아보세요.</p>
+                    <button type="button" className="btn btn-light fw-semibold text-primary px-4" onClick={() => navigate('/mbti')}>
+                        MBTI 검사 시작하기
+                    </button>
+                </div>
+            </section>
         </div>
     );
 }

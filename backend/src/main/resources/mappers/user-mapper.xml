@@ -140,6 +140,13 @@
           AND USER_IS_DELETED = 0
     </update>
 
+    <update id="updatePasswordByEmail" parameterType="com.provit.dto.auth.UserDTO">
+        UPDATE T_USER
+        SET USER_PW = #{userPw}
+        WHERE USER_EMAIL = #{userEmail}
+          AND USER_IS_DELETED = 0
+    </update>
+
     <!-- 8. 회원 데이터는 유지한 채 탈퇴 상태로만 변경 -->
     <!-- 비밀번호 변경 후 기존 JWT를 무효화하기 위한 사용자 토큰 버전 증가 -->
     <update id="incrementTokenVersion" parameterType="long">

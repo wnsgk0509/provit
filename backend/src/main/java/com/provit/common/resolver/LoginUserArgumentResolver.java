@@ -1,6 +1,7 @@
 package com.provit.common.resolver;
 
 import com.provit.common.annotation.LoginUser;
+import com.provit.common.auth.AuthCookieService;
 import com.provit.util.jwt.JwtProvider;
 import org.springframework.core.MethodParameter;
 import org.springframework.stereotype.Component;
@@ -15,9 +16,11 @@ import javax.servlet.http.HttpServletRequest;
 public class LoginUserArgumentResolver implements HandlerMethodArgumentResolver {
 
     private final JwtProvider jwtProvider;
+    private final AuthCookieService authCookieService;
 
-    public LoginUserArgumentResolver(JwtProvider jwtProvider) {
+    public LoginUserArgumentResolver(JwtProvider jwtProvider, AuthCookieService authCookieService) {
         this.jwtProvider = jwtProvider;
+        this.authCookieService = authCookieService;
     }
 
     @Override
@@ -33,13 +36,8 @@ public class LoginUserArgumentResolver implements HandlerMethodArgumentResolver 
                                   WebDataBinderFactory binderFactory) throws Exception {
         
         HttpServletRequest request = (HttpServletRequest) webRequest.getNativeRequest();
-        String authHeader = request.getHeader("Authorization");
-        
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
-        
-        String token = authHeader.substring(7).trim();
+        String token = authCookieService.getAccessToken(request).orElse(null);
+        if (token == null) return null;
         if (!jwtProvider.validateToken(token)) {
             return null;
         }

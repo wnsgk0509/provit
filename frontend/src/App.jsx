@@ -6,6 +6,8 @@ import Navbar from './components/Navbar';
 import Home from './pages/home/Home';
 import JobList from './pages/jobs/JobList';
 import Fortune from './pages/fortune/Fortune';
+import Mbti from './pages/mbti/Mbti';
+import MbtiResult from './pages/mbti/MbtiResult';
 import Interview from './pages/interview/Interview';
 import InterviewAccessGate from './pages/interview/components/InterviewAccessGate';
 import CommunityList from './pages/community/CommunityList';
@@ -18,6 +20,7 @@ import DocumentRead from './pages/documentRead/DocumentRead';
 import DocumentEdit from './pages/documentEdit/DocumentEdit';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
+import PasswordReset from './pages/auth/PasswordReset';
 import BootstrapTemplate from './pages/bootstrap';
 import AdminReportList from './pages/admin/AdminReportList';
 import AdminUserList from './pages/admin/AdminUserList';
@@ -75,6 +78,8 @@ function App() {
             <Route path="/home" element={<Home />} />
             <Route path="/jobs" element={<JobList />} />
             <Route path="/fortune" element={<Fortune />} />
+            <Route path="/mbti" element={<Mbti />} />
+            <Route path="/mbti/result/:mbtiType" element={<MbtiResult />} />
             <Route
               path="/interview"
               element={(

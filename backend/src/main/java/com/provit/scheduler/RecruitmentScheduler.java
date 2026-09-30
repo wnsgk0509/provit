@@ -1,15 +1,20 @@
 package com.provit.scheduler;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.provit.service.recruitment.RecruitmentService;
 
 /**
- * 사람인 채용공고 일일 정기 수집 스케줄러 매일 새벽 03:00에 사람인 실시간 인기 상위 1,000개 공고를 자동 크롤링하여 DB에 적재
+ * 사람인 채용공고 일일 정기 수집 스케줄러 및 서버 기동 시점 자동 수집 컴포넌트
  */
 @Component
 public class RecruitmentScheduler {
@@ -17,10 +22,46 @@ public class RecruitmentScheduler {
 	private static final Logger log = LoggerFactory.getLogger(RecruitmentScheduler.class);
 
 	private final RecruitmentService recruitmentService;
+	private final AtomicBoolean isStartupExecuted = new AtomicBoolean(false);
 
 	@Autowired
 	public RecruitmentScheduler(RecruitmentService recruitmentService) {
 		this.recruitmentService = recruitmentService;
+	}
+
+	/**
+	 * [서버 부팅 시점 1회 자동 실행]
+	 * 서버(Tomcat) 구동 완료 시점에 최신 채용 공고를 1회 자동 수집합니다.
+	 * 톰캣 메인 스레드 부팅 지연(타임아웃)을 방지하기 위해 CompletableFuture.runAsync() 비동기 스레드로 실행합니다.
+	 */
+	@EventListener(ContextRefreshedEvent.class)
+	public void onApplicationStartup(ContextRefreshedEvent event) {
+		// Root WebApplicationContext 초기화 시점에만 단 1회 실행 (Spring MVC 복수 컨텍스트 중복 방어)
+		if (event.getApplicationContext().getParent() == null) {
+			if (isStartupExecuted.compareAndSet(false, true)) {
+				CompletableFuture.runAsync(() -> {
+					log.info("===============================================================");
+					log.info(">> [Startup] 서버 기동 감지: 채용공고 자동 수집 비동기 태스크 시작");
+					log.info("===============================================================");
+
+					try {
+						// 톰캣 서버 구동 및 커넥션 풀(HikariCP)이 완전히 안정화될 수 있도록 3초 대기
+						Thread.sleep(3000);
+						int syncCount = recruitmentService.syncSaraminRecruitments(1000);
+						log.info(">> [Startup] 서버 기동 초기 동기화 성공: 총 {}건 적재 완료", syncCount);
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+						log.warn(">> [Startup] 서버 기동 동기화 스레드 인터럽트 발생");
+					} catch (Exception e) {
+						log.error(">> [Startup] 서버 기동 동기화 중 에러 발생: {}", e.getMessage(), e);
+					}
+
+					log.info("===============================================================");
+					log.info(">> [Startup] 서버 기동 채용공고 자동 수집 태스크 종료");
+					log.info("===============================================================");
+				});
+			}
+		}
 	}
 
 	/**

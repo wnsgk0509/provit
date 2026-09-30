@@ -30,6 +30,7 @@ function Signup() {
     const [isEmailChecked, setIsEmailChecked] = useState(false);
     const [isEmailAvailable, setIsEmailAvailable] = useState(false);
     const [emailMsg, setEmailMsg] = useState("");
+    const [emailError, setEmailError] = useState("");
 
     // 닉네임 중복확인 상태
     const [isNicknameChecked, setIsNicknameChecked] = useState(false);
@@ -50,6 +51,7 @@ function Signup() {
     const [loadingEmailVerify, setLoadingEmailVerify] = useState(false);
     const [loadingSubmit, setLoadingSubmit] = useState(false);
     const [alertMsg, setAlertMsg] = useState({ type: "", text: "" });
+    const [fieldErrors, setFieldErrors] = useState({});
 
     const timerRef = useRef(null);
     const today = new Date();
@@ -86,6 +88,20 @@ function Signup() {
         return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
     };
 
+    const setFieldError = (field, message) => {
+        setFieldErrors((previous) => ({ ...previous, [field]: message }));
+    };
+
+    const clearFieldError = (field) => {
+        setAlertMsg({ type: "", text: "" });
+        setFieldErrors((previous) => {
+            if (!previous[field]) return previous;
+            const next = { ...previous };
+            delete next[field];
+            return next;
+        });
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         const isNicknameTooLong = name === "userNickname" && value.length > NICKNAME_MAX_LENGTH;
@@ -96,11 +112,13 @@ function Signup() {
             : isNameTooLong ? value.slice(0, USER_NAME_MAX_LENGTH) : value;
 
         if (name === "userBirthDate" && value && (value < minBirthDate || value > maxAdultBirthDate)) {
+            setFieldError("userBirthDate", "생년월일은 1900년 이후이며 만 19세 이상인 날짜만 입력할 수 있습니다.");
             setAlertMsg({ type: "danger", text: "생년월일은 1900년 이후의 만 19세 이상 날짜만 입력할 수 있습니다." });
             return;
         }
 
         setFormData((prev) => ({ ...prev, [name]: nextValue }));
+        clearFieldError(name);
 
         if (name === "userNickname") {
             setIsNicknameChecked(false);
@@ -114,6 +132,7 @@ function Signup() {
             setIsEmailChecked(false);
             setIsEmailAvailable(false);
             setEmailMsg("");
+            setEmailError("");
             setIsEmailSent(false);
             setIsEmailVerified(false);
             setVerificationToken("");
@@ -127,11 +146,14 @@ function Signup() {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const email = formData.userEmail.trim();
         if (!email || !emailRegex.test(email)) {
+            setEmailError("올바른 이메일 주소를 입력해 주세요.");
             setAlertMsg({ type: "danger", text: "올바른 이메일 주소를 입력해 주세요." });
             return;
         }
 
         setLoadingEmailCheck(true);
+        setEmailError("");
+        setEmailMsg("");
         setAlertMsg({ type: "", text: "" });
         try {
             const res = await client.get("/auth/check-email", { params: { email } });
@@ -141,6 +163,7 @@ function Signup() {
             setEmailMsg(available ? "사용 가능한 이메일입니다. 인증코드를 발송해 주세요." : "이미 가입된 이메일입니다.");
         } catch (error) {
             const message = error.response?.data?.data || "이메일 중복 확인 중 오류가 발생했습니다.";
+            setEmailError(message);
             setAlertMsg({ type: "danger", text: message });
         } finally {
             setLoadingEmailCheck(false);
@@ -149,12 +172,16 @@ function Signup() {
 
     // 1. 닉네임 중복 확인
     const handleCheckNickname = async () => {
+        setEmailError("");
+        clearFieldError("userNickname");
         const nickname = formData.userNickname.trim();
         if (!nickname) {
+            setFieldError("userNickname", "닉네임을 입력해 주세요.");
             setAlertMsg({ type: "danger", text: "닉네임을 입력해 주세요." });
             return;
         }
         if (nickname.length < NICKNAME_MIN_LENGTH || nickname.length > NICKNAME_MAX_LENGTH) {
+            setFieldError("userNickname", "닉네임은 2자 이상 20자 이하로 입력해 주세요.");
             setIsNicknameChecked(false);
             setIsNicknameAvailable(false);
             setNicknameMsg("닉네임은 2자 이상 20자 이하로 입력해 주세요.");
@@ -174,6 +201,7 @@ function Signup() {
                 setNicknameMsg("이미 사용 중인 닉네임입니다.");
             }
         } catch {
+            setFieldError("userNickname", "닉네임 확인 중 오류가 발생했습니다.");
             setAlertMsg({ type: "danger", text: "닉네임 확인 중 오류가 발생했습니다." });
         }
     };
@@ -182,15 +210,19 @@ function Signup() {
     const handleSendVerificationCode = async () => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!formData.userEmail.trim() || !emailRegex.test(formData.userEmail.trim())) {
+            setEmailError("올바른 이메일 주소를 입력해 주세요.");
             setAlertMsg({ type: "danger", text: "올바른 이메일 주소를 입력해 주세요." });
             return;
         }
         if (!isEmailChecked || !isEmailAvailable) {
+            setEmailError("이메일 중복 확인 후 인증번호를 발송해 주세요.");
             setAlertMsg({ type: "danger", text: "이메일 중복 확인 후 인증코드를 발송해 주세요." });
             return;
         }
 
         setLoadingEmailSend(true);
+        setEmailError("");
+        setEmailMsg("");
         setAlertMsg({ type: "", text: "" });
 
         try {
@@ -209,10 +241,12 @@ function Signup() {
             const remainingSeconds = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
             setIsEmailSent(true);
             setTimer(remainingSeconds);
+            setEmailMsg("인증번호를 발송했습니다. 이메일을 확인해 주세요.");
             setAlertMsg({ type: "success", text: "인증번호가 발송되었습니다. 메일함을 확인해 주세요." });
         } catch (error) {
             const resData = error.response?.data;
             const message = resData?.responseCode?.message || resData?.data || "인증번호 발송에 실패했습니다.";
+            setEmailError(message);
             setAlertMsg({ type: "danger", text: message });
         } finally {
             setLoadingEmailSend(false);
@@ -221,11 +255,15 @@ function Signup() {
 
     // 3. 이메일 인증번호 확인
     const handleVerifyCode = async () => {
+        setEmailError("");
+        clearFieldError("authCode");
         if (!authCode.trim()) {
+            setFieldError("authCode", "인증번호 6자리를 입력해 주세요.");
             setAlertMsg({ type: "danger", text: "인증번호 6자리를 입력해 주세요." });
             return;
         }
         if (timer === 0) {
+            setFieldError("authCode", "인증번호 유효시간이 만료되었습니다. 다시 발송해 주세요.");
             setAlertMsg({ type: "danger", text: "인증번호 유효시간이 만료되었습니다. 다시 발송해 주세요." });
             return;
         }
@@ -243,12 +281,14 @@ function Signup() {
             if (token) {
                 setVerificationToken(token);
                 setIsEmailVerified(true);
+                setEmailMsg("이메일 인증이 완료되었습니다.");
                 clearInterval(timerRef.current);
                 setAlertMsg({ type: "success", text: "이메일 인증이 완료되었습니다!" });
             }
         } catch (error) {
             const resData = error.response?.data;
             const message = resData?.responseCode?.message || resData?.data || "인증번호가 일치하지 않습니다.";
+            setFieldError("authCode", message);
             setAlertMsg({ type: "danger", text: message });
         } finally {
             setLoadingEmailVerify(false);
@@ -258,47 +298,59 @@ function Signup() {
     // 4. 최종 회원가입 제출
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setEmailError("");
+        setFieldErrors({});
         setAlertMsg({ type: "", text: "" });
 
         // 유효성 종합 검증
         if (!formData.userName.trim()) {
+            setFieldError("userName", "이름을 입력해 주세요.");
             setAlertMsg({ type: "danger", text: "이름을 입력해 주세요." });
             return;
         }
         if (isNameMaxLengthExceeded || formData.userName.trim().length > USER_NAME_MAX_LENGTH) {
+            setFieldError("userName", "이름은 4자 이하로 입력해 주세요.");
             setAlertMsg({ type: "danger", text: "이름은 4자 이하로 입력해 주세요." });
             return;
         }
         if (!formData.userNickname.trim()) {
+            setFieldError("userNickname", "닉네임을 입력해 주세요.");
             setAlertMsg({ type: "danger", text: "닉네임을 입력해 주세요." });
             return;
         }
         if (isNicknameMaxLengthExceeded) {
+            setFieldError("userNickname", "닉네임은 2자 이상 20자 이하로 입력해 주세요.");
             setAlertMsg({ type: "danger", text: "닉네임은 2자 이상 20자 이하로 입력해 주세요." });
             return;
         }
         if (formData.userNickname.trim().length < NICKNAME_MIN_LENGTH
             || formData.userNickname.trim().length > NICKNAME_MAX_LENGTH) {
+            setFieldError("userNickname", "닉네임은 2자 이상 20자 이하로 입력해 주세요.");
             setAlertMsg({ type: "danger", text: "닉네임은 2자 이상 20자 이하로 입력해 주세요." });
             return;
         }
         if (!isNicknameChecked || !isNicknameAvailable) {
+            setFieldError("userNickname", "닉네임 중복확인을 진행해 주세요.");
             setAlertMsg({ type: "danger", text: "닉네임 중복 확인을 진행해 주세요." });
             return;
         }
         if (!isEmailVerified || !verificationToken) {
+            setEmailError("이메일 인증을 완료해 주세요.");
             setAlertMsg({ type: "danger", text: "이메일 인증을 완료해 주세요." });
             return;
         }
         if (!formData.userPw) {
+            setFieldError("userPw", "비밀번호를 입력해 주세요.");
             setAlertMsg({ type: "danger", text: "비밀번호를 입력해 주세요." });
             return;
         }
         if (!PASSWORD_PATTERN.test(formData.userPw)) {
+            setFieldError("userPw", "비밀번호는 8자 이상이며 영문 대소문자, 숫자, 특수문자를 각각 포함해야 합니다.");
             setAlertMsg({ type: "danger", text: "비밀번호는 8자 이상이며 영문 대문자, 소문자, 숫자, 특수문자를 각각 포함해야 합니다." });
             return;
         }
         if (formData.userPw !== formData.confirmPw) {
+            setFieldError("confirmPw", "비밀번호가 일치하지 않습니다.");
             setAlertMsg({ type: "danger", text: "비밀번호가 일치하지 않습니다." });
             return;
         }
@@ -344,7 +396,7 @@ function Signup() {
 
                             <h4 className="fw-bold text-center mb-4">회원가입</h4>
 
-                            {alertMsg.text && (
+                            {alertMsg.text && alertMsg.type !== "success" && !emailError && Object.keys(fieldErrors).length === 0 && (
                                 <div className={`alert alert-${alertMsg.type} py-2 px-3 small rounded-3 mb-4 text-break`} role="alert">
                                     {alertMsg.text}
                                 </div>
@@ -367,6 +419,7 @@ function Signup() {
                                         required
                                     />
                                     {isNameTooLong && <div className="small mt-1 text-danger">이름은 4자 이하로 입력해 주세요.</div>}
+                                    {fieldErrors.userName && !isNameTooLong && <div className="small mt-1 text-danger">{fieldErrors.userName}</div>}
                                 </div>
 
                                 {/* 2. 닉네임 + 중복확인 버튼 (반응형 배치) */}
@@ -400,6 +453,7 @@ function Signup() {
                                             {nicknameMsg}
                                         </div>
                                     )}
+                                    {fieldErrors.userNickname && !isNicknameLengthInvalid && <div className="small mt-1 text-danger">{fieldErrors.userNickname}</div>}
                                 </div>
 
                                 {/* 3. 생년월일 (선택) */}
@@ -417,6 +471,7 @@ function Signup() {
                                         min={minBirthDate}
                                         max={maxAdultBirthDate}
                                     />
+                                    {fieldErrors.userBirthDate && <div className="small mt-1 text-danger">{fieldErrors.userBirthDate}</div>}
                                 </div>
 
                                 {/* 4. 이메일 + 인증번호 발송 버튼 (반응형 배치) */}
@@ -470,6 +525,7 @@ function Signup() {
                                             {emailMsg}
                                         </div>
                                     )}
+                                    {emailError && <div className="small mt-1 text-danger">{emailError}</div>}
                                 </div>
 
                                 {/* 5. 인증번호 입력창 및 타이머 (발송 완료 시 노출) */}
@@ -488,7 +544,10 @@ function Signup() {
                                                 className="form-control form-control-lg fs-6 py-2 text-center letter-spacing-2"
                                                 placeholder="123456"
                                                 value={authCode}
-                                                onChange={(e) => setAuthCode(e.target.value)}
+                                                onChange={(e) => {
+                                                    setAuthCode(e.target.value);
+                                                    clearFieldError("authCode");
+                                                }}
                                             />
                                             <button
                                                 type="button"
@@ -503,6 +562,7 @@ function Signup() {
                                                 )}
                                             </button>
                                         </div>
+                                        {fieldErrors.authCode && <div className="small mt-1 text-danger">{fieldErrors.authCode}</div>}
                                     </div>
                                 )}
 
@@ -531,6 +591,7 @@ function Signup() {
                                             ))}
                                         </div>
                                     )}
+                                    {fieldErrors.userPw && <div className="small mt-1 text-danger">{fieldErrors.userPw}</div>}
                                 </div>
 
                                 {/* 7. 비밀번호 확인 */}
@@ -554,6 +615,9 @@ function Signup() {
                                     )}
                                     {formData.confirmPw && formData.userPw === formData.confirmPw && PASSWORD_PATTERN.test(formData.userPw) && (
                                         <div className="small text-success mt-1">비밀번호가 일치합니다.</div>
+                                    )}
+                                    {fieldErrors.confirmPw && (!formData.confirmPw || formData.userPw === formData.confirmPw) && (
+                                        <div className="small mt-1 text-danger">{fieldErrors.confirmPw}</div>
                                     )}
                                 </div>
 
