@@ -140,10 +140,17 @@ function Login() {
                             </form>
 
                             <div className="text-center mt-4 text-muted small">
-                                아직 계정이 없으신가요?{" "}
-                                <Link to="/signup" className="text-primary text-decoration-none fw-bold ms-1">
-                                    회원가입하기
-                                </Link>
+                                <div className="mb-2">
+                                    <Link to="/password-reset" className="text-primary text-decoration-none fw-bold">
+                                        비밀번호를 잊으셨나요?
+                                    </Link>
+                                </div>
+                                <div>
+                                    <span>아직 계정이 없으신가요?{" "}</span>
+                                    <Link to="/signup" className="text-primary text-decoration-none fw-bold">
+                                        회원가입하기
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </div>

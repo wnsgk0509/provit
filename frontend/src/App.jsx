@@ -20,6 +20,7 @@ import DocumentRead from './pages/documentRead/DocumentRead';
 import DocumentEdit from './pages/documentEdit/DocumentEdit';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
+import PasswordReset from './pages/auth/PasswordReset';
 import BootstrapTemplate from './pages/bootstrap';
 import AdminReportList from './pages/admin/AdminReportList';
 
@@ -99,6 +100,7 @@ function App() {
             <Route path="/documents/:documentType/:documentId" element={<RequireAuth><DocumentRead /></RequireAuth>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/password-reset" element={<PasswordReset />} />
             {/* 관리자 라우트 */}
             <Route path="/admin/reports" element={<RequireAdmin alertMessage="관리자만 접근 가능합니다."><AdminReportList /></RequireAdmin>} />
             {/* 팀원 참고용 부트스트랩 템플릿 화면 */}
