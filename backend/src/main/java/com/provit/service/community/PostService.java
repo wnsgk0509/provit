@@ -15,9 +15,9 @@ public interface PostService {
     PageResponseDTO<PostDTO> getPostList(PostSearchDTO searchDto);
     
     /**
-     * 특정 게시글의 상세 정보를 조회합니다. (조회수 증가 포함)
+     * 특정 게시글의 상세 정보를 조회합니다. (조건에 따라 조회수 증가)
      */
-    PostDTO getPostDetail(Long postNum, Long userNum);
+    PostDTO getPostDetail(Long postNum, Long userNum, boolean shouldIncreaseViewCount);
 
     /**
      * 특정 게시글의 좋아요 상태를 토글(On/Off)합니다.

@@ -59,8 +59,33 @@ public class PostController {
     @GetMapping("/{postNum}")
     public ApiResponse<PostDTO> getPostDetail(
             @org.springframework.web.bind.annotation.PathVariable Long postNum,
-            @LoginUser Long userNum) {
-        PostDTO postDetail = postService.getPostDetail(postNum, userNum);
+            @LoginUser Long userNum,
+            javax.servlet.http.HttpServletRequest request,
+            javax.servlet.http.HttpServletResponse response) {
+        
+        // 쿠키를 확인하여 이미 조회한 게시글인지 확인합니다.
+        boolean hasViewed = false;
+        javax.servlet.http.Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (javax.servlet.http.Cookie cookie : cookies) {
+                if (cookie.getName().equals("viewed_post_" + postNum)) {
+                    hasViewed = true;
+                    break;
+                }
+            }
+        }
+
+        // 조회하지 않은 경우에만 조회수를 증가시킵니다.
+        PostDTO postDetail = postService.getPostDetail(postNum, userNum, !hasViewed);
+
+        // 첫 조회라면 쿠키를 생성하여 응답에 추가합니다. (1시간 동안 유지)
+        if (!hasViewed) {
+            javax.servlet.http.Cookie cookie = new javax.servlet.http.Cookie("viewed_post_" + postNum, "true");
+            cookie.setMaxAge(60 * 60); // 1시간 (3600초)
+            cookie.setPath("/");
+            response.addCookie(cookie);
+        }
+
         return ApiResponse.success(postDetail);
     }
 
