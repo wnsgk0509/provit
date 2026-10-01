@@ -73,7 +73,7 @@ function StudyCreateModal({ show, onClose, onSuccess }) {
                                         type="number" 
                                         className="form-control" 
                                         min="2"
-                                        max="100"
+                                        max="10"
                                         value={maxMembers}
                                         onChange={(e) => setMaxMembers(parseInt(e.target.value) || 2)}
                                     />

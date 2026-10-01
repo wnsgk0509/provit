@@ -23,6 +23,24 @@ function StudyDetailModal({ show, onClose, study }) {
         }
     };
 
+    // 텍스트 내의 URL을 추출하여 클릭 가능한 링크(a 태그)로 변환하는 함수
+    const linkify = (text) => {
+        if (!text) return text;
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const parts = text.split(urlRegex);
+        
+        return parts.map((part, index) => {
+            if (part.match(urlRegex)) {
+                return (
+                    <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="text-primary text-decoration-underline fw-semibold">
+                        {part}
+                    </a>
+                );
+            }
+            return part;
+        });
+    };
+
     if (!show || !study) return null;
 
     return (
@@ -54,8 +72,8 @@ function StudyDetailModal({ show, onClose, study }) {
 
                         <div className="bg-light rounded-4 p-4 mb-4">
                             <h6 className="fw-bold mb-3 text-secondary">스터디 소개 및 목표</h6>
-                            <p className="mb-0 text-dark" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
-                                {study.studyExplain}
+                            <p className="mb-0 text-dark" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', wordBreak: 'break-all' }}>
+                                {linkify(study.studyExplain)}
                             </p>
                         </div>
 
