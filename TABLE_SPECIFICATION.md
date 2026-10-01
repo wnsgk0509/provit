@@ -2,9 +2,9 @@
 
 - **Database Engine:** Oracle Database 19c Enterprise Edition
 - **Character Set:** AL32UTF8
-- **총 테이블 수:** 19개
-- **총 시퀀스 수:** 13개
-- **최종 수정일:** 2026-09-21
+- **총 테이블 수:** 27개
+- **총 시퀀스 수:** 19개
+- **최종 수정일:** 2026-10-01
 
 ---
 
@@ -15,13 +15,12 @@
    - [1.2 T_JOB (소분류 직무)](#12-t_job-소분류-직무)
    - [1.3 T_USER (회원 기본 정보)](#13-t_user-회원-기본-정보)
 2. [유저 이력 문서 도메인](#2-유저-이력-문서-도메인)
-   - [2.1 T_EDUCODE (학력 코드 분류)](#21-t_educode-학력-코드-분류)
-   - [2.2 T_RESUME (이력서 기본 정보)](#22-t_resume-이력서-기본-정보)
-   - [2.3 T_EDUCATION (학력 정보)](#23-t_education-학력-정보)
-   - [2.4 T_CAREER (경력 정보)](#24-t_career-경력-정보)
-   - [2.5 T_CERTIFICATION (자격증 정보)](#25-t_certification-자격증-정보)
-   - [2.6 T_COVER_LETTER (자기소개서)](#26-t_cover_letter-자기소개서)
-   - [2.7 T_PORTFOLIO (포트폴리오)](#27-t_portfolio-포트폴리오)
+   - [2.1 T_RESUME (이력서 기본 정보)](#21-t_resume-이력서-기본-정보)
+   - [2.2 T_EDUCATION (학력 정보)](#22-t_education-학력-정보)
+   - [2.3 T_CAREER (경력 정보)](#23-t_career-경력-정보)
+   - [2.4 T_CERTIFICATION (자격증 정보)](#24-t_certification-자격증-정보)
+   - [2.5 T_COVER_LETTER (자기소개서)](#25-t_cover_letter-자기소개서)
+   - [2.6 T_PORTFOLIO (포트폴리오)](#26-t_portfolio-포트폴리오)
 3. [AI 모의 면접 도메인](#3-ai-모의-면접-도메인)
    - [3.1 T_INTERVIEW_HISTORY (면접 Q&A 내역)](#31-t_interview_history-면접-qa-내역)
    - [3.2 T_INTERVIEW_RESULT (면접 평가 결과)](#32-t_interview_result-면접-평가-결과)
@@ -107,24 +106,7 @@
 
 # 2. 유저 이력 문서 도메인
 
-### 2.1 T_EDUCODE (학력 코드 분류)
-- **테이블 물리명:** `T_EDUCODE`
-- **테이블 논리명:** 학력 코드 분류
-- **설명:** 사람인 채용 OpenAPI 연동 및 학력 검색 필터링용 표준 학력 코드 관리
-- **시퀀스:** 없음 (코드형 식별자 사용)
-
-| no | column name | 컬럼명 | type | length | PK | NN | Default | 정의/설명 | 참조테이블 | 비고 |
-|:--:|:---|:---|:---|:--:|:--:|:--:|:---|:---|:---|:---|
-| 1 | EDUCATION_CODE | 학력 코드 | NUMBER | 1 | PK | NOT NULL | | 학력 고유 식별 코드 | | 0:학력무관, 1:고등학교졸업, 2:대학졸업(2,3년), 3:대학교졸업(4년), 4:석사졸업, 5:박사졸업, 6:고등학교졸업이상, 7:대학졸업(2년,3년 이상), 8:대학교졸업(4년)이상, 9:석사졸업이상 |
-| 2 | EDUCATION_NAME | 학력 이름 | VARCHAR2 | 50 | | NOT NULL | | 학력 코드에 매칭되는 한글 명칭 | | 예: '대학교졸업(4년)' |
-
-| no | Index name | Index type | Unique | 구성 컬럼 |
-|:--:|:---|:--:|:--:|:---|
-| 1 | PK_T_EDUCODE_IDX | PK | Unique | EDUCATION_CODE |
-
----
-
-### 2.2 T_RESUME (이력서 기본 정보)
+### 2.1 T_RESUME (이력서 기본 정보)
 - **테이블 물리명:** `T_RESUME`
 - **테이블 논리명:** 이력서 기본 정보
 - **설명:** 회원의 이력서 마스터 정보 (학력/경력/자격증의 1:N 부모)
@@ -136,14 +118,13 @@
 | 2 | USER_NUM | 작성자 번호 | NUMBER | 9 | | NOT NULL | | 이력서 작성 회원 번호 | T_USER(USER_NUM) | ON DELETE CASCADE |
 | 3 | RESUME_TITLE | 이력서 제목 | VARCHAR2 | 200 | | | | 이력서 제목 | | 예: '신입 백엔드 개발자 홍길동의 이력서' |
 | 4 | HIGHEST_LEVEL | 최종학력 | VARCHAR2 | 20 | | NOT NULL | | 최종 학력 기재 (고졸, 초대졸, 대졸 등) | | 목록/필터링 최적화 |
-| 5 | EDUCATION_CODE | 검색 학력 코드 | NUMBER | 1 | | NOT NULL | | 채용 API 요청 시 전달할 학력 검색 코드 | T_EDUCODE(EDUCATION_CODE) | OpenAPI 연동 |
-| 6 | MOTIVATION | 지원 동기 | CLOB | | | | | 장문 지원 동기 텍스트 | | |
-| 7 | DESIRED_LOCATION | 희망 근무지 | VARCHAR2 | 200 | | | | 희망 근무 지역 | | 예: '서울 강남구' |
-| 8 | DESIRED_WORK_TYPE | 희망 고용형태 | VARCHAR2 | 100 | | | | 희망 고용 형태 | | 정규직, 계약직 등 |
-| 9 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 이력서 최초 작성 일시 | | |
-| 10 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 이력서 최종 수정 일시 | | |
-| 11 | OCCUPATION_CODE | 지원 직군 코드 | VARCHAR2 | 20 | | | | 이력서에서 선택한 1차 직군 | T_OCCUPATION(OCCUPATION_CODE) | ON DELETE SET NULL, 작성/수정 API에서 필수 |
-| 12 | JOB_CODE | 지원 직무 코드 | VARCHAR2 | 20 | | | | 선택한 직군에 속한 2차 직무 | T_JOB(JOB_CODE) | ON DELETE SET NULL, 작성/수정 API에서 소속 직군 검증 |
+| 5 | MOTIVATION | 지원 동기 | CLOB | | | | | 장문 지원 동기 텍스트 | | |
+| 6 | DESIRED_LOCATION | 희망 근무지 | VARCHAR2 | 200 | | | | 희망 근무 지역 | | 예: '서울 강남구' |
+| 7 | DESIRED_WORK_TYPE | 희망 고용형태 | VARCHAR2 | 100 | | | | 희망 고용 형태 | | 정규직, 계약직 등 |
+| 8 | CREATED_AT | 등록일시 | DATE | | | NOT NULL | SYSDATE | 이력서 최초 작성 일시 | | |
+| 9 | UPDATED_AT | 수정일시 | DATE | | | NOT NULL | SYSDATE | 이력서 최종 수정 일시 | | |
+| 10 | OCCUPATION_CODE | 지원 직군 코드 | VARCHAR2 | 20 | | | | 이력서에서 선택한 1차 직군 | T_OCCUPATION(OCCUPATION_CODE) | ON DELETE SET NULL, 작성/수정 API에서 필수 |
+| 11 | JOB_CODE | 지원 직무 코드 | VARCHAR2 | 20 | | | | 선택한 직군에 속한 2차 직무 | T_JOB(JOB_CODE) | ON DELETE SET NULL, 작성/수정 API에서 소속 직군 검증 |
 
 | no | Index name | Index type | Unique | 구성 컬럼 |
 |:--:|:---|:--:|:--:|:---|
@@ -152,7 +133,7 @@
 
 ---
 
-### 2.3 T_EDUCATION (학력 정보)
+### 2.2 T_EDUCATION (학력 정보)
 - **테이블 물리명:** `T_EDUCATION`
 - **테이블 논리명:** 학력 정보
 - **설명:** 이력서에 종속되는 회원의 출신 학교 및 학력 정보 (1:N 자식)
@@ -176,7 +157,7 @@
 
 ---
 
-### 2.4 T_CAREER (경력 정보)
+### 2.3 T_CAREER (경력 정보)
 - **테이블 물리명:** `T_CAREER`
 - **테이블 논리명:** 경력 정보
 - **설명:** 이력서에 종속되는 회원의 이전 직장 및 경력 사항 (1:N 자식)
@@ -199,7 +180,7 @@
 
 ---
 
-### 2.5 T_CERTIFICATION (자격증 정보)
+### 2.4 T_CERTIFICATION (자격증 정보)
 - **테이블 물리명:** `T_CERTIFICATION`
 - **테이블 논리명:** 자격증 정보
 - **설명:** 이력서에 종속되는 회원의 보유 자격증 및 어학 점수 (1:N 자식)
@@ -221,7 +202,7 @@
 
 ---
 
-### 2.6 T_COVER_LETTER (자기소개서)
+### 2.5 T_COVER_LETTER (자기소개서)
 - **테이블 물리명:** `T_COVER_LETTER`
 - **테이블 논리명:** 자기소개서
 - **설명:** 회원의 문항별 자기소개서 텍스트 데이터 (회원과 1:N 관계)
@@ -246,7 +227,7 @@
 
 ---
 
-### 2.7 T_PORTFOLIO (포트폴리오)
+### 2.6 T_PORTFOLIO (포트폴리오)
 - **테이블 물리명:** `T_PORTFOLIO`
 - **테이블 논리명:** 포트폴리오
 - **설명:** 회원의 포트폴리오 파일 업로드 정보 (회원과 1:N 관계)

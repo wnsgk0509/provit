@@ -6,7 +6,8 @@
 ## DB 적용
 
 - 신규 DB: `src/main/resources/sql_query/schema.sql` 사용.
-- 회원·이력서에 두 코드 컬럼이 모두 있는 DB: 스키마 변경 없이 애플리케이션 배포.
+- 기존 DB의 이력서 학력구분 제거: 이력서 쓰기를 중단하고 `src/main/resources/sql_query/migrate_remove_resume_education_code.sql`을 실행한 뒤 애플리케이션을 배포한다. 이력서 행과 최종 학력·학교별 학력은 유지하며, 신규 스키마에는 제거 대상이 없다.
+- 회원·이력서에 직군·직무 코드 컬럼이 모두 있는 DB: 위의 학력구분 제거 이관을 적용한 뒤 직군·직무에 대한 추가 스키마 변경 없이 애플리케이션을 배포한다.
 - 과거 이관으로 회원 코드 컬럼이 삭제된 DB: SQL*Plus 또는 SQLcl에서 `restore_user_job_codes.sql`을 실행한 뒤 배포. 없는 컬럼만 추가하며 회원·이력서 데이터는 수정하지 않는다. 삭제됐던 회원 값은 자동 복원하지 않고 기존 `T_USER_JOB_CODE_BACKUP`에 보존한다.
 - 이력서 코드 컬럼을 아직 추가하지 않은 기존 DB: 회원/이력서 쓰기를 중단하고 `migrate_resume_job_codes.sql`을 한 번 실행한 뒤 배포.
 - 이관 스크립트는 원본 코드를 `T_USER_JOB_CODE_BACKUP`에 보존하고 회원의 모든 이력서에 복사한 후 검증한다. 회원 컬럼은 유지한다. 직군·직무가 불일치한 이력서 데이터는 직무의 소속 직군으로 정규화하며 회원 원본과 백업은 유지한다.
@@ -25,8 +26,7 @@
     "resumeTitle": "백엔드 지원 이력서",
     "occupationCode": "2",
     "jobCode": "84",
-    "highestLevel": "대학교",
-    "educationCode": 3
+    "highestLevel": "대학교"
   },
   "educationList": [],
   "careerList": [],

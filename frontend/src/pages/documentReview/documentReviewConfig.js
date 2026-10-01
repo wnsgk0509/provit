@@ -92,7 +92,6 @@ export function documentPreviewSections(documentType, document) {
                 `지원 직군: ${resume.occupationName || '미입력'}`,
                 `지원 직무: ${resume.jobName || '미입력'}`,
                 `최종 학력: ${resume.highestLevel || '미입력'}`,
-                `학력 구분: ${resume.educationName || '미입력'}`,
                 `희망 근무 지역: ${resume.desiredLocation || '미입력'}`,
                 `희망 근무 형태: ${resume.desiredWorkType || '미입력'}`,
             ].join('\n'),
