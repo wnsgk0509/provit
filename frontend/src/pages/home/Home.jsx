@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { fetchPostList } from "../../api/communityApi";
+import { fetchPopularPosts, fetchPostList } from "../../api/communityApi";
 import { getInterviewResults } from "../../api/interviewApi";
+import { fetchRecruitments } from "../../api/recruitmentApi";
 import { useAuth } from "../../context/AuthContext";
 import "./Home.css";
 
@@ -19,13 +20,19 @@ const formatDate = (value) => {
     : new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric" }).format(date);
 };
 
+const formatDeadline = (value) => value ? `${formatDate(value)} 마감` : "채용 시 마감";
+
 function Home() {
   const navigate = useNavigate();
   const { isLoggedIn, user } = useAuth();
   const [interviewResults, setInterviewResults] = useState([]);
   const [posts, setPosts] = useState([]);
+  const [popularPosts, setPopularPosts] = useState([]);
+  const [recruitments, setRecruitments] = useState([]);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [isLoadingPopularPosts, setIsLoadingPopularPosts] = useState(true);
+  const [isLoadingRecruitments, setIsLoadingRecruitments] = useState(true);
 
   useEffect(() => {
     const loadPosts = async () => {
@@ -40,6 +47,32 @@ function Home() {
     };
 
     loadPosts();
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadHomeContent = async () => {
+      setIsLoadingPopularPosts(true);
+      setIsLoadingRecruitments(true);
+
+      const [popularResult, recruitmentResult] = await Promise.allSettled([
+        fetchPopularPosts(3),
+        fetchRecruitments({ page: 1, size: 4 }),
+      ]);
+
+      if (!isMounted) return;
+
+      setPopularPosts(popularResult.status === "fulfilled" ? popularResult.value?.data ?? [] : []);
+      setRecruitments(recruitmentResult.status === "fulfilled" ? recruitmentResult.value?.data?.content ?? [] : []);
+      setIsLoadingPopularPosts(false);
+      setIsLoadingRecruitments(false);
+    };
+
+    loadHomeContent();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -138,12 +171,44 @@ function Home() {
         {quickLinks.map((item) => <Link className="home-quick-card" to={item.requiresLogin && !isLoggedIn ? "/login" : item.to} key={item.title}><span className="home-quick-icon">{item.code}</span><h3>{item.title}</h3><p>{item.description}</p><span className="home-quick-arrow" aria-hidden="true">→</span></Link>)}
       </div>
 
+      <section className="home-recruitment" aria-labelledby="recruitmentPreviewTitle">
+        <div className="home-panel-heading">
+          <div><div className="home-eyebrow">RECRUITMENT</div><h2 id="recruitmentPreviewTitle">최신 채용공고</h2></div>
+          <Link className="home-text-link" to="/jobs">채용공고 더 보기 →</Link>
+        </div>
+        {isLoadingRecruitments ? <p className="home-card-message">채용공고를 불러오는 중입니다.</p> : recruitments.length ? (
+          <div className="home-recruitment-grid">
+            {recruitments.map((job) => (
+              <a className="home-job-card" href={job.jobUrl || "/jobs"} target={job.jobUrl ? "_blank" : undefined} rel={job.jobUrl ? "noreferrer" : undefined} key={job.recruitmentNum}>
+                <span className="home-job-company">{job.companyName || "채용 기업"}</span>
+                <strong>{job.title}</strong>
+                <span className="home-job-deadline">{formatDeadline(job.expirationDate)}</span>
+                <span className="home-job-tags">
+                  {job.jobName && <span>{job.jobName}</span>}
+                  {job.locationName && <span>{job.locationName}</span>}
+                  {job.experienceLevel && <span>{job.experienceLevel}</span>}
+                </span>
+              </a>
+            ))}
+          </div>
+        ) : <p className="home-card-message">현재 표시할 채용공고가 없습니다.</p>}
+      </section>
+
+      <div className="home-community-grid">
       <section className="home-community" aria-labelledby="latestPostsTitle">
         <div className="home-panel-heading"><div><div className="home-eyebrow">COMMUNITY</div><h2 id="latestPostsTitle">커뮤니티 최신글</h2></div><Link className="home-text-link" to="/community">전체 보기 →</Link></div>
         {isLoadingPosts ? <p className="home-card-message">최신글을 불러오는 중입니다.</p> : posts.length ? (
           <div className="home-post-list">{posts.map((post) => <Link className="home-post-row" to={`/community/${post.postNum}`} key={post.postNum}><span className="home-post-category">{post.categoryName || "커뮤니티"}</span><strong>{post.postTitle}</strong><span className="home-post-writer">{post.userNickname || "익명"}</span><span className="home-post-date">{formatDate(post.postDate)}</span></Link>)}</div>
         ) : <p className="home-card-message">아직 등록된 커뮤니티 글이 없습니다.</p>}
       </section>
+      <section className="home-popular" aria-labelledby="popularPostsTitle">
+        <div className="home-panel-heading"><div><div className="home-eyebrow">POPULAR</div><h2 id="popularPostsTitle">인기글 TOP 3</h2></div><Link className="home-text-link" to="/community">전체 보기 →</Link></div>
+        {isLoadingPopularPosts ? <p className="home-card-message">인기글을 불러오는 중입니다.</p> : popularPosts.length ? (
+          <ol className="home-popular-list">{popularPosts.map((post, index) => <li key={post.postNum}><span>{String(index + 1).padStart(2, "0")}</span><Link to={`/community/${post.postNum}`}>{post.postTitle}</Link><small>조회 {post.viewCount || 0}</small></li>)}</ol>
+        ) : <p className="home-card-message">아직 인기글이 없습니다.</p>}
+      </section>
+
+      </div>
     </section>
   );
 }
