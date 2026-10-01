@@ -4,63 +4,99 @@
 -- 📌 주의사항:
 -- 1. CASCADE CONSTRAINTS: 외래키(FK) 참조 관계를 자동으로 함께 해제하여 삭제 에러 방지
 -- 2. PURGE: Oracle 휴지통(RecycleBin, BIN$...)에 임시 보관하지 않고 완전 영구 삭제
--- 3. 테이블은 자식(참조하는) 테이블 -> 부모(참조되는) 테이블 역순으로 안전하게 배치
+-- 3. 테이블은 자식(참조하는) 테이블 -> 부모(참조되는) 테이블 순으로 삭제
+-- 4. 이미 없는 테이블/시퀀스만 건너뛰며, 권한 등 다른 오류는 그대로 보고
 -- ================================================================================
 
--- ================================================================================
--- 1. 테이블 삭제 (총 18개 + 미사용 2개)
--- ================================================================================
+DECLARE
+    PROCEDURE drop_table(table_name IN VARCHAR2) IS
+    BEGIN
+        EXECUTE IMMEDIATE 'DROP TABLE ' || table_name || ' CASCADE CONSTRAINTS PURGE';
+    EXCEPTION
+        WHEN OTHERS THEN
+            IF SQLCODE <> -942 THEN -- ORA-00942: 테이블이 없음
+                RAISE;
+            END IF;
+    END;
 
--- 1-5. 커뮤니티 및 스터디 도메인 (자식 -> 부모 순)
-DROP TABLE T_REPORT CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_STUDY_MEMBER CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_STUDY CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_COMMENT CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_POST_LIKE CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_POST CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_CATEGORY CASCADE CONSTRAINTS PURGE;
+    PROCEDURE drop_sequence(sequence_name IN VARCHAR2) IS
+    BEGIN
+        EXECUTE IMMEDIATE 'DROP SEQUENCE ' || sequence_name;
+    EXCEPTION
+        WHEN OTHERS THEN
+            IF SQLCODE <> -2289 THEN -- ORA-02289: 시퀀스가 없음
+                RAISE;
+            END IF;
+    END;
+BEGIN
+    -- ============================================================================
+    -- 1. 테이블 삭제 (현재 스키마 28개 + 이전 버전 잔여 테이블 1개)
+    -- ============================================================================
 
--- 1-4. 채용 공고 도메인
-DROP TABLE T_RECRUITMENT CASCADE CONSTRAINTS PURGE;
+    -- 커뮤니티 및 스터디 도메인 (자식 -> 부모 순)
+    drop_table('T_REPORT');
+    drop_table('T_STUDY_MEMBER');
+    drop_table('T_STUDY');
+    drop_table('T_COMMENT');
+    drop_table('T_POST_LIKE');
+    drop_table('T_POST');
+    drop_table('T_CATEGORY');
 
--- 1-3. AI 모의 면접 도메인
-DROP TABLE T_INTERVIEW_RESULT CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_INTERVIEW_HISTORY CASCADE CONSTRAINTS PURGE;
+    -- 채용 공고 도메인
+    drop_table('T_JOB_SCRAP');
+    drop_table('T_RECRUITMENT');
 
--- 1-2. 유저 이력 문서 도메인 (자식 -> 부모 순)
-DROP TABLE T_PORTFOLIO CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_COVER_LETTER CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_CERTIFICATION CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_CAREER CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_EDUCATION CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_RESUME CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_EDUCODE CASCADE CONSTRAINTS PURGE;
+    -- AI 모의면접 도메인
+    drop_table('T_INTERVIEW_RESULT');
+    drop_table('T_INTERVIEW_HISTORY');
 
--- 1-1. 회원 및 직무 도메인 (자식 -> 부모 순)
-DROP TABLE T_USER CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_JOB CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_OCCUPATION CASCADE CONSTRAINTS PURGE;
+    -- AI 첨삭 도메인 (자식 -> 부모 순)
+    drop_table('T_REVIEW_SOURCE');
+    drop_table('T_REVIEW_IMPROVEMENT');
+    drop_table('T_REVIEW_STRENGTH');
+    drop_table('T_REVIEW_CONSISTENCY');
+    drop_table('T_REVIEW_DOCUMENT');
+    drop_table('T_DOCUMENT_REVIEW');
 
--- (선택) 이전 버전 미사용 테이블 잔여물 정리
-DROP TABLE T_JOB_SCRAP CASCADE CONSTRAINTS PURGE;
-DROP TABLE T_FORTUNE_RECOMMEND CASCADE CONSTRAINTS PURGE;
+    -- 유저 이력 문서 도메인 (자식 -> 부모 순)
+    drop_table('T_PORTFOLIO');
+    drop_table('T_COVER_LETTER');
+    drop_table('T_CERTIFICATION');
+    drop_table('T_CAREER');
+    drop_table('T_EDUCATION');
+    drop_table('T_RESUME');
+    drop_table('T_EDUCODE');
 
+    -- 이전 버전 미사용 테이블 잔여물 정리
+    drop_table('T_FORTUNE_RECOMMEND');
 
--- ================================================================================
--- ================================================================================
--- 2. 시퀀스(Sequence) 삭제 (총 14개)
--- ================================================================================
-DROP SEQUENCE SEQ_T_REPORT;
-DROP SEQUENCE SEQ_T_STUDY;
-DROP SEQUENCE SEQ_T_COMMENT;
-DROP SEQUENCE SEQ_T_POST;
-DROP SEQUENCE SEQ_T_CATEGORY;
-DROP SEQUENCE SEQ_T_RECRUITMENT;
-DROP SEQUENCE SEQ_T_INTERVIEW_HISTORY;
-DROP SEQUENCE SEQ_T_PORTFOLIO;
-DROP SEQUENCE SEQ_T_COVER_LETTER;
-DROP SEQUENCE SEQ_T_CERTIFICATION;
-DROP SEQUENCE SEQ_T_CAREER;
-DROP SEQUENCE SEQ_T_EDUCATION;
-DROP SEQUENCE SEQ_T_RESUME;
-DROP SEQUENCE SEQ_T_USER;
+    -- 회원 및 직무 도메인 (자식 -> 부모 순)
+    drop_table('T_REFRESH_TOKEN');
+    drop_table('T_USER');
+    drop_table('T_JOB');
+    drop_table('T_OCCUPATION');
+
+    -- ============================================================================
+    -- 2. 시퀀스 삭제 (총 19개, 모든 테이블 삭제 후 실행)
+    -- ============================================================================
+    drop_sequence('SEQ_T_REVIEW_CONSISTENCY');
+    drop_sequence('SEQ_T_REVIEW_IMPROVEMENT');
+    drop_sequence('SEQ_T_REVIEW_STRENGTH');
+    drop_sequence('SEQ_T_REVIEW_DOCUMENT');
+    drop_sequence('SEQ_T_DOCUMENT_REVIEW');
+    drop_sequence('SEQ_T_REPORT');
+    drop_sequence('SEQ_T_STUDY');
+    drop_sequence('SEQ_T_COMMENT');
+    drop_sequence('SEQ_T_POST');
+    drop_sequence('SEQ_T_CATEGORY');
+    drop_sequence('SEQ_T_RECRUITMENT');
+    drop_sequence('SEQ_T_INTERVIEW_HISTORY');
+    drop_sequence('SEQ_T_PORTFOLIO');
+    drop_sequence('SEQ_T_COVER_LETTER');
+    drop_sequence('SEQ_T_CERTIFICATION');
+    drop_sequence('SEQ_T_CAREER');
+    drop_sequence('SEQ_T_EDUCATION');
+    drop_sequence('SEQ_T_RESUME');
+    drop_sequence('SEQ_T_USER');
+END;
+/
