@@ -3,6 +3,9 @@ package com.provit.service.document.impl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -35,6 +38,7 @@ public class DocumentServiceImpl implements DocumentService {
 
     private static final long MAX_PORTFOLIO_FILE_SIZE = 20_000_000L;
     private static final byte[] PDF_SIGNATURE = { '%', 'P', 'D', 'F', '-' };
+    private static final ZoneId RESUME_DATE_ZONE = ZoneId.of("Asia/Seoul");
 
     private final DocumentDAO documentDAO;
     private final PortfolioFileStorage portfolioFileStorage;
@@ -391,6 +395,7 @@ public class DocumentServiceImpl implements DocumentService {
         validateRequiredText(resume.getHighestLevel(), 20, "최종 학력");
         validateOptionalText(resume.getDesiredLocation(), 200, "희망 근무 지역");
         validateOptionalText(resume.getDesiredWorkType(), 100, "희망 근무 형태");
+        LocalDate today = LocalDate.now(RESUME_DATE_ZONE);
 
         for (EducationDTO education : safeList(resumeDetail.getEducationList())) {
             if (education == null) {
@@ -399,6 +404,7 @@ public class DocumentServiceImpl implements DocumentService {
             validateRequiredText(education.getSchoolName(), 200, "학교명");
             validateRequiredText(education.getEducationStatus(), 20, "졸업 상태");
             validateOptionalText(education.getMajor(), 200, "전공");
+            validateNotFutureDate(education.getAdmissionDate(), today, "입학일");
             validateDateRange(
                     education.getAdmissionDate(), education.getGraduationDate(),
                     "졸업일은 입학일보다 빠를 수 없습니다.");
@@ -410,9 +416,10 @@ public class DocumentServiceImpl implements DocumentService {
             }
             validateRequiredText(career.getCompanyName(), 200, "회사명");
             validateOptionalText(career.getMainDuty(), 2000, "주요 업무");
+            validateNotFutureDate(career.getJoinDate(), today, "입사일");
             validateDateRange(
                     career.getJoinDate(), career.getResignDate(),
-                    "퇴사일은 입사일보다 빠를 수 없습니다.");
+                    "퇴사(예정)일은 입사일보다 빠를 수 없습니다.");
         }
 
         for (CertificationDTO certification : safeList(resumeDetail.getCertificationList())) {
@@ -421,6 +428,7 @@ public class DocumentServiceImpl implements DocumentService {
             }
             validateRequiredText(certification.getCertName(), 200, "자격증명");
             validateOptionalText(certification.getCertGrade(), 100, "자격증 등급/점수");
+            validateNotFutureDate(certification.getIssueDate(), today, "취득일");
         }
     }
 
@@ -449,6 +457,13 @@ public class DocumentServiceImpl implements DocumentService {
     private void validateOptionalText(String value, int maxLength, String fieldName) {
         if (value != null && value.trim().length() > maxLength) {
             throw new IllegalArgumentException(fieldName + "은(는) " + maxLength + "자 이하로 입력해 주세요.");
+        }
+    }
+
+    private void validateNotFutureDate(Date date, LocalDate today, String fieldName) {
+        if (date != null && Instant.ofEpochMilli(date.getTime()).atZone(RESUME_DATE_ZONE)
+                .toLocalDate().isAfter(today)) {
+            throw new IllegalArgumentException(fieldName + "은 오늘 이후 날짜를 선택할 수 없습니다.");
         }
     }
 

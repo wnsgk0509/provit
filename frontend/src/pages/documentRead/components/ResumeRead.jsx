@@ -73,7 +73,7 @@ function ResumeRead({ document }) {
                     <dl className="document-read-grid">
                         <ReadValue label="회사명" value={career.companyName} wide />
                         <ReadValue label="입사일" value={formatDate(career.joinDate)} />
-                        <ReadValue label="퇴사일" value={formatDate(career.resignDate)} />
+                        <ReadValue label="퇴사(예정)일" value={formatDate(career.resignDate)} />
                         <ReadValue label="주요 업무" value={career.mainDuty} wide multiline />
                     </dl>
                 )}
