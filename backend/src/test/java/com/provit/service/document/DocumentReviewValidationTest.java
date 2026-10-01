@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.PlatformTransactionManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provit.common.GlobalExceptionHandler;
 import com.provit.common.resolver.LoginUserArgumentResolver;
@@ -79,9 +80,14 @@ public class DocumentReviewValidationTest {
                     writes.incrementAndGet();
                     throw new AssertionError("Unexpected persistence: " + method.getName());
                 });
+        var transactionManager = (PlatformTransactionManager) Proxy.newProxyInstance(
+                PlatformTransactionManager.class.getClassLoader(),
+                new Class<?>[] { PlatformTransactionManager.class }, (proxy, method, args) -> {
+                    throw new AssertionError("Unexpected transaction: " + method.getName());
+                });
         service = new DocumentReviewServiceImpl(reviews, new DocumentServiceImpl(documents, null),
                 (request, snapshots) -> { throw new AssertionError("Unexpected AI request"); },
-                new org.springframework.jdbc.datasource.DataSourceTransactionManager());
+                transactionManager);
         JwtProvider jwt = new JwtProvider(null) {
             @Override public boolean validateToken(String token) { return "owner".equals(token) || "other".equals(token); }
             @Override public Long getUserNum(String token) { return "owner".equals(token) ? 7L : 8L; }
