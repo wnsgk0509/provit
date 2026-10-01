@@ -29,6 +29,19 @@ public class DocumentReviewValidationTest {
     private DocumentReviewService service;
     private MockMvc mvc;
 
+    @Test
+    public void currentAndPreviousModelRecordsAreRecognizedAsAi() {
+        var review = new DocumentReviewDTO();
+        for (String model : List.of("gpt-6.1-sol", "gpt-6-sol")) {
+            review.setModelName(model);
+            assertEquals("AI", review.getResultSource());
+        }
+        review.setModelName("dummy-document-review-v2");
+        assertEquals("DUMMY", review.getResultSource());
+        review.setModelName(null);
+        assertEquals("UNKNOWN", review.getResultSource());
+    }
+
     @Before
     public void setUp() {
         reads.set(0);

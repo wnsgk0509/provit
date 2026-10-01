@@ -30,6 +30,6 @@ public class DocumentReviewDTO {
 
     public String getResultSource() {
         if (modelName != null && modelName.startsWith("dummy-")) return "DUMMY";
-        return "gpt-6-sol".equals(modelName) ? "AI" : "UNKNOWN";
+        return "gpt-6-sol".equals(modelName) || "gpt-6.1-sol".equals(modelName) ? "AI" : "UNKNOWN";
     }
 }

@@ -24,7 +24,7 @@ import com.provit.service.document.DocumentReviewProcessingException;
 
 @Component
 public class OpenAiDocumentReviewGenerator implements DocumentReviewGenerator {
-    public static final String MODEL = "gpt-6-sol";
+    public static final String MODEL = "gpt-6.1-sol";
     public static final String PROMPT_VERSION = "document-review-v5";
     public static final int RESPONSE_VERSION = 3;
     private final ObjectMapper mapper = new ObjectMapper().enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS,
@@ -95,7 +95,7 @@ public class OpenAiDocumentReviewGenerator implements DocumentReviewGenerator {
             if (response.statusCode() != 200) throw httpFailure(response.statusCode());
             var envelope = mapper.readTree(response.body());
             String responseModel = envelope.path("model").asText();
-            if (!MODEL.equals(responseModel) && !responseModel.matches("gpt-6-sol-\\d{4}-\\d{2}-\\d{2}"))
+            if (!MODEL.equals(responseModel) && !responseModel.matches(java.util.regex.Pattern.quote(MODEL) + "-\\d{4}-\\d{2}-\\d{2}"))
                 throw failure("요청한 AI 모델과 응답 모델이 다릅니다.", 502);
             if (!"completed".equals(envelope.path("status").asText()))
                 throw failure("AI 응답이 완료되지 않았습니다. 첨삭 기록을 확인해 주세요.", 502);

@@ -74,7 +74,7 @@ public class OpenAiDocumentReviewGeneratorTest {
     public void sendsOneFixedModelRequestAndParsesTextAfterReasoningItem() throws Exception {
         var result = generator.generate(request, documents);
         assertEquals(1, calls.get()); assertEquals(expected.path("summary").asText(), result.getSummary());
-        assertEquals("gpt-6-sol", sent.path("model").asText());
+        assertEquals("gpt-6.1-sol", sent.path("model").asText());
         assertEquals("medium", sent.path("reasoning").path("effort").asText());
         assertFalse(sent.path("stream").asBoolean()); assertFalse(sent.path("store").asBoolean());
         assertEquals(25000, sent.path("max_output_tokens").asInt());
@@ -86,6 +86,19 @@ public class OpenAiDocumentReviewGeneratorTest {
         assertEquals("null", sent.path("text").path("format").path("schema").path("properties")
                 .path("documentReviews").path("properties").path("portfolio").path("type").asText());
         assertEquals(3, result.getCareerPreparation().getRecommendations().size());
+    }
+
+    @Test
+    public void acceptsCurrentModelSnapshotAndRejectsPreviousOrMalformedModel() throws Exception {
+        var envelope = (ObjectNode) mapper.readTree(reply);
+        envelope.put("model", "gpt-6.1-sol-2026-09-29");
+        reply = mapper.writeValueAsString(envelope);
+        assertEquals(expected.path("summary").asText(), generator.generate(request, documents).getSummary());
+        for (String model : List.of("gpt-6-sol", "gpt-6x1-sol-2026-09-29")) {
+            envelope.put("model", model);
+            reply = mapper.writeValueAsString(envelope);
+            assertThrows(DocumentReviewProcessingException.class, () -> generator.generate(request, documents));
+        }
     }
 
     @Test
@@ -157,9 +170,9 @@ public class OpenAiDocumentReviewGeneratorTest {
         assertEquals(503, assertThrows(DocumentReviewProcessingException.class,
                 () -> generator.generate(request, documents)).getHttpStatus());
         status = 200;
-        reply = "{\"model\":\"gpt-6-sol\",\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"refusal\",\"refusal\":\"private\"}]}]}";
+        reply = "{\"model\":\"gpt-6.1-sol\",\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"refusal\",\"refusal\":\"private\"}]}]}";
         assertThrows(DocumentReviewProcessingException.class, () -> generator.generate(request, documents));
-        reply = "{\"model\":\"gpt-6-sol\",\"status\":\"incomplete\",\"output\":[]}";
+        reply = "{\"model\":\"gpt-6.1-sol\",\"status\":\"incomplete\",\"output\":[]}";
         assertThrows(DocumentReviewProcessingException.class, () -> generator.generate(request, documents));
         assertEquals(3, calls.get());
     }
@@ -244,7 +257,7 @@ public class OpenAiDocumentReviewGeneratorTest {
     }
 
     private void completed(ObjectNode output) throws Exception {
-        var envelope = mapper.createObjectNode().put("model", "gpt-6-sol").put("status", "completed");
+        var envelope = mapper.createObjectNode().put("model", "gpt-6.1-sol").put("status", "completed");
         var items = envelope.putArray("output"); items.addObject().put("type", "reasoning");
         items.addObject().put("type", "message").putArray("content").addObject()
                 .put("type", "output_text").put("text", mapper.writeValueAsString(output));

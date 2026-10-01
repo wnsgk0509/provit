@@ -24,7 +24,7 @@ import com.provit.service.interview.InterviewProcessingException;
 
 @Component
 public class OpenAiInterviewClient {
-    public static final String MODEL = "gpt-6-sol";
+    public static final String MODEL = "gpt-6.1-sol";
     private static final Logger log = LoggerFactory.getLogger(OpenAiInterviewClient.class);
     private final ObjectMapper mapper = new ObjectMapper()
             .enable(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS);

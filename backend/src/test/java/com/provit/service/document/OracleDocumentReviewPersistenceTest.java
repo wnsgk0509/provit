@@ -427,7 +427,7 @@ public class OracleDocumentReviewPersistenceTest {
         }
         var saved = live.createReview(7, request(true));
         assertEquals("COMPLETED", saved.getReviewStatus()); assertEquals("AI", saved.getResultSource());
-        assertEquals("gpt-6-sol", saved.getModelName()); assertEquals(3, saved.getDocuments().size());
+        assertEquals("gpt-6.1-sol", saved.getModelName()); assertEquals(3, saved.getDocuments().size());
         assertNotNull(saved.getDocumentReviews().get("portfolio"));
         assertEquals("84", saved.getCareerPreparation().getJobCode());
         var strengths = new ArrayList<>(saved.getStrengths());

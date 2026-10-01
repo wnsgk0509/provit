@@ -153,7 +153,7 @@ COMMENT ON TABLE T_REVIEW_SOURCE IS '일관성 검토 항목별 비교 근거';
 COMMENT ON COLUMN T_DOCUMENT_REVIEW.REVIEW_MODE IS '전체 종합 또는 중심 첨삭 기준 1개; comprehensive, expression, consistency, jobFit, evidence, custom';
 COMMENT ON COLUMN T_DOCUMENT_REVIEW.CUSTOM_CRITERIA IS '직접 입력 기준; custom일 때 필수이며 최대 200자, 다른 기준에서는 NULL';
 COMMENT ON COLUMN T_DOCUMENT_REVIEW.INSTRUCTIONS IS '선택 입력인 추가 요청; 최대 200자';
-COMMENT ON COLUMN T_DOCUMENT_REVIEW.MODEL_NAME IS '생성 모델; gpt-6-sol 또는 기존 더미 기록의 dummy-document-review-v2';
+COMMENT ON COLUMN T_DOCUMENT_REVIEW.MODEL_NAME IS '생성 모델; gpt-6.1-sol, 기존 gpt-6-sol 또는 더미 기록의 dummy-document-review-v2';
 COMMENT ON COLUMN T_DOCUMENT_REVIEW.CAREER_PREPARATION_JSON IS '당시 이력서의 지원 직군·직무와 별도 취업 준비 추천 결과 JSON';
 COMMENT ON COLUMN T_REVIEW_DOCUMENT.SOURCE_DOCUMENT_NUM IS '원본 문서 번호의 기록용 복사본; 원본 삭제와 독립적으로 보존';
 COMMENT ON COLUMN T_REVIEW_DOCUMENT.SOURCE_SNAPSHOT_JSON IS '요청 당시 선택한 실제 문서 내용과 메타데이터 보관본';
