@@ -1,4 +1,49 @@
 import { INTERVIEW_DIFFICULTIES } from '../../../constants/interviewDifficulty';
+import { Link } from 'react-router-dom';
+
+const DOCUMENT_FIELDS = [
+    { type: 'resume', label: '이력서', listKey: 'resumeList', settingKey: 'resumeNum', required: true },
+    { type: 'cover-letter', label: '자기소개서', listKey: 'coverLetterList', settingKey: 'letterNum', required: true },
+    { type: 'portfolio', label: '포트폴리오', listKey: 'portfolioList', settingKey: 'portfolioNum', required: false },
+];
+
+function InterviewDocumentField({ field, documents, settings, onSettingChange }) {
+    const list = documents?.[field.listKey] ?? [];
+    const isMissing = Boolean(documents) && list.length === 0;
+    const inputId = `interview-${field.type}`;
+
+    return (
+        <div className="interview-form-group">
+            <label htmlFor={isMissing ? undefined : inputId}>
+                {field.required && <b>*</b>} {field.label}
+            </label>
+            {isMissing ? (
+                <div className="interview-document-empty">
+                    <Link className="interview-document-create" to={`/documents/write?type=${field.type}`}>
+                        {field.label} {field.type === 'portfolio' ? '등록하기' : '작성하기'}
+                    </Link>
+                    <p style={{marginLeft:"auto"}}>저장된 {field.label}가 없습니다.</p>
+                    
+                </div>
+            ) : (
+                <select
+                    id={inputId}
+                    value={settings[field.settingKey]}
+                    onChange={(event) => onSettingChange(field.settingKey, event.target.value)}
+                    disabled={!documents}
+                    required={field.required}
+                >
+                    <option value="">({field.required ? '필수' : '선택'}) {field.label}를 선택해 주세요</option>
+                    {list.map((document) => (
+                        <option key={document.documentNum} value={document.documentNum}>
+                            {document.documentTitle || `${field.label} #${document.documentNum}`}
+                        </option>
+                    ))}
+                </select>
+            )}
+        </div>
+    );
+}
 
 function InterviewCustom({ settings, documents, isLoading, startDisabled = false, onSettingChange, onStart }) {
     const handleSubmit = (event) => {
@@ -15,60 +60,15 @@ function InterviewCustom({ settings, documents, isLoading, startDisabled = false
             </div>
 
             <form onSubmit={handleSubmit}>
-                <div className="interview-form-group">
-                    <label htmlFor="interview-resume"> <b>*</b> 이력서</label>
-                    <select
-                        id="interview-resume"
-                        value={settings.resumeNum}
-                        onChange={(event) => onSettingChange('resumeNum', event.target.value)}
-                        required
-                    >
-                        <option value="">(필수) 이력서를 선택해 주세요</option>
-                        {(documents?.resumeList ?? []).map((resume) => (
-                            <option key={resume.documentNum} value={resume.documentNum}>
-                                {resume.documentTitle || `이력서 #${resume.documentNum}`}
-                            </option>
-                        ))}
-                    </select>
-                    {documents && !documents.resumeList?.length && <p>저장된 이력서가 없습니다.</p>}
-                </div>
-
-                <div className="interview-form-group">
-                    <label htmlFor="interview-cover-letter"><b>*</b> 자기소개서 </label>
-                    <select
-                        id="interview-cover-letter"
-                        value={settings.letterNum}
-                        onChange={(event) => onSettingChange('letterNum', event.target.value)}
-                        disabled={!documents?.coverLetterList?.length}
-                        required
-                    >
-                        <option value="">(필수) 자기소개서를 선택해 주세요</option>
-                        {(documents?.coverLetterList ?? []).map((coverLetter) => (
-                            <option key={coverLetter.documentNum} value={coverLetter.documentNum}>
-                                {coverLetter.documentTitle || `자기소개서 #${coverLetter.documentNum}`}
-                            </option>
-                        ))}
-                    </select>
-                    {documents && !documents.coverLetterList?.length && <p>저장된 자기소개서가 없습니다.</p>}
-                </div>
-
-                <div className="interview-form-group">
-                    <label htmlFor="interview-portfolio">포트폴리오</label>
-                    <select
-                        id="interview-portfolio"
-                        value={settings.portfolioNum}
-                        onChange={(event) => onSettingChange('portfolioNum', event.target.value)}
-                        disabled={!documents?.portfolioList?.length}
-                    >
-                        <option value="">(선택) 포트폴리오를 선택해 주세요</option>
-                        {(documents?.portfolioList ?? []).map((portfolio) => (
-                            <option key={portfolio.documentNum} value={portfolio.documentNum}>
-                                {portfolio.documentTitle || `포트폴리오 #${portfolio.documentNum}`}
-                            </option>
-                        ))}
-                    </select>
-                    {documents && !documents.portfolioList?.length && <p>저장된 포트폴리오가 없습니다.</p>}
-                </div>
+                {DOCUMENT_FIELDS.map((field) => (
+                    <InterviewDocumentField
+                        key={field.type}
+                        field={field}
+                        documents={documents}
+                        settings={settings}
+                        onSettingChange={onSettingChange}
+                    />
+                ))}
 
                 <hr />
 

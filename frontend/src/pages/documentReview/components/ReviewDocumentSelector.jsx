@@ -10,7 +10,7 @@ function ReviewDocumentSelector({ config, selection, onChange, disabled }) {
     return (
         <section className="review-document-selector" aria-labelledby={`${inputId}-title`}>
             <div className="review-selector-heading">
-                <label id={`${inputId}-title`} htmlFor={inputId}>
+                <label id={`${inputId}-title`} htmlFor={documents.length > 0 ? inputId : undefined}>
                     {config.label}{' '}
                     <span className={`review-requirement ${config.required ? 'is-required' : ''}`}>
                         {config.required ? '필수' : '선택'}
@@ -22,21 +22,23 @@ function ReviewDocumentSelector({ config, selection, onChange, disabled }) {
                 </Link>
             </div>
             <p className="review-document-hint">{config.hint}</p>
-            <select
-                id={inputId}
-                value={selectedDocumentNum}
-                onChange={(event) => onChange(event.target.value)}
-                disabled={disabled || isLoading || Boolean(error) || documents.length === 0}
-                required={config.required}
-                aria-required={config.required}
-            >
-                <option value="">{config.required ? `${config.label}를 선택해 주세요.` : '첨부하지 않음'}</option>
-                {documents.map((document) => (
-                    <option key={document.documentNum} value={document.documentNum}>
-                        {document.documentTitle || '제목 없음'}
-                    </option>
-                ))}
-            </select>
+            {documents.length > 0 && (
+                <select
+                    id={inputId}
+                    value={selectedDocumentNum}
+                    onChange={(event) => onChange(event.target.value)}
+                    disabled={disabled || isLoading || Boolean(error)}
+                    required={config.required}
+                    aria-required={config.required}
+                >
+                    <option value="">{config.required ? `${config.label}를 선택해 주세요.` : '첨부하지 않음'}</option>
+                    {documents.map((document) => (
+                        <option key={document.documentNum} value={document.documentNum}>
+                            {document.documentTitle || '제목 없음'}
+                        </option>
+                    ))}
+                </select>
+            )}
             {isLoading ? (
                 <p className="review-status" role="status">
                     <LoaderCircle size={17} className="review-spinner" aria-hidden="true" /> 문서 목록을 불러오고
@@ -76,9 +78,13 @@ function ReviewDocumentSelector({ config, selection, onChange, disabled }) {
                     {ready && <CheckCircle2 size={14} aria-hidden="true" />}
                     {ready
                         ? '첨삭 자료에 포함됩니다.'
-                        : config.required
-                          ? '첨삭에 필요한 문서를 선택해 주세요.'
-                          : '포트폴리오 없이도 통합 첨삭할 수 있습니다.'}
+                        : !isLoading && !error && documents.length === 0
+                          ? config.required
+                              ? `${config.label}를 작성한 뒤 첨삭할 수 있습니다.`
+                              : '포트폴리오 없이도 통합 첨삭할 수 있습니다.'
+                          : config.required
+                            ? '첨삭에 필요한 문서를 선택해 주세요.'
+                            : '포트폴리오 없이도 통합 첨삭할 수 있습니다.'}
                 </span>
                 {!config.required && requestedDocumentNum && (
                     <button
