@@ -131,9 +131,11 @@ function StudyListSection({ createCounter, keyword }) {
                                 <div className="col-md-6 col-lg-4" key={study.studyNum}>
                                 <div 
                                     className="card h-100 shadow-sm border-1 border-light-subtle" 
-                                    style={{ borderRadius: '1rem', transition: 'transform 0.2s', cursor: 'pointer' }}
-                                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-3px)'}
-                                    onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                                    style={{ borderRadius: '1rem', transition: 'box-shadow 0.2s ease', cursor: 'pointer' }}
+                                    onMouseOver={(e) => e.currentTarget.classList.replace('shadow-sm', 'shadow')}
+                                    onMouseOut={(e) => {
+                                        e.currentTarget.classList.replace('shadow', 'shadow-sm');
+                                    }}
                                     onClick={() => setDetailModalData(study)}
                                 >
                                     <div className="card-body p-4 d-flex flex-column">

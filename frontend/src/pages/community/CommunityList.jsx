@@ -141,7 +141,7 @@ function CommunityList() {
                 </div>
 
                 {/* 2. 검색 영역 (우측/하단) */}
-                <div className="w-100" style={{ maxWidth: '350px', minHeight: '38px' }}>
+                <div className="w-100" style={{ maxWidth: '350px', minHeight: '32px' }}>
                     <form className="d-flex gap-2 w-100" onSubmit={handleSearch}>
                         <div className="position-relative flex-grow-1">
                             <input
@@ -150,10 +150,16 @@ function CommunityList() {
                                 placeholder={params.categoryNum === 'study' ? "스터디 이름을 검색하세요" : "제목, 내용, 작성자로 검색해보세요"}
                                 value={searchInput.keyword}
                                 onChange={(e) => setSearchInput({ ...searchInput, keyword: e.target.value })}
-                                style={{ borderRadius: '20px', fontSize: '0.85rem', color: 'darkgray' }}
+                                style={{ borderRadius: '20px', fontSize: '0.85rem', color: 'darkgray', height: '32px' }}
                             />
                         </div>
-                        <button className="btn btn-primary rounded-pill px-3 flex-shrink-0" type="submit">검색</button>
+                        <button 
+                            className="btn btn-primary rounded-pill flex-shrink-0 d-flex align-items-center justify-content-center" 
+                            type="submit"
+                            style={{ height: '32px', fontSize: '0.85rem', padding: '0 1rem' }}
+                        >
+                            검색
+                        </button>
                     </form>
                 </div>
             </div>
@@ -209,16 +215,16 @@ function CommunityList() {
                         {params.categoryNum !== 'study' ? (
                             <Link 
                                 to="/community/write" 
-                                className="btn w-100 rounded-pill fw-bold py-2 shadow-sm text-center d-block text-white" 
-                                style={{ backgroundColor: '#5c7c99', border: 'none' }}
+                                className="btn w-100 rounded-pill fw-bold py-1 shadow-sm text-center d-block text-white" 
+                                style={{ backgroundColor: '#5c7c99', border: 'none', fontSize: '0.9rem' }}
                                 onClick={handleWriteClick}
                             >
                                 📝 글쓰기
                             </Link>
                         ) : (
                             <button 
-                                className="btn w-100 rounded-pill fw-bold py-2 shadow-sm text-white"
-                                style={{ backgroundColor: '#677381', border: 'none' }}
+                                className="btn w-100 rounded-pill fw-bold py-1 shadow-sm text-white"
+                                style={{ backgroundColor: '#677381', border: 'none', fontSize: '0.9rem' }}
                                 onClick={() => {
                                     if (isLoggedIn) {
                                         setCreateStudyCounter(prev => prev + 1);
