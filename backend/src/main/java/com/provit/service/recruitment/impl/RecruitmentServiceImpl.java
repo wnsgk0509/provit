@@ -87,10 +87,19 @@ public class RecruitmentServiceImpl implements RecruitmentService {
     @Override
     @Transactional
     public int deactivateExpiredRecruitments() {
-        log.info(">> [Service] 마감일 경과 채용 공고 일괄 비활성화(IS_ACTIVE=0) 시작");
+        log.info(">> [Service] 마감일 경과 및 장기 미갱신 상시 공고 일괄 비활성화(IS_ACTIVE=0) 시작");
         int deactivatedCount = recruitmentDAO.deactivateExpiredRecruitments();
-        log.info(">> [Service] 마감일 경과 채용 공고 일괄 비활성화 완료: 총 {}건 비활성화 처리", deactivatedCount);
+        log.info(">> [Service] 마감 공고 비활성화 완료: 총 {}건 비활성화 처리", deactivatedCount);
         return deactivatedCount;
+    }
+
+    @Override
+    @Transactional
+    public int purgeOldUnscrappedRecruitments() {
+        log.info(">> [Service] 180일 이상 경과된 미스크랩 마감 공고 영구 삭제(Purge) 시작");
+        int purgedCount = recruitmentDAO.purgeOldUnscrappedRecruitments();
+        log.info(">> [Service] 미스크랩 마감 공고 영구 삭제 완료: 총 {}건 데이터 정리됨", purgedCount);
+        return purgedCount;
     }
 
     @Override

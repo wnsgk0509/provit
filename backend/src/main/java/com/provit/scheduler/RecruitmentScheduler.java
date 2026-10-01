@@ -47,6 +47,10 @@ public class RecruitmentScheduler {
 					try {
 						// 톰캣 서버 구동 및 커넥션 풀(HikariCP)이 완전히 안정화될 수 있도록 3초 대기
 						Thread.sleep(3000);
+						// [부팅 시 1회 실행] 마감 공고 및 장기 미갱신 상시 공고 비활성화
+						int deactivated = recruitmentService.deactivateExpiredRecruitments();
+						log.info(">> [Startup] 서버 부팅 시점 마감 공고 정리 완료: 총 {}건 비활성화", deactivated);
+
 						int syncCount = recruitmentService.syncSaraminRecruitments(1000);
 						log.info(">> [Startup] 서버 기동 초기 동기화 성공: 총 {}건 적재 완료", syncCount);
 					} catch (InterruptedException e) {
@@ -65,24 +69,28 @@ public class RecruitmentScheduler {
 	}
 
 	/**
-	 * [배치 1] 매일 자정 00:00:00 실행 (대한민국 표준시 KST 기준) 마감일(EXPIRATION_DATE)이 경과한 채용 공고를
-	 * 자동으로 비활성화(IS_ACTIVE = 0) 처리합니다.
+	 * [배치 1] 매일 자정 00:00:00 실행 (대한민국 표준시 KST 기준) 
+	 * 1. 마감일(EXPIRATION_DATE) 경과 공고 및 60일 이상 지난 상시채용 공고 비활성화 (IS_ACTIVE = 0)
+	 * 2. 아무도 스크랩하지 않은 180일 이상 경과된 만료 공고 영구 삭제 (Purge)
 	 */
 	@Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Seoul")
 	public void scheduleDailyExpiredRecruitmentDeactivation() {
 		log.info("===============================================================");
-		log.info(">> [Scheduler] 매일 자정 마감 공고 비활성화 배치 시작 (00:00:00 KST)");
+		log.info(">> [Scheduler] 매일 자정 마감 공고 비활성화 & 미스크랩 공고 정리 배치 시작 (00:00:00 KST)");
 		log.info("===============================================================");
 
 		try {
 			int count = recruitmentService.deactivateExpiredRecruitments();
 			log.info(">> [Scheduler] 마감 공고 정리 성공: 총 {}건 비활성화 완료", count);
+
+			int purgedCount = recruitmentService.purgeOldUnscrappedRecruitments();
+			log.info(">> [Scheduler] 180일 이상 미스크랩 마감 공고 영구 삭제 성공: 총 {}건 삭제 완료", purgedCount);
 		} catch (Exception e) {
 			log.error(">> [Scheduler] 마감 공고 정리 중 에러 발생: {}", e.getMessage(), e);
 		}
 
 		log.info("===============================================================");
-		log.info(">> [Scheduler] 매일 자정 마감 공고 비활성화 배치 종료");
+		log.info(">> [Scheduler] 매일 자정 마감 공고 비활성화 & 미스크랩 공고 정리 배치 종료");
 		log.info("===============================================================");
 	}
 

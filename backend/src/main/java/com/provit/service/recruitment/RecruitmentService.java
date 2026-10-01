@@ -21,6 +21,8 @@ public interface RecruitmentService {
 
 	public int deactivateExpiredRecruitments();
 
+	public int purgeOldUnscrappedRecruitments();
+
 	public com.provit.dto.recruitment.JobScrapResponseDTO toggleJobScrap(long recruitmentNum, long userNum);
 
 	public UserRecommendResponseDTO getUserJobRecommendations(Long userNum);
