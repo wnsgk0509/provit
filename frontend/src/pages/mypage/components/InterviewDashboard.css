@@ -77,10 +77,12 @@
 .mypage-interview-state p { margin: 0; font-size: 14px; line-height: 1.7; }
 .mypage-interview-state.is-error { color: #b54747; border-color: #e4b7b7; background: #fffafa; }
 .mypage-interview-state button { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border: 1px solid #d9dee7; border-radius: 8px; color: #526079; background: #fff; }
-.mypage-interview-dialog { width: min(760px, calc(100% - 32px)); max-height: calc(100dvh - 48px); padding: 28px; border: 0; border-radius: 18px; background: #fff; color: #273142; box-shadow: 0 20px 80px rgb(20 30 60 / 20%); overflow-y: auto; overscroll-behavior: contain; }
+.mypage-interview-dialog { width: min(760px, calc(100% - 32px)); max-height: calc(100dvh - 48px); padding: 0; border: 0; border-radius: 18px; background: #fff; color: #273142; box-shadow: 0 20px 80px rgb(20 30 60 / 20%); overflow: hidden; }
+.mypage-interview-dialog[open] { display: flex; flex-direction: column; }
 .mypage-interview-dialog::backdrop { background: rgb(20 30 50 / 48%); }
 body:has(.mypage-interview-dialog[open]) { overflow: hidden; }
-.mypage-interview-dialog-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.mypage-interview-dialog-heading { display: flex; flex-shrink: 0; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 28px 28px 0; }
+.mypage-interview-dialog-body { min-height: 0; padding: 0 28px 28px; overflow-y: auto; overscroll-behavior: contain; }
 .mypage-interview-dialog-heading span { color: #4263c7; font-size: 11px; font-weight: 800; letter-spacing: .1em; }
 .mypage-interview-dialog-heading h2 { margin: 5px 0 0; font-size: 24px; font-weight: 750; }
 .mypage-interview-record-summary { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin: 24px 0 16px; padding: 18px; border-radius: 12px; background: #f1f4ff; }
@@ -117,7 +119,8 @@ body:has(.mypage-interview-dialog[open]) { overflow: hidden; }
     .mypage-interview-heading h2 { font-size: 22px; }
     .mypage-interview-history-item { gap: 10px; padding: 14px 12px; }
     .mypage-interview-history-detail { font-size: 0; }
-    .mypage-interview-dialog { padding: 20px; }
+    .mypage-interview-dialog-heading { padding: 20px 20px 0; }
+    .mypage-interview-dialog-body { padding: 0 20px 20px; }
     .mypage-interview-record-scores { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .mypage-interview-feedback { grid-template-columns: 1fr; }
 }

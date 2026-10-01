@@ -65,7 +65,6 @@ public class ResumeJobCodesTest {
         ResumeDTO resume = new ResumeDTO();
         resume.setResumeTitle("지원 이력서");
         resume.setHighestLevel("대학교");
-        resume.setEducationCode(3);
         resume.setOccupationCode(occupation);
         resume.setJobCode(job);
         ResumeDetailDTO detail = new ResumeDetailDTO();
@@ -86,7 +85,6 @@ public class ResumeJobCodesTest {
                         }
                         yield validPair ? databaseResume : null;
                     }
-                    case "countEducationCode" -> 1;
                     case "selectResume" -> databaseResume;
                     case "insertResume", "updateResume" -> {
                         ResumeDTO resume = (ResumeDTO) args[0];

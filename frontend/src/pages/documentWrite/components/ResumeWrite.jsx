@@ -3,22 +3,10 @@ import { Award, BriefcaseBusiness, GraduationCap, Plus, Trash2 } from 'lucide-re
 import { useNavigate } from 'react-router-dom';
 import { createResume, updateResume } from '../../../api/documentApi';
 import { fetchOccupations, fetchJobsByOccupation } from '../../../api/recruitmentApi';
-
-const educationCodeOptions = [
-    { value: '0', label: '학력무관' },
-    { value: '1', label: '고등학교졸업' },
-    { value: '2', label: '대학졸업(2,3년)' },
-    { value: '3', label: '대학교졸업(4년)' },
-    { value: '4', label: '석사졸업' },
-    { value: '5', label: '박사졸업' },
-    { value: '6', label: '고등학교졸업이상' },
-    { value: '7', label: '대학졸업(2년,3년 이상)' },
-    { value: '8', label: '대학교졸업(4년)이상' },
-    { value: '9', label: '석사졸업이상' },
-];
+import { getResumeDateError, getTodayInSeoul } from '../resumeDateValidation';
 
 const emptyResume = {
-    resumeTitle: '', highestLevel: '', educationCode: '', motivation: '',
+    resumeTitle: '', highestLevel: '', motivation: '',
     desiredLocation: '', desiredWorkType: '',
     occupationCode: '', jobCode: '',
 };
@@ -53,6 +41,7 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
     const jobsReady = Boolean(resume.occupationCode)
         && jobOptions.occupationCode === resume.occupationCode;
     const selectedJobValid = jobsReady && jobOptions.items.some((job) => job.jobCode === resume.jobCode);
+    const today = getTodayInSeoul();
 
     useEffect(() => {
         let active = true;
@@ -93,6 +82,11 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
     };
 
     const changeListItem = (setter, index, name, value) => {
+        const dateError = getResumeDateError(name, value);
+        if (dateError) {
+            setSaveMessage({ type: 'error', text: dateError });
+            return;
+        }
         setter((items) => items.map((item, itemIndex) => (
             itemIndex === index ? { ...item, [name]: value } : item
         )));
@@ -112,6 +106,15 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+        const submissionDate = getTodayInSeoul();
+        const dateError = [...educations, ...careers, ...certifications]
+            .flatMap((item) => Object.entries(item)
+                .map(([field, value]) => getResumeDateError(field, value, submissionDate)))
+            .find(Boolean);
+        if (dateError) {
+            setSaveMessage({ type: 'error', text: dateError });
+            return;
+        }
         if (!selectedJobValid || occupationError || jobError) {
             setSaveMessage({ type: 'error', text: '직군과 해당 직군에 속한 직무를 선택해 주세요.' });
             return;
@@ -120,10 +123,7 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
         setSaveMessage({ type: '', text: '' });
 
         const payload = {
-            resume: {
-                ...resume,
-                educationCode: Number(resume.educationCode),
-            },
+            resume: { ...resume },
             educationList: educations.map((education) => (
                 emptyDateToNull(education, ['admissionDate', 'graduationDate'])
             )),
@@ -214,17 +214,6 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
                         </select>
                     </div>
                     <div className="document-field">
-                        <label htmlFor="educationCode">학력 구분 <b>*</b></label>
-                        <select id="educationCode" name="educationCode" value={resume.educationCode} onChange={handleResumeChange} required>
-                            <option value="">선택해 주세요</option>
-                            {educationCodeOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="document-field">
                         <label htmlFor="desiredLocation">희망 근무 지역</label>
                         <input id="desiredLocation" name="desiredLocation" value={resume.desiredLocation} onChange={handleResumeChange} maxLength="200" placeholder="예: 서울특별시" />
                     </div>
@@ -262,7 +251,7 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
                         </div>
                         <div className="document-field">
                             <label htmlFor={`admissionDate-${index}`}>입학일</label>
-                            <input id={`admissionDate-${index}`} type="date" value={education.admissionDate} onChange={(event) => changeListItem(setEducations, index, 'admissionDate', event.target.value)} />
+                            <input id={`admissionDate-${index}`} type="date" max={today} value={education.admissionDate} onChange={(event) => changeListItem(setEducations, index, 'admissionDate', event.target.value)} />
                         </div>
                         <div className="document-field">
                             <label htmlFor={`graduationDate-${index}`}>졸업(예정)일</label>
@@ -304,10 +293,10 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
                         </div>
                         <div className="document-field">
                             <label htmlFor={`joinDate-${index}`}>입사일</label>
-                            <input id={`joinDate-${index}`} type="date" value={career.joinDate} onChange={(event) => changeListItem(setCareers, index, 'joinDate', event.target.value)} />
+                            <input id={`joinDate-${index}`} type="date" max={today} value={career.joinDate} onChange={(event) => changeListItem(setCareers, index, 'joinDate', event.target.value)} />
                         </div>
                         <div className="document-field">
-                            <label htmlFor={`resignDate-${index}`}>퇴사일</label>
+                            <label htmlFor={`resignDate-${index}`}>퇴사(예정)일</label>
                             <input id={`resignDate-${index}`} type="date" value={career.resignDate} onChange={(event) => changeListItem(setCareers, index, 'resignDate', event.target.value)} />
                         </div>
                         <div className="document-field document-field-wide">
@@ -339,7 +328,7 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
                         </div>
                         <div className="document-field">
                             <label htmlFor={`issueDate-${index}`}>취득일</label>
-                            <input id={`issueDate-${index}`} type="date" value={certification.issueDate} onChange={(event) => changeListItem(setCertifications, index, 'issueDate', event.target.value)} />
+                            <input id={`issueDate-${index}`} type="date" max={today} value={certification.issueDate} onChange={(event) => changeListItem(setCertifications, index, 'issueDate', event.target.value)} />
                         </div>
                     </div>
                 )}

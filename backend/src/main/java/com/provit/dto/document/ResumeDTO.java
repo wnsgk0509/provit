@@ -17,8 +17,6 @@ public class ResumeDTO {
     private String jobCode;
     private String jobName;
     private String highestLevel;
-    private int educationCode;
-    private String educationName;
     private String motivation;
     private String desiredLocation;
     private String desiredWorkType;

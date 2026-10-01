@@ -12,8 +12,6 @@ import com.provit.dto.document.ResumeDTO;
 
 public interface DocumentDAO {
 
-    int countEducationCode(int educationCode);
-
     ResumeDTO selectResumeJob(String occupationCode, String jobCode);
 
     int insertResume(ResumeDTO resume);
