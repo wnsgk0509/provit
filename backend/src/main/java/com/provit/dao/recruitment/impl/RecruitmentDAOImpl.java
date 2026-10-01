@@ -57,6 +57,11 @@ public class RecruitmentDAOImpl implements RecruitmentDAO {
 	}
 
 	@Override
+	public int purgeOldUnscrappedRecruitments() {
+		return sqlSessionTemplate.delete("recruitment_mapper.purgeOldUnscrappedRecruitments");
+	}
+
+	@Override
 	public int insertJobScrap(long recruitmentNum, long userNum) {
 		java.util.Map<String, Object> params = new java.util.HashMap<>();
 		params.put("recruitmentNum", recruitmentNum);

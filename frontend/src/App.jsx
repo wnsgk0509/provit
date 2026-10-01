@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, useNavigate, Navigate } from 'react-route
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import './App.css';
 import Home from './pages/home/Home';
 import JobList from './pages/jobs/JobList';
 import Fortune from './pages/fortune/Fortune';
@@ -18,8 +20,11 @@ import MyPage from './pages/mypage/MyPage';
 import DocumentWrite from './pages/documentWrite/DocumentWrite';
 import DocumentRead from './pages/documentRead/DocumentRead';
 import DocumentEdit from './pages/documentEdit/DocumentEdit';
+import DocumentReview from './pages/documentReview/DocumentReview';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
+import PasswordReset from './pages/auth/PasswordReset';
+import PolicyPage from './pages/policy/PolicyPage';
 import BootstrapTemplate from './pages/bootstrap';
 import AdminReportList from './pages/admin/AdminReportList';
 import AdminUserList from './pages/admin/AdminUserList';
@@ -75,7 +80,8 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
-        <main className="container my-4">
+        <div className="app-layout">
+        <main className="container my-4 app-content">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/home" element={<Home />} />
@@ -99,11 +105,16 @@ function App() {
             <Route path="/community/edit/:postNum" element={<CommunityEdit />} />
             <Route path="/study" element={<Navigate to="/community?tab=study" replace />} />
             <Route path="/mypage" element={<RequireAuth><MyPage /></RequireAuth>} />
+            <Route path="/document-review" element={<RequireAuth alertMessage="로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다."><DocumentReview /></RequireAuth>} />
             <Route path="/documents/write" element={<RequireAuth><DocumentWrite /></RequireAuth>} />
             <Route path="/documents/:documentType/:documentId/edit" element={<RequireAuth><DocumentEdit /></RequireAuth>} />
             <Route path="/documents/:documentType/:documentId" element={<RequireAuth><DocumentRead /></RequireAuth>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/password-reset" element={<PasswordReset />} />
+            <Route path="/privacy-policy" element={<PolicyPage type="privacy" />} />
+            <Route path="/terms-of-service" element={<PolicyPage type="terms" />} />
+            <Route path="/cookie-policy" element={<PolicyPage type="cookies" />} />
             {/* 관리자 라우트 */}
             <Route path="/admin/reports" element={<RequireAdmin alertMessage="관리자만 접근 가능합니다."><AdminReportList /></RequireAdmin>} />
             <Route path="/admin/users" element={<RequireAdmin alertMessage="관리자만 접근 가능합니다."><AdminUserList /></RequireAdmin>} />
@@ -111,6 +122,8 @@ function App() {
             <Route path="/bootstrap" element={<BootstrapTemplate />} />
           </Routes>
         </main>
+        <Footer />
+        </div>
       </BrowserRouter>
     </AuthProvider>
   );

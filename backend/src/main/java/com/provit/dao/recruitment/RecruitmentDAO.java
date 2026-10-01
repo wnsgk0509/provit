@@ -22,6 +22,8 @@ public interface RecruitmentDAO {
 
     public int deactivateExpiredRecruitments();
 
+    public int purgeOldUnscrappedRecruitments();
+
     public int insertJobScrap(long recruitmentNum, long userNum);
 
     public int deleteJobScrap(long recruitmentNum, long userNum);

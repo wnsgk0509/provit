@@ -114,8 +114,37 @@
 
 .mypage-document-write-action {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
+    gap: 8px;
     margin-top: 16px;
+}
+
+.mypage-document-review-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 40px;
+    border: 1px solid #d5ddf5;
+    border-radius: 10px;
+    padding: 0 14px;
+    color: #4059b5;
+    background: #f3f5ff;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.mypage-document-review-link:hover {
+    color: #344ba0;
+    border-color: #aebde8;
+    background: #eaf0ff;
+}
+
+.mypage-document-review-link:focus-visible {
+    outline: 3px solid #b0bff0;
+    outline-offset: 3px;
 }
 
 .mypage-document-write-link:hover {
@@ -587,6 +616,24 @@
 }
 
 @media (max-width: 600px) {
+
+    .mypage-page {
+        padding: 12px 8px 32px;
+    }
+
+    .mypage-intro {
+        margin: 0 4px 24px;
+    }
+
+    .mypage-intro h1 {
+        font-size: clamp(26px, 8vw, 30px);
+    }
+
+    .mypage-intro p {
+        font-size: 14px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+    }
 
     .mypage-documents,
     .mypage-edit-form {

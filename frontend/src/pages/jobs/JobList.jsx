@@ -9,18 +9,29 @@ import {
     fetchUserJobRecommendations,
 } from "../../api/recruitmentApi";
 import { useAuth } from "../../context/AuthContext";
+import { Bookmark, RotateCcw, X } from "lucide-react";
 import "./JobList.css";
 
-// 주요 지역 필터 옵션
+// 주요 지역 필터 옵션 (대한민국 17개 표준 시·도 정규화)
 const LOCATIONS = [
     { value: "", label: "지역 전체" },
     { value: "서울", label: "서울" },
     { value: "경기", label: "경기" },
     { value: "인천", label: "인천" },
-    { value: "판교", label: "판교·분당" },
-    { value: "대전", label: "대전·충청" },
-    { value: "대구", label: "대구·경북" },
-    { value: "부산", label: "부산·경남" },
+    { value: "대전", label: "대전" },
+    { value: "세종", label: "세종" },
+    { value: "충북", label: "충북 (청주·충주 등)" },
+    { value: "충남", label: "충남 (천안·아산 등)" },
+    { value: "광주", label: "광주" },
+    { value: "전북", label: "전북 (전주·익산 등)" },
+    { value: "전남", label: "전남 (여수·순천 등)" },
+    { value: "대구", label: "대구" },
+    { value: "경북", label: "경북 (포항·구미 등)" },
+    { value: "부산", label: "부산" },
+    { value: "울산", label: "울산" },
+    { value: "경남", label: "경남 (창원·김해 등)" },
+    { value: "강원", label: "강원" },
+    { value: "제주", label: "제주" },
 ];
 
 // 경력 조건 필터 옵션
@@ -88,6 +99,7 @@ function JobList() {
         location: "",
         experienceLevel: "",
         scrapOnly: false,
+        sortBy: "LATEST",
     });
 
     // 4. 검색창 입력 버퍼
@@ -276,8 +288,86 @@ function JobList() {
             location: "",
             experienceLevel: "",
             scrapOnly: false,
+            sortBy: "LATEST",
         });
     };
+
+    // 정렬 기준 변경 핸들러 (최신순, 마감임박순, 인기/스크랩순)
+    const handleSortChange = (newSort) => {
+        if (params.sortBy === newSort) return;
+        setParams((prev) => ({
+            ...prev,
+            page: 1,
+            sortBy: newSort,
+        }));
+    };
+
+    // 개별 필터 칩 제거 핸들러들
+    const handleRemoveOccupation = () => {
+        setSelectedOccupation("");
+        setSelectedJob("");
+        setJobs([]);
+        setKeywordInput("");
+        setParams((prev) => ({
+            ...prev,
+            page: 1,
+            occupationCode: "",
+            keyword: "",
+        }));
+    };
+
+    const handleRemoveJob = () => {
+        setSelectedJob("");
+        setKeywordInput("");
+        setParams((prev) => ({
+            ...prev,
+            page: 1,
+            keyword: "",
+        }));
+    };
+
+    const handleRemoveLocation = () => {
+        setParams((prev) => ({
+            ...prev,
+            page: 1,
+            location: "",
+        }));
+    };
+
+    const handleRemoveExperience = () => {
+        setParams((prev) => ({
+            ...prev,
+            page: 1,
+            experienceLevel: "",
+        }));
+    };
+
+    const handleRemoveKeyword = () => {
+        setKeywordInput("");
+        setParams((prev) => ({
+            ...prev,
+            page: 1,
+            keyword: "",
+        }));
+    };
+
+    const handleRemoveScrapOnly = () => {
+        setParams((prev) => ({
+            ...prev,
+            page: 1,
+            scrapOnly: false,
+        }));
+    };
+
+    // 적용된 필터가 1개 이상 존재하는지 확인
+    const hasActiveFilters = Boolean(
+        selectedOccupation ||
+        selectedJob ||
+        params.location ||
+        params.experienceLevel ||
+        (params.keyword && params.keyword !== selectedJob) ||
+        params.scrapOnly
+    );
 
     // 일반 공고 목록과 맞춤 추천 공고의 스크랩 상태를 일괄 동기화하는 헬퍼 함수
     const updateScrapStatus = useCallback((targetId, forcedStatus = null) => {
@@ -437,6 +527,17 @@ function JobList() {
         return <span className="badge badge-dday-normal">D-{diffDays}</span>;
     };
 
+    // 마감 임박 공고 (D-Day 1~3일, 오늘마감) 여부 판별 헬퍼
+    const isUrgentJob = (expirationDate) => {
+        if (!expirationDate) return false;
+        const expDate = new Date(expirationDate);
+        const today = new Date();
+        expDate.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+        return diffDays >= 0 && diffDays <= 3;
+    };
+
     // ==========================================
     // 📄 페이징 블록 계산 (5페이지 단위)
     // ==========================================
@@ -592,13 +693,16 @@ function JobList() {
                             {recommendation.recruitments.map((job) => (
                                 <div key={`rec-${job.recruitmentNum}`} className="col">
                                     <div className="card recommend-card p-3 d-flex flex-column h-100">
-                                        <div className="d-flex justify-content-between align-items-start mb-2">
-                                            <span
-                                                className="small fw-bold text-truncate text-secondary"
-                                                style={{ maxWidth: "70%" }}
-                                            >
-                                                🏢 {job.companyName}
-                                            </span>
+                                        <div className="d-flex justify-content-between align-items-center mb-2">
+                                            <div className="d-flex align-items-center gap-1 overflow-hidden" style={{ maxWidth: "70%" }}>
+                                                <span className="recommend-pick-tag">✨ Pick</span>
+                                                <span
+                                                    className="small fw-bold text-truncate text-secondary"
+                                                    title={job.companyName}
+                                                >
+                                                    {job.companyName}
+                                                </span>
+                                            </div>
                                             <div className="d-flex align-items-center gap-1">
                                                 {renderDDayBadge(job.expirationDate, job.closeType)}
                                                 <button
@@ -613,7 +717,11 @@ function JobList() {
                                                     }
                                                     aria-label="관심 공고 스크랩"
                                                 >
-                                                    {job.isScrapped ? "★" : "☆"}
+                                                    <Bookmark
+                                                        size={17}
+                                                        fill={job.isScrapped ? "currentColor" : "none"}
+                                                        strokeWidth={job.isScrapped ? 2.5 : 2}
+                                                    />
                                                 </button>
                                             </div>
                                         </div>
@@ -628,18 +736,12 @@ function JobList() {
 
                                         <div className="d-flex flex-wrap gap-1 mb-2">
                                             {job.locationName && (
-                                                <span
-                                                    className="badge bg-light text-secondary border small"
-                                                    style={{ fontSize: "0.7rem" }}
-                                                >
+                                                <span className="job-meta-pill" style={{ fontSize: "0.72rem", padding: "0.15rem 0.45rem" }}>
                                                     📍 {job.locationName}
                                                 </span>
                                             )}
                                             {job.experienceLevel && (
-                                                <span
-                                                    className="badge bg-light text-secondary border small"
-                                                    style={{ fontSize: "0.7rem" }}
-                                                >
+                                                <span className="job-meta-pill" style={{ fontSize: "0.72rem", padding: "0.15rem 0.45rem" }}>
                                                     💼 {job.experienceLevel}
                                                 </span>
                                             )}
@@ -657,9 +759,10 @@ function JobList() {
                                             </a>
                                             <button
                                                 type="button"
-                                                className="btn btn-primary btn-sm flex-fill text-nowrap fw-bold"
+                                                className="btn btn-interview-cta btn-sm flex-fill text-nowrap fw-bold"
                                                 style={{ fontSize: "0.75rem" }}
                                                 onClick={() => handleStartInterview(job)}
+                                                title="선택한 공고의 요구 역량(JD)으로 1:1 맞춤 AI 모의면접을 시작합니다"
                                             >
                                                 🎙️ 모의면접
                                             </button>
@@ -781,30 +884,134 @@ function JobList() {
                 </form>
             </div>
 
-            {/* 3. 검색 결과 요약 */}
-            <div className="d-flex justify-content-between align-items-center mb-3 px-1">
-                <div className="d-flex align-items-center flex-wrap gap-2">
-                    <span className="small text-muted">
-                        총 <strong className="text-primary">{pageInfo.totalElements.toLocaleString()}</strong>건의 채용
-                        공고
+            {/* 2-1. 활성화된 필터 태그 칩 바 */}
+            {hasActiveFilters && (
+                <div className="active-filter-chips d-flex align-items-center flex-wrap gap-2 mb-3">
+                    <span className="small text-muted fw-bold d-flex align-items-center me-1">
+                        적용된 필터:
                     </span>
-                    {params.scrapOnly && (
-                        <span className="badge bg-warning text-dark border">⭐ 내 관심 공고만 필터링됨</span>
-                    )}
                     {selectedOccupation && (
-                        <span className="badge bg-primary text-white border">
-                            📂 {occupations.find((o) => String(o.occupationCode) === String(selectedOccupation))?.occupationName || "직군"}
+                        <span className="filter-chip">
+                            <span>
+                                📂{" "}
+                                {occupations.find((o) => String(o.occupationCode) === String(selectedOccupation))
+                                    ?.occupationName || "직군"}
+                            </span>
+                            <button type="button" onClick={handleRemoveOccupation} title="직군 필터 해제">
+                                <X size={13} />
+                            </button>
                         </span>
                     )}
-                    {params.keyword && <span className="badge bg-light text-dark border">검색어: "{params.keyword}"</span>}
+                    {selectedJob && (
+                        <span className="filter-chip">
+                            <span>💼 {selectedJob}</span>
+                            <button type="button" onClick={handleRemoveJob} title="직무 필터 해제">
+                                <X size={13} />
+                            </button>
+                        </span>
+                    )}
+                    {params.location && (
+                        <span className="filter-chip">
+                            <span>📍 {LOCATIONS.find((l) => l.value === params.location)?.label || params.location}</span>
+                            <button type="button" onClick={handleRemoveLocation} title="지역 필터 해제">
+                                <X size={13} />
+                            </button>
+                        </span>
+                    )}
+                    {params.experienceLevel && (
+                        <span className="filter-chip">
+                            <span>
+                                🎯{" "}
+                                {EXPERIENCES.find((e) => e.value === params.experienceLevel)?.label ||
+                                    params.experienceLevel}
+                            </span>
+                            <button type="button" onClick={handleRemoveExperience} title="경력 필터 해제">
+                                <X size={13} />
+                            </button>
+                        </span>
+                    )}
+                    {params.keyword && params.keyword !== selectedJob && (
+                        <span className="filter-chip">
+                            <span>🔍 "{params.keyword}"</span>
+                            <button type="button" onClick={handleRemoveKeyword} title="검색어 제거">
+                                <X size={13} />
+                            </button>
+                        </span>
+                    )}
+                    {params.scrapOnly && (
+                        <span className="filter-chip filter-chip-scrap">
+                            <span>⭐ 관심 공고만 보기</span>
+                            <button type="button" onClick={handleRemoveScrapOnly} title="스크랩 모아보기 해제">
+                                <X size={13} />
+                            </button>
+                        </span>
+                    )}
+                    <button
+                        type="button"
+                        className="btn btn-link btn-sm text-decoration-none p-0 ms-auto d-flex align-items-center gap-1 filter-reset-link"
+                        onClick={handleResetFilters}
+                    >
+                        <RotateCcw size={12} />
+                        <span className="small">전체 초기화</span>
+                    </button>
+                </div>
+            )}
+
+            {/* 3. 검색 결과 건수 요약 및 정렬 탭 */}
+            <div className="d-flex justify-content-between align-items-center mb-3 px-1 flex-wrap gap-2">
+                <span className="small text-muted">
+                    총 <strong className="text-primary">{pageInfo.totalElements.toLocaleString()}</strong>건의 채용 공고
+                </span>
+                <div className="btn-group btn-group-sm job-sort-group shadow-sm" role="group" aria-label="정렬 기준">
+                    <button
+                        type="button"
+                        className={`btn ${params.sortBy === "LATEST" ? "btn-primary active" : "btn-outline-secondary"}`}
+                        onClick={() => handleSortChange("LATEST")}
+                        title="채용공고 등록일자 최신순으로 정렬합니다"
+                    >
+                        최신순
+                    </button>
+                    <button
+                        type="button"
+                        className={`btn ${params.sortBy === "CLOSING_SOON" ? "btn-primary active" : "btn-outline-secondary"}`}
+                        onClick={() => handleSortChange("CLOSING_SOON")}
+                        title="마감기한이 가까운 공고부터 정렬합니다 (채용시마감·상시채용·종료공고 후순위)"
+                    >
+                        ⏰ 마감 임박순
+                    </button>
                 </div>
             </div>
 
-            {/* 4. 공고 카드 그리드 */}
+            {/* 4. 공고 카드 그리드 & 스켈레톤 로딩 */}
             {loading ? (
-                <div className="text-center py-5">
-                    <div className="spinner-border text-primary mb-3" role="status"></div>
-                    <p className="text-muted">실시간 채용 정보를 불러오는 중입니다...</p>
+                <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                    {Array.from({ length: params.size || 9 }).map((_, idx) => (
+                        <div key={`skeleton-${idx}`} className="col">
+                            <div className="card job-card job-skeleton-card h-100">
+                                <div className="card-body p-4 d-flex flex-column">
+                                    <div className="d-flex justify-content-between align-items-center mb-3">
+                                        <div className="skeleton-shimmer skeleton-company"></div>
+                                        <div className="skeleton-shimmer skeleton-badge"></div>
+                                    </div>
+                                    <div className="skeleton-shimmer skeleton-title mb-2"></div>
+                                    <div className="skeleton-shimmer skeleton-title-sub mb-3"></div>
+                                    <div className="d-flex gap-2 mb-4">
+                                        <div className="skeleton-shimmer skeleton-pill"></div>
+                                        <div className="skeleton-shimmer skeleton-pill"></div>
+                                    </div>
+                                    <div className="mt-auto pt-2 d-flex gap-2">
+                                        <div className="skeleton-shimmer skeleton-tag"></div>
+                                        <div className="skeleton-shimmer skeleton-tag"></div>
+                                        <div className="skeleton-shimmer skeleton-tag"></div>
+                                    </div>
+                                </div>
+                                <div className="job-card-footer d-flex gap-2">
+                                    <div className="skeleton-shimmer skeleton-btn"></div>
+                                    <div className="skeleton-shimmer skeleton-btn"></div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             ) : recruitments.length === 0 ? (
                 <div className="card shadow-sm border-0 text-center py-5">
@@ -821,7 +1028,7 @@ function JobList() {
                 <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                     {recruitments.map((job) => (
                         <div key={job.recruitmentNum} className="col">
-                            <div className="card job-card h-100">
+                            <div className={`card job-card h-100 ${isUrgentJob(job.expirationDate) ? "urgent-deadline" : ""}`}>
                                 <div className="card-body d-flex flex-column p-4">
                                     {/* 상단: 회사명 + D-Day 뱃지 & 관심 공고 스크랩 버튼 */}
                                     <div className="d-flex justify-content-between align-items-start mb-2">
@@ -840,7 +1047,11 @@ function JobList() {
                                                 }
                                                 aria-label="관심 공고 스크랩"
                                             >
-                                                {job.isScrapped ? "★" : "☆"}
+                                                <Bookmark
+                                                    size={18}
+                                                    fill={job.isScrapped ? "currentColor" : "none"}
+                                                    strokeWidth={job.isScrapped ? 2.5 : 2}
+                                                />
                                             </button>
                                         </div>
                                     </div>
@@ -853,12 +1064,12 @@ function JobList() {
                                     {/* 근무지 & 경력 메타 태그 */}
                                     <div className="d-flex flex-wrap gap-1 mb-3">
                                         {job.locationName && (
-                                            <span className="badge bg-light text-secondary border">
+                                            <span className="job-meta-pill">
                                                 📍 {job.locationName}
                                             </span>
                                         )}
                                         {job.experienceLevel && (
-                                            <span className="badge bg-light text-secondary border">
+                                            <span className="job-meta-pill">
                                                 💼 {job.experienceLevel}
                                             </span>
                                         )}
@@ -893,8 +1104,9 @@ function JobList() {
                                     </a>
                                     <button
                                         type="button"
-                                        className="btn btn-primary btn-sm flex-fill text-nowrap fw-bold"
+                                        className="btn btn-interview-cta btn-sm flex-fill text-nowrap fw-bold"
                                         onClick={() => handleStartInterview(job)}
+                                        title="선택한 공고의 요구 역량(JD)으로 1:1 맞춤 AI 모의면접을 시작합니다"
                                     >
                                         🎙️ 모의면접 보기
                                     </button>

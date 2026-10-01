@@ -116,7 +116,17 @@
             </choose>
         FROM T_RECRUITMENT R
         <where>
-            R.IS_ACTIVE = 1
+            <choose>
+                <when test="scrapOnly == true and userNum != null">
+                    EXISTS (
+                        SELECT 1 FROM T_JOB_SCRAP S2
+                        WHERE S2.RECRUITMENT_NUM = R.RECRUITMENT_NUM AND S2.USER_NUM = #{userNum}
+                    )
+                </when>
+                <otherwise>
+                    R.IS_ACTIVE = 1
+                </otherwise>
+            </choose>
             <if test="occupationCode != null and occupationCode != ''">
                 AND EXISTS (
                     SELECT 1 FROM T_JOB J
@@ -140,14 +150,33 @@
             <if test="experienceLevel != null and experienceLevel != ''">
                 AND R.EXPERIENCE_LEVEL LIKE '%' || #{experienceLevel} || '%'
             </if>
-            <if test="scrapOnly == true and userNum != null">
-                AND EXISTS (
-                    SELECT 1 FROM T_JOB_SCRAP S2
-                    WHERE S2.RECRUITMENT_NUM = R.RECRUITMENT_NUM AND S2.USER_NUM = #{userNum}
-                )
-            </if>
         </where>
-        ORDER BY R.RECRUITMENT_NUM DESC
+        <choose>
+            <when test='sortBy != null and "CLOSING_SOON".equals(sortBy)'>
+                ORDER BY 
+                    CASE 
+                        -- 1순위: 마감 기한이 남아있는 공고 (유효한 날짜가 오늘 이후인 공고)
+                        WHEN R.EXPIRATION_DATE IS NOT NULL AND R.EXPIRATION_DATE &gt;= TRUNC(SYSDATE) THEN 1
+                        -- 2순위: 채용시 마감
+                        WHEN R.CLOSE_TYPE LIKE '%채용시%' THEN 2
+                        -- 3순위: 상시채용 (또는 마감일이 없고 종료되지 않은 일반 공고)
+                        WHEN R.CLOSE_TYPE LIKE '%상시%' OR (R.EXPIRATION_DATE IS NULL AND (R.CLOSE_TYPE IS NULL OR R.CLOSE_TYPE NOT LIKE '%마감%')) THEN 3
+                        -- 4순위: 종료된 공고 (마감일이 지났거나 종료/마감 표기된 공고)
+                        ELSE 4
+                    END ASC,
+                    -- 1순위 그룹 내에서는 마감일이 빠른 순(오름차순: 오늘마감 -> 내일 -> ...)
+                    CASE 
+                        WHEN R.EXPIRATION_DATE IS NOT NULL AND R.EXPIRATION_DATE &gt;= TRUNC(SYSDATE) THEN R.EXPIRATION_DATE 
+                        ELSE NULL 
+                    END ASC NULLS LAST,
+                    -- 같은 순위 내에서는 채용공고 올린 날짜 최신순
+                    R.CREATED_AT DESC,
+                    R.RECRUITMENT_NUM DESC
+            </when>
+            <otherwise>
+                ORDER BY R.CREATED_AT DESC, R.RECRUITMENT_NUM DESC
+            </otherwise>
+        </choose>
         OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
     </select>
 
@@ -156,7 +185,17 @@
         SELECT COUNT(*)
         FROM T_RECRUITMENT R
         <where>
-            R.IS_ACTIVE = 1
+            <choose>
+                <when test="scrapOnly == true and userNum != null">
+                    EXISTS (
+                        SELECT 1 FROM T_JOB_SCRAP S2
+                        WHERE S2.RECRUITMENT_NUM = R.RECRUITMENT_NUM AND S2.USER_NUM = #{userNum}
+                    )
+                </when>
+                <otherwise>
+                    R.IS_ACTIVE = 1
+                </otherwise>
+            </choose>
             <if test="occupationCode != null and occupationCode != ''">
                 AND EXISTS (
                     SELECT 1 FROM T_JOB J
@@ -180,23 +219,35 @@
             <if test="experienceLevel != null and experienceLevel != ''">
                 AND R.EXPERIENCE_LEVEL LIKE '%' || #{experienceLevel} || '%'
             </if>
-            <if test="scrapOnly == true and userNum != null">
-                AND EXISTS (
-                    SELECT 1 FROM T_JOB_SCRAP S2
-                    WHERE S2.RECRUITMENT_NUM = R.RECRUITMENT_NUM AND S2.USER_NUM = #{userNum}
-                )
-            </if>
         </where>
     </select>
 
-    <!-- 4. 마감일이 지난 공고 노출 비활성화 처리 (배치용) -->
+    <!-- 4. 마감일 경과 공고 및 60일 이상 지난 상시채용 공고 비활성화 처리 (배치용) -->
     <update id="deactivateExpiredRecruitments">
         UPDATE T_RECRUITMENT
         SET IS_ACTIVE = 0
         WHERE IS_ACTIVE = 1
-          AND EXPIRATION_DATE IS NOT NULL
-          AND EXPIRATION_DATE &lt; SYSDATE
+          AND (
+              (EXPIRATION_DATE IS NOT NULL AND EXPIRATION_DATE &lt; SYSDATE)
+              OR
+              (EXPIRATION_DATE IS NULL AND CREATED_AT &lt; SYSDATE - 60)
+          )
     </update>
+
+    <!-- 4-1. 아무도 스크랩하지 않은 180일 이상 경과된 마감 공고 영구 삭제 (용량 최적화 배치) -->
+    <delete id="purgeOldUnscrappedRecruitments">
+        DELETE FROM T_RECRUITMENT R
+        WHERE R.IS_ACTIVE = 0
+          AND (
+              (R.EXPIRATION_DATE IS NOT NULL AND R.EXPIRATION_DATE &lt; SYSDATE - 180)
+              OR
+              (R.EXPIRATION_DATE IS NULL AND R.CREATED_AT &lt; SYSDATE - 180)
+          )
+          AND NOT EXISTS (
+              SELECT 1 FROM T_JOB_SCRAP S 
+              WHERE S.RECRUITMENT_NUM = R.RECRUITMENT_NUM
+          )
+    </delete>
 
     <!-- ============================================================== -->
     <!-- 관심 채용 공고 스크랩 (T_JOB_SCRAP) 쿼리 영역                 -->

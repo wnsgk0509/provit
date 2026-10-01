@@ -152,7 +152,7 @@ public class OpenAiInterviewIntegrationTest {
         int[] limits = {900, 600, 600, 1400};
         for (int index = 0; index < 4; index++) {
             JsonNode request = requests.get(index);
-            assertEquals("gpt-6-sol", request.path("model").asText());
+            assertEquals("gpt-6.1-sol", request.path("model").asText());
             assertEquals("medium", request.path("reasoning").path("effort").asText());
             assertFalse(request.has("temperature"));
             assertFalse(request.path("store").asBoolean());
@@ -290,7 +290,7 @@ public class OpenAiInterviewIntegrationTest {
         assertTrue(first.path("instructions").asText().contains("포트폴리오 질문은 반드시 2번 하나만"));
         assertTrue(first.path("instructions").asText().contains("첨부 PDF의 텍스트·이미지"));
         for (int index = 0; index < requests.size(); index++) {
-            assertEquals("gpt-6-sol", requests.get(index).path("model").asText());
+            assertEquals("gpt-6.1-sol", requests.get(index).path("model").asText());
             assertEquals("medium", requests.get(index).path("reasoning").path("effort").asText());
             assertFalse(requests.get(index).path("store").asBoolean());
             if (index == 1 || index == 2) {
