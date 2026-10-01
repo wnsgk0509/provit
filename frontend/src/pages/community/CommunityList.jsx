@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchPostList } from '../../api/communityApi';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import StudyListSection from '../../components/study/StudyListSection';
 import PopularPostsWidget from '../../components/community/PopularPostsWidget';
 import PolicyWidget from '../../components/community/PolicyWidget';
@@ -16,6 +16,7 @@ const CATEGORIES = [
 
 function CommunityList() {
     const { isLoggedIn } = useAuth();
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const initialCategory = searchParams.get('tab') === 'study' || searchParams.get('category') === 'study' ? 'study' : '';
 
@@ -64,6 +65,14 @@ function CommunityList() {
             alert('서버와의 통신 오류가 발생했습니다.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleWriteClick = (e) => {
+        if (!isLoggedIn) {
+            e.preventDefault();
+            alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.');
+            navigate('/login');
         }
     };
 
@@ -168,7 +177,12 @@ function CommunityList() {
                         {/* 데스크톱 전용 글쓰기 버튼 (모바일에서는 숨김 처리) */}
                         <li className="nav-item ms-auto mb-1 d-none d-md-block flex-shrink-0">
                             {params.categoryNum !== 'study' ? (
-                                <Link to="/community/write" className="btn btn-sm px-4 rounded-pill text-white" style={{ backgroundColor: '#5c7c99', border: 'none' }}>
+                                <Link 
+                                    to="/community/write" 
+                                    className="btn btn-sm px-4 rounded-pill text-white" 
+                                    style={{ backgroundColor: '#5c7c99', border: 'none' }}
+                                    onClick={handleWriteClick}
+                                >
                                     글쓰기
                                 </Link>
                             ) : (
@@ -179,7 +193,8 @@ function CommunityList() {
                                         if (isLoggedIn) {
                                             setCreateStudyCounter(prev => prev + 1);
                                         } else {
-                                            alert('로그인 후 스터디를 개설할 수 있습니다.');
+                                            alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.');
+                                            navigate('/login');
                                         }
                                     }}
                                 >
@@ -192,7 +207,12 @@ function CommunityList() {
                     {/* 모바일 전용 글쓰기 버튼 (데스크톱에서는 숨김 처리) */}
                     <div className="d-block d-md-none mb-4">
                         {params.categoryNum !== 'study' ? (
-                            <Link to="/community/write" className="btn w-100 rounded-pill fw-bold py-2 shadow-sm text-center d-block text-white" style={{ backgroundColor: '#5c7c99', border: 'none' }}>
+                            <Link 
+                                to="/community/write" 
+                                className="btn w-100 rounded-pill fw-bold py-2 shadow-sm text-center d-block text-white" 
+                                style={{ backgroundColor: '#5c7c99', border: 'none' }}
+                                onClick={handleWriteClick}
+                            >
                                 📝 글쓰기
                             </Link>
                         ) : (
@@ -203,7 +223,8 @@ function CommunityList() {
                                     if (isLoggedIn) {
                                         setCreateStudyCounter(prev => prev + 1);
                                     } else {
-                                        alert('로그인 후 스터디를 개설할 수 있습니다.');
+                                        alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.');
+                                        navigate('/login');
                                     }
                                 }}
                             >
