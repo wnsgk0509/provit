@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import StudyListSection from '../../components/study/StudyListSection';
 import PopularPostsWidget from '../../components/community/PopularPostsWidget';
 import PolicyWidget from '../../components/community/PolicyWidget';
+import { useAuth } from '../../context/AuthContext';
 
 const CATEGORIES = [
     { id: '', name: '전체' },
@@ -14,8 +15,11 @@ const CATEGORIES = [
 ];
 
 function CommunityList() {
+    const { isLoggedIn } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     const initialCategory = searchParams.get('tab') === 'study' || searchParams.get('category') === 'study' ? 'study' : '';
+
+    const [createStudyCounter, setCreateStudyCounter] = useState(0);
 
     // 상태 관리
     const [posts, setPosts] = useState([]);
@@ -73,8 +77,16 @@ function CommunityList() {
         setParams({
             ...params,
             categoryNum: categoryId,
+            keyword: '', // 탭 전환 시 검색어 초기화
             page: 1 // 카테고리 변경 시 1페이지로 리셋
         });
+        
+        // 검색창 입력 폼도 초기화
+        setSearchInput({
+            ...searchInput,
+            keyword: ''
+        });
+
         if (categoryId === 'study') {
             setSearchParams({ tab: 'study' });
         } else {
@@ -110,53 +122,99 @@ function CommunityList() {
     };
 
     return (
-        <div className="container py-4">
-            <h2 className="mb-4 fw-bold">취업 커뮤니티</h2>
+        <div className="container pt-4 pb-4">
+            {/* 상단 타이틀 및 검색 영역 (모바일: 세로 2줄, 데스크톱: 가로 1줄) */}
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-end gap-4 gap-md-0 mb-2">
+                {/* 1. 페이지 타이틀 영역 (좌측/상단) */}
+                <div>
+                    <div className="text-primary fw-bold" style={{ fontSize: '0.8rem', letterSpacing: '1px' }}>PROVIT COMMUNITY</div>
+                    <h3 className="fw-bold mt-1 text-dark mb-0" style={{ fontSize: '1.75rem' }}>취업 커뮤니티</h3>
+                </div>
 
-            {/* 검색 및 글쓰기 버튼 영역 (스터디 모집 탭이 아닐 때만 노출) */}
-            {params.categoryNum !== 'study' && (
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                    <form className="d-flex gap-2" onSubmit={handleSearch}>
-                        <div className="position-relative">
+                {/* 2. 검색 영역 (우측/하단) */}
+                <div className="w-100" style={{ maxWidth: '350px', minHeight: '38px' }}>
+                    <form className="d-flex gap-2 w-100" onSubmit={handleSearch}>
+                        <div className="position-relative flex-grow-1">
                             <input
                                 type="text"
-                                className="form-control px-4"
-                                placeholder="게시글, 기업, 직무를 검색하세요"
+                                className="form-control px-4 w-100"
+                                placeholder={params.categoryNum === 'study' ? "스터디 이름을 검색하세요" : "제목, 내용, 작성자로 검색해보세요"}
                                 value={searchInput.keyword}
                                 onChange={(e) => setSearchInput({ ...searchInput, keyword: e.target.value })}
-                                style={{ width: '270px', borderRadius: '20px' }}
+                                style={{ borderRadius: '20px', fontSize: '0.85rem', color: 'darkgray' }}
                             />
                         </div>
-                        <button className="btn btn-primary rounded-pill px-3" type="submit">검색</button>
+                        <button className="btn btn-primary rounded-pill px-3 flex-shrink-0" type="submit">검색</button>
                     </form>
-
-                    {/* 글쓰기 버튼 */}
-                    <Link to="/community/write" className="btn btn-primary px-4">
-                        글쓰기
-                    </Link>
                 </div>
-            )}
+            </div>
 
             <div className="row">
                 <div className="col-lg-8">
-                    {/* 카테고리 탭 */}
-                    <ul className="nav nav-tabs mb-4">
-                        {CATEGORIES.map((cat) => (
+                    {/* 카테고리 탭 (스크롤 바 제거, 반응형 패딩으로 한 줄에 맞춤) */}
+                    <ul className="nav nav-tabs mb-4 border-bottom mt-3 align-items-end">
+                        {CATEGORIES.map((cat, index) => (
                             <li className="nav-item" key={cat.id === '' ? 'all' : cat.id}>
                                 <button
-                                    className={`nav-link ${params.categoryNum === cat.id ? 'active fw-bold' : 'text-secondary'}`}
+                                    className={`nav-link px-2 px-md-3 py-2 ${index === 0 ? 'ms-1' : ''} ${params.categoryNum === cat.id ? 'active fw-bold border-bottom-0' : 'text-secondary border-0'}`}
                                     onClick={() => handleCategoryClick(cat.id)}
                                     type="button"
+                                    style={{ backgroundColor: 'transparent', whiteSpace: 'nowrap' }}
                                 >
                                     {cat.name}
                                 </button>
                             </li>
                         ))}
+                        {/* 데스크톱 전용 글쓰기 버튼 (모바일에서는 숨김 처리) */}
+                        <li className="nav-item ms-auto mb-1 d-none d-md-block flex-shrink-0">
+                            {params.categoryNum !== 'study' ? (
+                                <Link to="/community/write" className="btn btn-sm px-4 rounded-pill text-white" style={{ backgroundColor: '#5c7c99', border: 'none' }}>
+                                    글쓰기
+                                </Link>
+                            ) : (
+                                <button 
+                                    className="btn btn-sm px-4 rounded-pill text-white"
+                                    style={{ backgroundColor: '#677381', border: 'none' }}
+                                    onClick={() => {
+                                        if (isLoggedIn) {
+                                            setCreateStudyCounter(prev => prev + 1);
+                                        } else {
+                                            alert('로그인 후 스터디를 개설할 수 있습니다.');
+                                        }
+                                    }}
+                                >
+                                    스터디 만들기
+                                </button>
+                            )}
+                        </li>
                     </ul>
+
+                    {/* 모바일 전용 글쓰기 버튼 (데스크톱에서는 숨김 처리) */}
+                    <div className="d-block d-md-none mb-4">
+                        {params.categoryNum !== 'study' ? (
+                            <Link to="/community/write" className="btn w-100 rounded-pill fw-bold py-2 shadow-sm text-center d-block text-white" style={{ backgroundColor: '#5c7c99', border: 'none' }}>
+                                📝 글쓰기
+                            </Link>
+                        ) : (
+                            <button 
+                                className="btn w-100 rounded-pill fw-bold py-2 shadow-sm text-white"
+                                style={{ backgroundColor: '#677381', border: 'none' }}
+                                onClick={() => {
+                                    if (isLoggedIn) {
+                                        setCreateStudyCounter(prev => prev + 1);
+                                    } else {
+                                        alert('로그인 후 스터디를 개설할 수 있습니다.');
+                                    }
+                                }}
+                            >
+                                스터디 만들기
+                            </button>
+                        )}
+                    </div>
 
                     {/* 카테고리가 '스터디 모집'인 경우: 스터디 카드 목록 및 개설 영역 렌더링 */}
                     {params.categoryNum === 'study' ? (
-                        <StudyListSection />
+                        <StudyListSection createCounter={createStudyCounter} keyword={params.keyword} />
                     ) : (
                         /* 일반 게시판 영역 */
                         <>
