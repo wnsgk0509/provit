@@ -588,6 +588,24 @@
 
 @media (max-width: 600px) {
 
+    .mypage-page {
+        padding: 12px 8px 32px;
+    }
+
+    .mypage-intro {
+        margin: 0 4px 24px;
+    }
+
+    .mypage-intro h1 {
+        font-size: clamp(26px, 8vw, 30px);
+    }
+
+    .mypage-intro p {
+        font-size: 14px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+    }
+
     .mypage-documents,
     .mypage-edit-form {
         padding: 22px;
