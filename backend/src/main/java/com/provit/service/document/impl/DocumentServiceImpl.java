@@ -59,15 +59,11 @@ public class DocumentServiceImpl implements DocumentService {
         ResumeDTO resume = resumeDetail.getResume();
         resume.setResumeNum(0);
         resume.setUserNum(userNum);
-        resume.setEducationName(null);
         resume.setCreatedAt(null);
         resume.setUpdatedAt(null);
         trimResume(resume);
         resolveResumeJob(resume);
 
-        if (documentDAO.countEducationCode(resume.getEducationCode()) != 1) {
-            throw new IllegalArgumentException("유효하지 않은 학력 구분입니다.");
-        }
         requireSingleInsert(documentDAO.insertResume(resume), "이력서");
 
         List<EducationDTO> educationList = safeList(resumeDetail.getEducationList());
@@ -153,15 +149,11 @@ public class DocumentServiceImpl implements DocumentService {
         ResumeDTO resume = resumeDetail.getResume();
         resume.setResumeNum(resumeNum);
         resume.setUserNum(userNum);
-        resume.setEducationName(null);
         resume.setCreatedAt(null);
         resume.setUpdatedAt(null);
         trimResume(resume);
         resolveResumeJob(resume);
 
-        if (documentDAO.countEducationCode(resume.getEducationCode()) != 1) {
-            throw new IllegalArgumentException("유효하지 않은 학력 구분입니다.");
-        }
         requireSingleUpdate(documentDAO.updateResume(resume), "이력서");
 
         documentDAO.deleteEducationList(resumeNum);

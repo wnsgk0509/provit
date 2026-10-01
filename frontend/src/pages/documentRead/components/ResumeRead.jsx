@@ -49,7 +49,6 @@ function ResumeRead({ document }) {
                     <ReadValue label="지원 직군" value={resume.occupationName} />
                     <ReadValue label="지원 직무" value={resume.jobName} />
                     <ReadValue label="최종 학력" value={resume.highestLevel} />
-                    <ReadValue label="학력 구분" value={resume.educationName} />
                     <ReadValue label="희망 근무 지역" value={resume.desiredLocation} />
                     <ReadValue label="희망 근무 형태" value={resume.desiredWorkType} />
                     <ReadValue label="지원 동기" value={resume.motivation} wide multiline />

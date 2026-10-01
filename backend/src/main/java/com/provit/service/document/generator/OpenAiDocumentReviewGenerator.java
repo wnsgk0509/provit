@@ -130,7 +130,7 @@ public class OpenAiDocumentReviewGenerator implements DocumentReviewGenerator {
             var snapshot = mapper.readTree(document.getSourceSnapshotJson());
             if ("resume".equals(document.getDocumentType())) {
                 var resume = fields(snapshot.path("resume"), "occupationCode", "occupationName", "jobCode", "jobName",
-                        "highestLevel", "educationName", "desiredLocation", "desiredWorkType", "motivation");
+                        "highestLevel", "desiredLocation", "desiredWorkType", "motivation");
                 resume.put("title", document.getDocumentTitle());
                 list(resume, snapshot, "educationList", "schoolName", "admissionDate", "graduationDate", "major", "educationStatus");
                 list(resume, snapshot, "careerList", "companyName", "joinDate", "resignDate", "mainDuty");

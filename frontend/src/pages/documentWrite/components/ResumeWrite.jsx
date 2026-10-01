@@ -5,21 +5,8 @@ import { createResume, updateResume } from '../../../api/documentApi';
 import { fetchOccupations, fetchJobsByOccupation } from '../../../api/recruitmentApi';
 import { getResumeDateError, getTodayInSeoul } from '../resumeDateValidation';
 
-const educationCodeOptions = [
-    { value: '0', label: '학력무관' },
-    { value: '1', label: '고등학교졸업' },
-    { value: '2', label: '대학졸업(2,3년)' },
-    { value: '3', label: '대학교졸업(4년)' },
-    { value: '4', label: '석사졸업' },
-    { value: '5', label: '박사졸업' },
-    { value: '6', label: '고등학교졸업이상' },
-    { value: '7', label: '대학졸업(2년,3년 이상)' },
-    { value: '8', label: '대학교졸업(4년)이상' },
-    { value: '9', label: '석사졸업이상' },
-];
-
 const emptyResume = {
-    resumeTitle: '', highestLevel: '', educationCode: '', motivation: '',
+    resumeTitle: '', highestLevel: '', motivation: '',
     desiredLocation: '', desiredWorkType: '',
     occupationCode: '', jobCode: '',
 };
@@ -136,10 +123,7 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
         setSaveMessage({ type: '', text: '' });
 
         const payload = {
-            resume: {
-                ...resume,
-                educationCode: Number(resume.educationCode),
-            },
+            resume: { ...resume },
             educationList: educations.map((education) => (
                 emptyDateToNull(education, ['admissionDate', 'graduationDate'])
             )),
@@ -227,17 +211,6 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
                             <option value="전문대학">전문대학</option>
                             <option value="대학교">대학교</option>
                             <option value="대학원">대학원</option>
-                        </select>
-                    </div>
-                    <div className="document-field">
-                        <label htmlFor="educationCode">학력 구분 <b>*</b></label>
-                        <select id="educationCode" name="educationCode" value={resume.educationCode} onChange={handleResumeChange} required>
-                            <option value="">선택해 주세요</option>
-                            {educationCodeOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
                         </select>
                     </div>
                     <div className="document-field">

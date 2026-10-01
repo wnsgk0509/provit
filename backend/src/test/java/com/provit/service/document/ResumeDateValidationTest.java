@@ -11,12 +11,17 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.servlet.http.Cookie;
+
 import org.junit.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provit.common.GlobalExceptionHandler;
+import com.provit.common.auth.AuthCookieService;
 import com.provit.controller.document.DocumentController;
 import com.provit.dao.document.DocumentDAO;
 import com.provit.dto.document.CareerDTO;
@@ -87,19 +92,14 @@ public class ResumeDateValidationTest {
     public void apiReturnsBadRequestForEachFutureDateOnCreateAndUpdate() throws Exception {
         var request = request();
         var writes = new AtomicInteger();
-        JwtProvider jwt = new JwtProvider(null) {
-            @Override public boolean validateToken(String token) { return "owner".equals(token); }
-            @Override public Long getUserNum(String token) { return 7L; }
-        };
-        var mvc = MockMvcBuilders.standaloneSetup(new DocumentController(service(request, writes), jwt))
-                .setControllerAdvice(new GlobalExceptionHandler()).build();
+        var mvc = mvc(request, writes);
         var mapper = new ObjectMapper();
         for (String field : List.of("admissionDate", "joinDate", "issueDate")) {
             var invalid = request();
             setDate(invalid, field, date(LocalDate.now(SEOUL).plusDays(1)));
             String body = mapper.writeValueAsString(invalid);
             for (var call : List.of(post("/api/documents/resumes"), put("/api/documents/resumes/1"))) {
-                var response = mvc.perform(call.header("Authorization", "Bearer owner")
+                var response = mvc.perform(call.cookie(new Cookie("provit_access", "owner"))
                         .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse();
                 assertEquals(400, response.getStatus());
                 assertEquals(label(field) + "은 오늘 이후 날짜를 선택할 수 없습니다.",
@@ -109,11 +109,41 @@ public class ResumeDateValidationTest {
         assertEquals(0, writes.get());
     }
 
+    @Test
+    public void apiCreatesAndUpdatesResumeWithHighestLevelAndSchoolHistory() throws Exception {
+        var request = request();
+        var writes = new AtomicInteger();
+        var mvc = mvc(request, writes);
+        var mapper = new ObjectMapper();
+        String body = mapper.writeValueAsString(request);
+        var calls = List.of(post("/api/documents/resumes"), put("/api/documents/resumes/1"));
+        for (int index = 0; index < calls.size(); index++) {
+            var response = mvc.perform(calls.get(index).cookie(new Cookie("provit_access", "owner"))
+                    .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse();
+            assertEquals(index == 0 ? 201 : 200, response.getStatus());
+            var detail = mapper.readTree(response.getContentAsByteArray()).path("data");
+            assertEquals("대학교", detail.path("resume").path("highestLevel").asText());
+            assertEquals("대학교", detail.path("educationList").get(0).path("schoolName").asText());
+            assertEquals("재학", detail.path("educationList").get(0).path("educationStatus").asText());
+        }
+        assertEquals(11, writes.get());
+    }
+
+    private MockMvc mvc(ResumeDetailDTO request, AtomicInteger writes) {
+        JwtProvider jwt = new JwtProvider(null) {
+            @Override public boolean validateToken(String token) { return "owner".equals(token); }
+            @Override public Long getUserNum(String token) { return 7L; }
+        };
+        var cookies = new AuthCookieService();
+        ReflectionTestUtils.setField(cookies, "cookieName", "provit_access");
+        return MockMvcBuilders.standaloneSetup(new DocumentController(service(request, writes), jwt, cookies))
+                .setControllerAdvice(new GlobalExceptionHandler()).build();
+    }
+
     private ResumeDetailDTO request() {
         var resume = new ResumeDTO();
         resume.setResumeTitle("지원 이력서");
         resume.setHighestLevel("대학교");
-        resume.setEducationCode(3);
         resume.setOccupationCode("2");
         resume.setJobCode("84");
         var education = new EducationDTO();
@@ -135,7 +165,6 @@ public class ResumeDateValidationTest {
         DocumentDAO dao = (DocumentDAO) Proxy.newProxyInstance(DocumentDAO.class.getClassLoader(),
                 new Class<?>[] { DocumentDAO.class }, (proxy, method, args) -> switch (method.getName()) {
                     case "selectResumeJob", "selectResume" -> request.getResume();
-                    case "countEducationCode" -> 1;
                     case "selectEducationList" -> request.getEducationList();
                     case "selectCareerList" -> request.getCareerList();
                     case "selectCertificationList" -> request.getCertificationList();

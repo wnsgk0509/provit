@@ -31,12 +31,6 @@ public class DocumentDAOImpl implements DocumentDAO {
     }
 
     @Override
-    public int countEducationCode(int educationCode) {
-        Integer count = sqlSession.selectOne(RESUME_NAMESPACE + ".countEducationCode", educationCode);
-        return count == null ? 0 : count;
-    }
-
-    @Override
     public int insertResume(ResumeDTO resume) {
         return sqlSession.insert(RESUME_NAMESPACE + ".insertResume", resume);
     }
