@@ -116,7 +116,17 @@
             </choose>
         FROM T_RECRUITMENT R
         <where>
-            R.IS_ACTIVE = 1
+            <choose>
+                <when test="scrapOnly == true and userNum != null">
+                    EXISTS (
+                        SELECT 1 FROM T_JOB_SCRAP S2
+                        WHERE S2.RECRUITMENT_NUM = R.RECRUITMENT_NUM AND S2.USER_NUM = #{userNum}
+                    )
+                </when>
+                <otherwise>
+                    R.IS_ACTIVE = 1
+                </otherwise>
+            </choose>
             <if test="occupationCode != null and occupationCode != ''">
                 AND EXISTS (
                     SELECT 1 FROM T_JOB J
@@ -139,12 +149,6 @@
             </if>
             <if test="experienceLevel != null and experienceLevel != ''">
                 AND R.EXPERIENCE_LEVEL LIKE '%' || #{experienceLevel} || '%'
-            </if>
-            <if test="scrapOnly == true and userNum != null">
-                AND EXISTS (
-                    SELECT 1 FROM T_JOB_SCRAP S2
-                    WHERE S2.RECRUITMENT_NUM = R.RECRUITMENT_NUM AND S2.USER_NUM = #{userNum}
-                )
             </if>
         </where>
         <choose>
@@ -181,7 +185,17 @@
         SELECT COUNT(*)
         FROM T_RECRUITMENT R
         <where>
-            R.IS_ACTIVE = 1
+            <choose>
+                <when test="scrapOnly == true and userNum != null">
+                    EXISTS (
+                        SELECT 1 FROM T_JOB_SCRAP S2
+                        WHERE S2.RECRUITMENT_NUM = R.RECRUITMENT_NUM AND S2.USER_NUM = #{userNum}
+                    )
+                </when>
+                <otherwise>
+                    R.IS_ACTIVE = 1
+                </otherwise>
+            </choose>
             <if test="occupationCode != null and occupationCode != ''">
                 AND EXISTS (
                     SELECT 1 FROM T_JOB J
@@ -205,23 +219,35 @@
             <if test="experienceLevel != null and experienceLevel != ''">
                 AND R.EXPERIENCE_LEVEL LIKE '%' || #{experienceLevel} || '%'
             </if>
-            <if test="scrapOnly == true and userNum != null">
-                AND EXISTS (
-                    SELECT 1 FROM T_JOB_SCRAP S2
-                    WHERE S2.RECRUITMENT_NUM = R.RECRUITMENT_NUM AND S2.USER_NUM = #{userNum}
-                )
-            </if>
         </where>
     </select>
 
-    <!-- 4. 마감일이 지난 공고 노출 비활성화 처리 (배치용) -->
+    <!-- 4. 마감일 경과 공고 및 60일 이상 지난 상시채용 공고 비활성화 처리 (배치용) -->
     <update id="deactivateExpiredRecruitments">
         UPDATE T_RECRUITMENT
         SET IS_ACTIVE = 0
         WHERE IS_ACTIVE = 1
-          AND EXPIRATION_DATE IS NOT NULL
-          AND EXPIRATION_DATE &lt; SYSDATE
+          AND (
+              (EXPIRATION_DATE IS NOT NULL AND EXPIRATION_DATE &lt; SYSDATE)
+              OR
+              (EXPIRATION_DATE IS NULL AND CREATED_AT &lt; SYSDATE - 60)
+          )
     </update>
+
+    <!-- 4-1. 아무도 스크랩하지 않은 180일 이상 경과된 마감 공고 영구 삭제 (용량 최적화 배치) -->
+    <delete id="purgeOldUnscrappedRecruitments">
+        DELETE FROM T_RECRUITMENT R
+        WHERE R.IS_ACTIVE = 0
+          AND (
+              (R.EXPIRATION_DATE IS NOT NULL AND R.EXPIRATION_DATE &lt; SYSDATE - 180)
+              OR
+              (R.EXPIRATION_DATE IS NULL AND R.CREATED_AT &lt; SYSDATE - 180)
+          )
+          AND NOT EXISTS (
+              SELECT 1 FROM T_JOB_SCRAP S 
+              WHERE S.RECRUITMENT_NUM = R.RECRUITMENT_NUM
+          )
+    </delete>
 
     <!-- ============================================================== -->
     <!-- 관심 채용 공고 스크랩 (T_JOB_SCRAP) 쿼리 영역                 -->
