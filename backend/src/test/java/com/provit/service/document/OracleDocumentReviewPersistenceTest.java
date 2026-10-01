@@ -36,7 +36,10 @@ import org.springframework.transaction.annotation.AnnotationTransactionAttribute
 import org.springframework.transaction.interceptor.TransactionInterceptor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.http.MediaType;
+import javax.servlet.http.Cookie;
+import org.springframework.test.util.ReflectionTestUtils;
 import com.provit.common.GlobalExceptionHandler;
+import com.provit.common.auth.AuthCookieService;
 import com.provit.common.resolver.LoginUserArgumentResolver;
 import com.provit.controller.document.DocumentReviewController;
 import com.provit.util.jwt.JwtProvider;
@@ -255,12 +258,14 @@ public class OracleDocumentReviewPersistenceTest {
             @Override public boolean validateToken(String token) { return "owner".equals(token); }
             @Override public Long getUserNum(String token) { return 7L; }
         };
+        var cookies = new AuthCookieService();
+        ReflectionTestUtils.setField(cookies, "cookieName", "provit_access");
         var mvc = MockMvcBuilders.standaloneSetup(new DocumentReviewController(service))
-                .setCustomArgumentResolvers(new LoginUserArgumentResolver(jwt))
+                .setCustomArgumentResolvers(new LoginUserArgumentResolver(jwt, cookies))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
         var mapper = new ObjectMapper();
         var response = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/document-reviews")
-                .header("Authorization", "Bearer owner").contentType(MediaType.APPLICATION_JSON)
+                .cookie(new Cookie("provit_access", "owner")).contentType(MediaType.APPLICATION_JSON)
                 .content(mapper.writeValueAsString(request(false)))).andReturn().getResponse();
         assertEquals(response.getContentAsString(), 201, response.getStatus());
         assertEquals("no-store", response.getHeader("Cache-Control"));
@@ -269,7 +274,7 @@ public class OracleDocumentReviewPersistenceTest {
         String url = "/api/document-reviews/" + data.path("reviewNum").asLong();
         assertEquals(url, response.getHeader("Location"));
         var reread = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(url)
-                .header("Authorization", "Bearer owner")).andReturn().getResponse();
+                .cookie(new Cookie("provit_access", "owner"))).andReturn().getResponse();
         assertEquals(200, reread.getStatus());
         assertEquals(data, mapper.readTree(reread.getContentAsByteArray()).path("data"));
         assertCounts(1, 2, 0, 3, 1, 3);
@@ -336,11 +341,13 @@ public class OracleDocumentReviewPersistenceTest {
             @Override public boolean validateToken(String token) { return "owner".equals(token); }
             @Override public Long getUserNum(String token) { return 7L; }
         };
+        var cookies = new AuthCookieService();
+        ReflectionTestUtils.setField(cookies, "cookieName", "provit_access");
         var mvc = MockMvcBuilders.standaloneSetup(new DocumentReviewController(failing))
-                .setCustomArgumentResolvers(new LoginUserArgumentResolver(jwt))
+                .setCustomArgumentResolvers(new LoginUserArgumentResolver(jwt, cookies))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
         var response = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/document-reviews")
-                .header("Authorization", "Bearer owner").contentType(MediaType.APPLICATION_JSON)
+                .cookie(new Cookie("provit_access", "owner")).contentType(MediaType.APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(request(false)))).andReturn().getResponse();
         assertEquals(1, calls.get()); assertEquals(503, response.getStatus());
         assertEquals("no-store", response.getHeader("Cache-Control"));
