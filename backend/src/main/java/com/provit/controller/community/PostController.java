@@ -22,11 +22,22 @@ import com.provit.common.ResponseCode;
 public class PostController {
 
     private final PostService postService;
+    // 조회수 어뷰징 방지를 위한 인메모리 저장소 (IP_게시글번호 -> 만료시간)
+    private final java.util.concurrent.ConcurrentHashMap<String, Long> viewCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     // Service(주방장)를 주입받습니다.
     @Autowired
     public PostController(PostService postService) {
         this.postService = postService;
+    }
+
+    // 클라이언트의 실제 IP를 가져오는 유틸 메서드
+    private String getClientIp(javax.servlet.http.HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        return ip;
     }
 
     /**
@@ -63,14 +74,27 @@ public class PostController {
             javax.servlet.http.HttpServletRequest request,
             javax.servlet.http.HttpServletResponse response) {
         
-        // 쿠키를 확인하여 이미 조회한 게시글인지 확인합니다.
+        // 1. IP 기반 1차 검증 (시크릿 모드 대응)
+        String clientIp = getClientIp(request);
+        String cacheKey = clientIp + "_" + postNum;
+        long currentTime = System.currentTimeMillis();
+        
         boolean hasViewed = false;
-        javax.servlet.http.Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (javax.servlet.http.Cookie cookie : cookies) {
-                if (cookie.getName().equals("viewed_post_" + postNum)) {
-                    hasViewed = true;
-                    break;
+        
+        // 메모리에 기록이 남아있고, 아직 만료(1시간)되지 않았다면 이미 조회한 것으로 간주
+        if (viewCache.containsKey(cacheKey) && viewCache.get(cacheKey) > currentTime) {
+            hasViewed = true;
+        }
+
+        // 2. 쿠키 기반 2차 검증 (기존 로직 유지)
+        if (!hasViewed) {
+            javax.servlet.http.Cookie[] cookies = request.getCookies();
+            if (cookies != null) {
+                for (javax.servlet.http.Cookie cookie : cookies) {
+                    if (cookie.getName().equals("viewed_post_" + postNum)) {
+                        hasViewed = true;
+                        break;
+                    }
                 }
             }
         }
@@ -78,8 +102,14 @@ public class PostController {
         // 조회하지 않은 경우에만 조회수를 증가시킵니다.
         PostDTO postDetail = postService.getPostDetail(postNum, userNum, !hasViewed);
 
-        // 첫 조회라면 쿠키를 생성하여 응답에 추가합니다. (1시간 동안 유지)
+        // 첫 조회라면 쿠키를 생성하고 IP 캐시에 기록합니다.
         if (!hasViewed) {
+            // 메모리 누수 방지 (캐시가 너무 커지면 초기화)
+            if (viewCache.size() > 50000) {
+                viewCache.clear();
+            }
+            viewCache.put(cacheKey, currentTime + (60 * 60 * 1000L)); // 1시간 (밀리초)
+
             javax.servlet.http.Cookie cookie = new javax.servlet.http.Cookie("viewed_post_" + postNum, "true");
             cookie.setMaxAge(60 * 60); // 1시간 (3600초)
             cookie.setPath("/");
