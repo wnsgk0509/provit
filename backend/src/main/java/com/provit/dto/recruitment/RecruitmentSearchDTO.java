@@ -27,6 +27,10 @@ public class RecruitmentSearchDTO {
     @Builder.Default
     private Boolean scrapOnly = false;
 
+    // 정렬 기준 (LATEST: 채용공고 올린날짜 최신순, CLOSING_SOON: 마감기한 임박순)
+    @Builder.Default
+    private String sortBy = "LATEST";
+
     @Builder.Default
     private int page = 1;
 
