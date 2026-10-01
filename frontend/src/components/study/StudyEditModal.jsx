@@ -82,7 +82,7 @@ function StudyEditModal({ show, onClose, onSuccess, initialData }) {
                                         type="number" 
                                         className="form-control" 
                                         min="2"
-                                        max="100"
+                                        max="10"
                                         value={maxMembers}
                                         onChange={(e) => setMaxMembers(parseInt(e.target.value) || 2)}
                                     />
