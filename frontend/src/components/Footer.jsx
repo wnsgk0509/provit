@@ -11,6 +11,7 @@ function Footer() {
         </div>
 
         <address className="provit-footer-contact">
+          <h2 className="provit-footer-heading">연락처</h2>
           <span>충청남도 천안시 동남구 대흥동 134</span>
           <a
             href="https://www.google.com/search?q=%ED%9C%B4%EB%A8%BC%EA%B5%90%EC%9C%A1%EC%84%BC%ED%84%B0"
@@ -23,6 +24,7 @@ function Footer() {
         </address>
 
         <nav className="provit-footer-policy" aria-label="정책 메뉴">
+          <h2 className="provit-footer-heading">정책</h2>
           <Link to="/privacy-policy">개인정보 처리 방침</Link>
           <Link to="/terms-of-service">사이트 이용 약관</Link>
           <Link to="/cookie-policy">쿠키 정책</Link>

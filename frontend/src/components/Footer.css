@@ -41,8 +41,17 @@
   flex-direction: column;
   gap: 0.35rem;
   margin: 0;
+  padding-left: 2rem;
   font-size: 0.82rem;
   font-style: normal;
+  border-left: 1px solid #dee2e6;
+}
+
+.provit-footer-heading {
+  margin: 0 0 0.1rem;
+  color: #495057;
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .provit-footer-contact a,
@@ -65,19 +74,28 @@
 }
 
 @media (max-width: 767.98px) {
+  .provit-footer {
+    padding: 1.25rem 0;
+  }
+
   .provit-footer-content {
     flex-direction: column;
-    gap: 0.4rem;
-    text-align: center;
+    align-items: flex-start;
+    gap: 1rem;
+    text-align: left;
   }
 
   .provit-footer-contact,
   .provit-footer-policy {
-    align-items: center;
+    align-items: flex-start;
     width: 100%;
+    padding-left: 0;
+    border-left: 0;
   }
 
   .provit-footer-copyright {
-    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    text-align: left;
   }
 }
