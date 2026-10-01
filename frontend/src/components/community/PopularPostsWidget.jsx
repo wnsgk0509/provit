@@ -34,7 +34,6 @@ const PopularPostsWidget = () => {
         <div className="card shadow-sm border-0 mb-4 rounded-4 p-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h5 className="fw-bold mb-0">지금 인기 있는 글</h5>
-                <span className="text-muted small">24시간</span>
             </div>
             
             <div className="d-flex flex-column gap-3">

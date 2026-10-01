@@ -5,10 +5,10 @@ import StudyCreateModal from './StudyCreateModal';
 import StudyEditModal from './StudyEditModal';
 import StudyDetailModal from './StudyDetailModal';
 
-function StudyListSection() {
+function StudyListSection({ createCounter, keyword }) {
     const { user, isLoggedIn } = useAuth();
     const [studies, setStudies] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editModalData, setEditModalData] = useState(null);
     const [detailModalData, setDetailModalData] = useState(null);
@@ -16,6 +16,10 @@ function StudyListSection() {
     useEffect(() => {
         loadStudies();
     }, [user]);
+
+    useEffect(() => {
+        if (createCounter > 0) setShowModal(true);
+    }, [createCounter]);
 
     const loadStudies = async () => {
         setLoading(true);
@@ -87,28 +91,7 @@ function StudyListSection() {
     };
 
     return (
-        <div className="study-section">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h4 className="fw-bold mb-2">모집 중인 스터디</h4>
-                    <p className="text-muted small mb-0">스터디장은 참여형 단톡방을 만들고 직접 삭제할 수 있습니다.</p>
-                </div>
-                {isLoggedIn ? (
-                    <button 
-                        className="btn btn-dark rounded-3 px-4 shadow-sm"
-                        onClick={() => setShowModal(true)}
-                    >
-                        + 스터디 만들기
-                    </button>
-                ) : (
-                    <button 
-                        className="btn btn-outline-secondary rounded-3 px-3 btn-sm"
-                        onClick={() => alert('로그인 후 스터디를 개설할 수 있습니다.')}
-                    >
-                        + 스터디 만들기 (로그인 필요)
-                    </button>
-                )}
-            </div>
+        <div className="study-section mt-3">
 
             {loading ? (
                 <div className="text-center py-5">
@@ -135,8 +118,17 @@ function StudyListSection() {
                             </button>
                         </div>
                     ) : (
-                        studies.map((study) => (
-                            <div className="col-md-6 col-lg-4" key={study.studyNum}>
+                        (() => {
+                            const filteredStudies = studies.filter(study => !keyword || study.studyName.toLowerCase().includes(keyword.toLowerCase()));
+                            if (filteredStudies.length === 0) {
+                                return (
+                                    <div className="col-12 text-center py-5 bg-light rounded-4">
+                                        <div className="text-muted fs-5">검색된 스터디가 없습니다.</div>
+                                    </div>
+                                );
+                            }
+                            return filteredStudies.map((study) => (
+                                <div className="col-md-6 col-lg-4" key={study.studyNum}>
                                 <div 
                                     className="card h-100 shadow-sm border-1 border-light-subtle" 
                                     style={{ borderRadius: '1rem', transition: 'transform 0.2s', cursor: 'pointer' }}
@@ -232,6 +224,7 @@ function StudyListSection() {
                                 </div>
                             </div>
                         ))
+                        })()
                     )}
                 </div>
             )}
