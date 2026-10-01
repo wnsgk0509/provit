@@ -6,6 +6,7 @@ import "./Navbar.css";
 
 const navItems = [
     { path: "/interview", label: "AI 모의면접" },
+    { path: "/document-review", label: "AI원클릭첨삭" },
     { path: "/jobs", label: "채용공고" },
     { path: "/community", label: "커뮤니티" },
     { path: "/fortune", label: "오늘의 운세/MBTI" },
