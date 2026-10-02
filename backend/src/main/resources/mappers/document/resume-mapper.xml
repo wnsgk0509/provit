@@ -13,12 +13,6 @@
           AND J.JOB_CODE = #{jobCode}
     </select>
 
-    <select id="countEducationCode" parameterType="int" resultType="int">
-        SELECT COUNT(*)
-        FROM T_EDUCODE
-        WHERE EDUCATION_CODE = #{educationCode}
-    </select>
-
     <insert id="insertResume" parameterType="com.provit.dto.document.ResumeDTO">
         <selectKey keyProperty="resumeNum" resultType="int" order="BEFORE">
             SELECT SEQ_T_RESUME.NEXTVAL FROM DUAL
@@ -30,7 +24,6 @@
             OCCUPATION_CODE,
             JOB_CODE,
             HIGHEST_LEVEL,
-            EDUCATION_CODE,
             MOTIVATION,
             DESIRED_LOCATION,
             DESIRED_WORK_TYPE,
@@ -43,7 +36,6 @@
             #{occupationCode, jdbcType=VARCHAR},
             #{jobCode, jdbcType=VARCHAR},
             #{highestLevel},
-            #{educationCode},
             #{motivation, jdbcType=CLOB},
             #{desiredLocation, jdbcType=VARCHAR},
             #{desiredWorkType, jdbcType=VARCHAR},
@@ -122,7 +114,6 @@
             OCCUPATION_CODE = #{occupationCode, jdbcType=VARCHAR},
             JOB_CODE = #{jobCode, jdbcType=VARCHAR},
             HIGHEST_LEVEL = #{highestLevel},
-            EDUCATION_CODE = #{educationCode},
             MOTIVATION = #{motivation, jdbcType=CLOB},
             DESIRED_LOCATION = #{desiredLocation, jdbcType=VARCHAR},
             DESIRED_WORK_TYPE = #{desiredWorkType, jdbcType=VARCHAR},
@@ -162,15 +153,12 @@
             R.JOB_CODE,
             J.JOB_NAME,
             R.HIGHEST_LEVEL,
-            R.EDUCATION_CODE,
-            E.EDUCATION_NAME,
             R.MOTIVATION,
             R.DESIRED_LOCATION,
             R.DESIRED_WORK_TYPE,
             R.CREATED_AT,
             R.UPDATED_AT
         FROM T_RESUME R
-        JOIN T_EDUCODE E ON E.EDUCATION_CODE = R.EDUCATION_CODE
         LEFT JOIN T_OCCUPATION O ON O.OCCUPATION_CODE = R.OCCUPATION_CODE
         LEFT JOIN T_JOB J ON J.JOB_CODE = R.JOB_CODE AND J.OCCUPATION_CODE = R.OCCUPATION_CODE
         WHERE R.RESUME_NUM = #{resumeNum}

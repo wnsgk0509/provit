@@ -13,7 +13,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.PlatformTransactionManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import javax.servlet.http.Cookie;
+import org.springframework.test.util.ReflectionTestUtils;
 import com.provit.common.GlobalExceptionHandler;
+import com.provit.common.auth.AuthCookieService;
 import com.provit.common.resolver.LoginUserArgumentResolver;
 import com.provit.controller.document.DocumentReviewController;
 import com.provit.dao.document.DocumentDAO;
@@ -92,8 +95,10 @@ public class DocumentReviewValidationTest {
             @Override public boolean validateToken(String token) { return "owner".equals(token) || "other".equals(token); }
             @Override public Long getUserNum(String token) { return "owner".equals(token) ? 7L : 8L; }
         };
+        var cookies = new AuthCookieService();
+        ReflectionTestUtils.setField(cookies, "cookieName", "provit_access");
         mvc = MockMvcBuilders.standaloneSetup(new DocumentReviewController(service))
-                .setCustomArgumentResolvers(new LoginUserArgumentResolver(jwt))
+                .setCustomArgumentResolvers(new LoginUserArgumentResolver(jwt, cookies))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
@@ -103,7 +108,7 @@ public class DocumentReviewValidationTest {
         assertEquals(401, mvc.perform(post("/api/document-reviews").contentType(MediaType.APPLICATION_JSON)
                 .content(body)).andReturn().getResponse().getStatus());
         assertEquals(401, mvc.perform(get("/api/document-reviews")).andReturn().getResponse().getStatus());
-        assertEquals(401, mvc.perform(get("/api/document-reviews/1").header("Authorization", "Bearer invalid"))
+        assertEquals(401, mvc.perform(get("/api/document-reviews/1").cookie(new Cookie("provit_access", "invalid")))
                 .andReturn().getResponse().getStatus());
         assertEquals(0, reads.get()); assertEquals(0, writes.get());
     }
@@ -163,9 +168,9 @@ public class DocumentReviewValidationTest {
     @Test
     public void spoofedUserIdCannotBypassRecordOwnershipAndInvalidPagingIsRejected() throws Exception {
         assertEquals(404, mvc.perform(get("/api/document-reviews/1").param("userNum", "7")
-                .header("Authorization", "Bearer other")).andReturn().getResponse().getStatus());
+                .cookie(new Cookie("provit_access", "other"))).andReturn().getResponse().getStatus());
         assertEquals(400, mvc.perform(get("/api/document-reviews").param("pageSize", "101")
-                .header("Authorization", "Bearer owner")).andReturn().getResponse().getStatus());
+                .cookie(new Cookie("provit_access", "owner"))).andReturn().getResponse().getStatus());
         assertEquals(0, writes.get());
     }
 
