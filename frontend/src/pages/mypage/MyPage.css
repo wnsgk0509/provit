@@ -239,6 +239,68 @@
     padding: 3px;
 }
 
+.mypage-document-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e1e5ec;
+    border-radius: 12px;
+    background: #fbfcfe;
+}
+
+.mypage-document-row.is-main-resume {
+    border-color: #9aafe7;
+    background: #f6f8ff;
+}
+
+.mypage-document-row .mypage-document-item {
+    flex: 1;
+    border: 0;
+    background: transparent;
+}
+
+.mypage-document-title {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 7px;
+}
+
+.mypage-document-title strong {
+    color: #273142;
+    font-size: 14px;
+}
+
+.mypage-main-resume-button {
+    flex: 0 0 auto;
+    min-height: 36px;
+    margin-right: 12px;
+    border: 1px solid #c6d0eb;
+    border-radius: 8px;
+    padding: 6px 9px;
+    color: #4059b5;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.mypage-main-resume-button:hover:not(:disabled) {
+    border-color: #4d67be;
+    background: #eef2ff;
+}
+
+.mypage-main-resume-button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.mypage-main-resume-button:focus-visible {
+    outline: 3px solid #b0bff0;
+    outline-offset: 2px;
+}
+
 .mypage-document-item {
     display: flex;
     min-width: 0;
@@ -616,6 +678,34 @@
 }
 
 @media (max-width: 600px) {
+
+    .mypage-content-row > .mypage-activity-column {
+        height: auto;
+    }
+
+    .mypage-activity-column {
+        grid-template-rows: auto auto;
+    }
+
+    .mypage-activity-column .mypage-document-list {
+        flex: 0 1 auto;
+        max-height: 320px;
+    }
+
+    .mypage-document-row {
+        flex-wrap: wrap;
+        gap: 0;
+    }
+
+    .mypage-document-row .mypage-document-item {
+        flex-basis: 100%;
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .mypage-main-resume-button {
+        margin: 0 12px 12px auto;
+    }
 
     .mypage-page {
         padding: 12px 8px 32px;

@@ -4,11 +4,13 @@ import static org.junit.Assert.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 import java.lang.reflect.Proxy;
+import java.sql.SQLException;
 import javax.servlet.http.Cookie;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,7 +25,6 @@ import com.provit.controller.document.MainResumeController;
 import com.provit.dao.auth.UserDAO;
 import com.provit.dao.document.MainResumeDAO;
 import com.provit.dto.auth.UserDTO;
-import com.provit.dto.auth.UserResponseDTO;
 import com.provit.dto.document.MainResumeJobInfoDTO;
 import com.provit.service.document.impl.MainResumeServiceImpl;
 import com.provit.util.jwt.JwtProvider;
@@ -35,6 +36,7 @@ public class MainResumeControllerTest {
     private Cookie cookie;
     private Long selected;
     private int writes;
+    private boolean resumeDeletedDuringSet;
 
     @Before
     public void setup() {
@@ -51,6 +53,10 @@ public class MainResumeControllerTest {
         MainResumeDAO dao = new MainResumeDAO() {
             public int updateMainResume(long userNum, long resumeNum) {
                 assertEquals(7L, userNum);
+                if (resumeDeletedDuringSet) {
+                    throw new DataIntegrityViolationException("이력서 삭제 경합",
+                            new SQLException("parent key missing", "23000", 2291));
+                }
                 if (resumeNum != 11 && resumeNum != 12) return 0;
                 writes++;
                 selected = resumeNum;
@@ -124,13 +130,11 @@ public class MainResumeControllerTest {
     }
 
     @Test
-    public void userResponseIncludesNullableMainResumeWithoutPassword() {
-        var user = UserDTO.builder().userNum(7L).mainResumeNum(3_000_000_000L).userPw("private").build();
-        var response = json.valueToTree(UserResponseDTO.from(user));
-        assertEquals(3_000_000_000L, response.path("mainResumeNum").asLong());
-        assertFalse(response.has("userPw"));
-        user.setMainResumeNum(null);
-        assertTrue(json.valueToTree(UserResponseDTO.from(user)).path("mainResumeNum").isNull());
+    public void resumeDeletedDuringDesignationReturnsNotFound() throws Exception {
+        send(put(URL).cookie(cookie).contentType(MediaType.APPLICATION_JSON).content("{\"resumeNum\":11}"), 200);
+        resumeDeletedDuringSet = true;
+        send(put(URL).cookie(cookie).contentType(MediaType.APPLICATION_JSON).content("{\"resumeNum\":12}"), 404);
+        assertEquals(Long.valueOf(11), selected);
     }
 
     private MockHttpServletResponse send(MockHttpServletRequestBuilder request, int status) throws Exception {

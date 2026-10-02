@@ -14,6 +14,7 @@ import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.junit.*;
+import org.junit.rules.TestName;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.mybatis.spring.transaction.SpringManagedTransactionFactory;
 import org.springframework.aop.framework.ProxyFactory;
@@ -21,14 +22,26 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
 import org.springframework.transaction.interceptor.TransactionInterceptor;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.http.MediaType;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.provit.common.GlobalExceptionHandler;
+import com.provit.common.auth.AuthCookieService;
+import com.provit.common.resolver.LoginUserArgumentResolver;
+import com.provit.controller.document.MainResumeController;
+import com.provit.dao.auth.UserDAO;
 import com.provit.dao.document.MainResumeDAO;
 import com.provit.dao.document.impl.MainResumeDAOImpl;
 import com.provit.dto.auth.UserDTO;
 import com.provit.dto.document.MainResumeJobInfoDTO;
 import com.provit.service.document.impl.MainResumeServiceImpl;
+import com.provit.util.jwt.JwtProvider;
 
 public class OracleMainResumeTest {
+    @Rule
+    public final TestName testName = new TestName();
     private final String prefix = "MRT" + UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
     private final Map<String, String> names = new LinkedHashMap<>();
     private final List<String> tables = new ArrayList<>();
@@ -58,14 +71,26 @@ public class OracleMainResumeTest {
             var matcher = Pattern.compile("CREATE TABLE " + original + " \\(.*?\\);", Pattern.DOTALL).matcher(schema);
             assertTrue(matcher.find());
             String ddl = matcher.group().replaceAll("DEFAULT SEQ_T_\\w+\\.NEXTVAL", "");
-            if (original.equals("T_USER")) ddl = ddl.replace("MAIN_RESUME_NUM      NUMBER(18),", "");
+            if (original.equals("T_USER") && !testName.getMethodName().equals("newSchemaSupportsDesignationAndDeleteReset")) {
+                ddl = ddl.replace("MAIN_RESUME_NUM      NUMBER(18),", "");
+            }
             execute(ddl.substring(0, ddl.length() - 1));
             tables.add(names.get(original));
         }
         String migration = resource("sql_query/migrate_user_main_resume.sql")
                 .replaceAll("(?m)^--.*$", "").replaceAll("(?m)^/\\s*$", "").trim();
-        execute(migration);
-        execute(migration);
+        if (testName.getMethodName().equals("newSchemaSupportsDesignationAndDeleteReset")) {
+            for (String sqlPattern : List.of("ALTER TABLE T_USER ADD CONSTRAINT FK_USER_MAIN_RESUME.*?;",
+                    "CREATE INDEX IDX_USER_MAIN_RESUME_NUM.*?;")) {
+                var matcher = Pattern.compile(sqlPattern, Pattern.DOTALL).matcher(schema);
+                assertTrue(matcher.find());
+                String ddl = matcher.group();
+                execute(ddl.substring(0, ddl.length() - 1));
+            }
+        } else {
+            execute(migration);
+            execute(migration);
+        }
         execute("INSERT INTO T_OCCUPATION VALUES ('2','IT개발·데이터')");
         execute("INSERT INTO T_JOB VALUES ('84','2','백엔드/서버개발')");
         for (int userNum : List.of(7, 8)) {
@@ -101,6 +126,57 @@ public class OracleMainResumeTest {
     }
 
     @Test
+    public void authenticatedApiPersistsOnlyOwnedResumeAndReturnsJobCodes() throws Exception {
+        UserDAO users = (UserDAO) java.lang.reflect.Proxy.newProxyInstance(UserDAO.class.getClassLoader(),
+                new Class<?>[] { UserDAO.class }, (proxy, method, args) ->
+                    session.selectOne("com.provit.mapper.UserMapper.selectByUserNum", args[0]));
+        var jwt = new JwtProvider(users);
+        ReflectionTestUtils.setField(jwt, "secretKeyPlain", "main-resume-oracle-test-key-32-bytes-long");
+        ReflectionTestUtils.setField(jwt, "expirationTime", 60_000L);
+        jwt.init();
+        var cookies = new AuthCookieService();
+        ReflectionTestUtils.setField(cookies, "cookieName", "provit_access");
+        var cookie = new javax.servlet.http.Cookie("provit_access", jwt.createToken(users.selectByUserNum(7L)));
+        var mvc = MockMvcBuilders.standaloneSetup(new MainResumeController(service))
+                .setCustomArgumentResolvers(new LoginUserArgumentResolver(jwt, cookies))
+                .setControllerAdvice(new GlobalExceptionHandler()).build();
+        var json = new ObjectMapper();
+        var result = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .put("/api/documents/main-resume").cookie(cookie).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"resumeNum\":11,\"userNum\":8}")).andReturn().getResponse();
+        assertEquals(200, result.getStatus());
+        assertEquals(Long.valueOf(11), storedMainResumeNum());
+        var data = json.readTree(result.getContentAsString(StandardCharsets.UTF_8)).path("data");
+        assertEquals("2", data.path("occupationCode").asText());
+        assertEquals("84", data.path("jobCode").asText());
+        assertEquals("백엔드/서버개발", data.path("jobName").asText());
+        result = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .put("/api/documents/main-resume").cookie(cookie).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"resumeNum\":22}")).andReturn().getResponse();
+        assertEquals(404, result.getStatus());
+        assertEquals(Long.valueOf(11), storedMainResumeNum());
+        result = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .get("/api/documents/main-resume").cookie(cookie)).andReturn().getResponse();
+        assertEquals(200, result.getStatus());
+        assertEquals(11, json.readTree(result.getContentAsString(StandardCharsets.UTF_8)).path("data").path("resumeNum").asLong());
+        result = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .delete("/api/documents/main-resume").cookie(cookie)).andReturn().getResponse();
+        assertEquals(200, result.getStatus());
+        assertNull(storedMainResumeNum());
+    }
+
+    @Test
+    public void newSchemaSupportsDesignationAndDeleteReset() throws Exception {
+        assertNull(storedMainResumeNum());
+        assertNull(service.getMainResumeJobInfo(7));
+        service.setMainResume(7, 11);
+        assertEquals(Long.valueOf(11), storedMainResumeNum());
+        execute("DELETE FROM T_RESUME WHERE RESUME_NUM=11");
+        assertNull(storedMainResumeNum());
+        assertNull(service.getMainResumeJobInfo(7));
+    }
+
+    @Test
     public void designationChangeLiveCodesAndDeleteResetWorkWithUserMapping() throws Exception {
         assertNull(service.getMainResumeJobInfo(7));
         var result = service.setMainResume(7, 11);
@@ -109,7 +185,7 @@ public class OracleMainResumeTest {
         assertEquals("IT개발·데이터", result.getOccupationName());
         assertEquals("백엔드/서버개발", result.getJobName());
         UserDTO user = session.selectOne("com.provit.mapper.UserMapper.selectByUserNum", 7L);
-        assertEquals(Long.valueOf(11), user.getMainResumeNum());
+        assertEquals(Long.valueOf(11), storedMainResumeNum());
         assertNull(user.getJobCode());
         execute("UPDATE T_RESUME SET RESUME_TITLE='edited', JOB_CODE=NULL WHERE RESUME_NUM=11");
         assertEquals("edited", service.getMainResumeJobInfo(7).getResumeTitle());
@@ -121,8 +197,7 @@ public class OracleMainResumeTest {
         service.setMainResume(7, 3_000_000_000L);
         execute("DELETE FROM T_RESUME WHERE RESUME_NUM=3000000000");
         assertNull(service.getMainResumeJobInfo(7));
-        user = session.selectOne("com.provit.mapper.UserMapper.selectByUserNum", 7L);
-        assertNull(user.getMainResumeNum());
+        assertNull(storedMainResumeNum());
         service.clearMainResume(7);
         service.clearMainResume(7);
     }
@@ -158,6 +233,15 @@ public class OracleMainResumeTest {
         var factory = new ProxyFactory(new MainResumeServiceImpl(target));
         factory.addAdvice(new TransactionInterceptor(transactions, new AnnotationTransactionAttributeSource()));
         return (MainResumeService) factory.getProxy();
+    }
+
+    private Long storedMainResumeNum() throws Exception {
+        try (var statement = connection.createStatement();
+                var rows = statement.executeQuery("SELECT MAIN_RESUME_NUM FROM " + names.get("T_USER") + " WHERE USER_NUM=7")) {
+            assertTrue(rows.next());
+            long number = rows.getLong(1);
+            return rows.wasNull() ? null : number;
+        }
     }
 
     private void execute(String sql) throws Exception {
