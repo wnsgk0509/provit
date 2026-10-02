@@ -4,6 +4,7 @@ import { createPost, updatePost, deletePost } from '../../api/communityApi';
 import { uploadFile } from '../../api/fileApi';
 import { useAuth } from '../../context/AuthContext';
 import MDEditor from '@uiw/react-md-editor';
+import rehypeSanitize from 'rehype-sanitize';
 
 const CATEGORIES = [
     { id: 1, name: '질문' },
@@ -206,6 +207,9 @@ function CommunityWrite() {
                                     onChange={(val) => {
                                         setIsDirty(true);
                                         setFormData({ ...formData, postContent: val || '' });
+                                    }}
+                                    previewOptions={{
+                                        rehypePlugins: [[rehypeSanitize]]
                                     }}
                                     height={400}
                                 />

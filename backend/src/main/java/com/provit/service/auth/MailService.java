@@ -24,4 +24,10 @@ public interface MailService {
     default boolean sendPasswordResetVerificationCode(String toEmail, String code) {
         return sendVerificationCode(toEmail, code);
     }
+
+    java.util.concurrent.CompletableFuture<Boolean> sendReportReceiptMail(String toEmail);
+
+    java.util.concurrent.CompletableFuture<Boolean> sendBlindNotificationMail(String toEmail, String targetType);
+
+    java.util.concurrent.CompletableFuture<Boolean> sendReportResolvedMail(String toEmail, String targetType);
 }

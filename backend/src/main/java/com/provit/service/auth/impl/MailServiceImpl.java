@@ -148,4 +148,126 @@ public class MailServiceImpl implements MailService {
             return false;
         }
     }
+
+    @Override
+    public java.util.concurrent.CompletableFuture<Boolean> sendReportReceiptMail(String toEmail) {
+        if (!isMailConfigured()) {
+            log.warn(">> [DEV MODE] 신고 접수 메일 발송 생략: {}", toEmail);
+            return java.util.concurrent.CompletableFuture.completedFuture(true);
+        }
+        return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+                helper.setFrom(new InternetAddress(fromEmail, senderName, StandardCharsets.UTF_8.name()));
+                helper.setTo(toEmail);
+                helper.setSubject("[Provit] 신고가 정상적으로 접수되었습니다.");
+
+                String htmlContent = "<div style='max-width:600px;margin:20px auto;padding:30px;border:1px solid #e0e0e0;border-radius:12px;font-family:sans-serif;background-color:#ffffff;'>"
+                        + "<div style='text-align:center;margin-bottom:24px;'>"
+                        + "<h1 style='color:#0d6efd;margin:0;font-size:28px;font-weight:bold;'>Provit</h1>"
+                        + "<p style='color:#6c757d;font-size:14px;margin-top:6px;'>AI 모의 면접 및 맞춤형 취업 지원 플랫폼</p>"
+                        + "</div>"
+                        + "<h2 style='font-size:18px;color:#212529;margin-bottom:16px;'>신고 접수 완료 안내</h2>"
+                        + "<p style='color:#495057;font-size:15px;line-height:1.6;'>안녕하세요, Provit 회원님.<br/>"
+                        + "회원님께서 접수해주신 신고가 정상적으로 등록되었습니다.</p>"
+                        + "<p style='color:#495057;font-size:15px;line-height:1.6;'>운영팀에서 내용 확인 후 운영 원칙에 따라 신속하게 조치하도록 하겠습니다.<br/>조치 결과는 별도로 안내되지 않을 수 있습니다.</p>"
+                        + "<div style='text-align:center;margin:30px 0;'>"
+                        + "<p style='color:#0d6efd;font-size:16px;font-weight:bold;margin:0;'>깨끗한 커뮤니티 문화를 위해 기여해 주셔서 감사합니다.</p>"
+                        + "</div>"
+                        + "<hr style='border:none;border-top:1px solid #eeeeee;margin:24px 0;'/>"
+                        + "<p style='color:#adb5bd;font-size:12px;text-align:center;margin:0;'>본 메일은 발신 전용이며 문의사항은 고객센터를 이용해 주시기 바랍니다.<br/>© 2026 Provit. All rights reserved.</p>"
+                        + "</div>";
+
+                helper.setText(htmlContent, true);
+                mailSender.send(message);
+                log.info("신고 접수 메일 발송 성공: {}", toEmail);
+                return true;
+            } catch (Exception e) {
+                log.error("신고 접수 메일 발송 실패: {}", e.getMessage());
+                return false;
+            }
+        });
+    }
+
+    @Override
+    public java.util.concurrent.CompletableFuture<Boolean> sendBlindNotificationMail(String toEmail, String targetType) {
+        if (!isMailConfigured()) {
+            log.warn(">> [DEV MODE] 블라인드 통보 메일 발송 생략: {}", toEmail);
+            return java.util.concurrent.CompletableFuture.completedFuture(true);
+        }
+        return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+                helper.setFrom(new InternetAddress(fromEmail, senderName, StandardCharsets.UTF_8.name()));
+                helper.setTo(toEmail);
+                helper.setSubject("[Provit] 커뮤니티 운영 원칙 위반에 따른 블라인드 조치 안내");
+
+                String typeName = "POST".equals(targetType) ? "게시글" : "댓글";
+                String htmlContent = "<div style='max-width:600px;margin:20px auto;padding:30px;border:1px solid #e0e0e0;border-radius:12px;font-family:sans-serif;background-color:#ffffff;'>"
+                        + "<div style='text-align:center;margin-bottom:24px;'>"
+                        + "<h1 style='color:#0d6efd;margin:0;font-size:28px;font-weight:bold;'>Provit</h1>"
+                        + "<p style='color:#6c757d;font-size:14px;margin-top:6px;'>AI 모의 면접 및 맞춤형 취업 지원 플랫폼</p>"
+                        + "</div>"
+                        + "<h2 style='font-size:18px;color:#dc3545;margin-bottom:16px;'>블라인드 조치 안내</h2>"
+                        + "<p style='color:#495057;font-size:15px;line-height:1.6;'>안녕하세요, Provit 회원님.<br/>"
+                        + "회원님께서 작성하신 <strong>" + typeName + "</strong>이(가) 신고 누적 및 커뮤니티 운영 원칙 위반으로 인해 관리자에 의해 <strong style='color:#dc3545;'>블라인드(삭제) 처리</strong>되었습니다.</p>"
+                        + "<p style='color:#495057;font-size:15px;line-height:1.6;'>서비스 이용에 참고해 주시기 바라며, 지속적인 위반 시 서비스 이용이 제한될 수 있습니다.</p>"
+                        + "<hr style='border:none;border-top:1px solid #eeeeee;margin:24px 0;'/>"
+                        + "<p style='color:#adb5bd;font-size:12px;text-align:center;margin:0;'>본 메일은 발신 전용이며 문의사항은 고객센터를 이용해 주시기 바랍니다.<br/>© 2026 Provit. All rights reserved.</p>"
+                        + "</div>";
+
+                helper.setText(htmlContent, true);
+                mailSender.send(message);
+                log.info("블라인드 통보 메일 발송 성공: {}", toEmail);
+                return true;
+            } catch (Exception e) {
+                log.error("블라인드 통보 메일 발송 실패: {}", e.getMessage());
+                return false;
+            }
+        });
+    }
+
+    @Override
+    public java.util.concurrent.CompletableFuture<Boolean> sendReportResolvedMail(String toEmail, String targetType) {
+        if (!isMailConfigured()) {
+            log.warn(">> [DEV MODE] 신고 처리 완료 메일 발송 생략: {}", toEmail);
+            return java.util.concurrent.CompletableFuture.completedFuture(true);
+        }
+        return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+                helper.setFrom(new InternetAddress(fromEmail, senderName, StandardCharsets.UTF_8.name()));
+                helper.setTo(toEmail);
+                helper.setSubject("[Provit] 신고하신 내역의 조치가 완료되었습니다.");
+
+                String typeName = "POST".equals(targetType) ? "게시글" : "댓글";
+                String htmlContent = "<div style='max-width:600px;margin:20px auto;padding:30px;border:1px solid #e0e0e0;border-radius:12px;font-family:sans-serif;background-color:#ffffff;'>"
+                        + "<div style='text-align:center;margin-bottom:24px;'>"
+                        + "<h1 style='color:#0d6efd;margin:0;font-size:28px;font-weight:bold;'>Provit</h1>"
+                        + "<p style='color:#6c757d;font-size:14px;margin-top:6px;'>AI 모의 면접 및 맞춤형 취업 지원 플랫폼</p>"
+                        + "</div>"
+                        + "<h2 style='font-size:18px;color:#212529;margin-bottom:16px;'>신고 처리 완료 안내</h2>"
+                        + "<p style='color:#495057;font-size:15px;line-height:1.6;'>안녕하세요, Provit 회원님.<br/>"
+                        + "회원님께서 신고하신 <strong>" + typeName + "</strong>에 대한 조치가 완료되었습니다.</p>"
+                        + "<p style='color:#495057;font-size:15px;line-height:1.6;'>운영팀 확인 결과 커뮤니티 운영 원칙 위반이 확인되어 해당 " + typeName + "은(는) <strong>블라인드(삭제) 처리</strong> 및 작성자에 대한 제재가 이루어졌습니다.</p>"
+                        + "<div style='text-align:center;margin:30px 0;'>"
+                        + "<p style='color:#0d6efd;font-size:16px;font-weight:bold;margin:0;'>건전한 커뮤니티 조성을 위한 회원님의 노력에 감사드립니다.</p>"
+                        + "</div>"
+                        + "<hr style='border:none;border-top:1px solid #eeeeee;margin:24px 0;'/>"
+                        + "<p style='color:#adb5bd;font-size:12px;text-align:center;margin:0;'>본 메일은 발신 전용이며 문의사항은 고객센터를 이용해 주시기 바랍니다.<br/>© 2026 Provit. All rights reserved.</p>"
+                        + "</div>";
+
+                helper.setText(htmlContent, true);
+                mailSender.send(message);
+                log.info("신고자 대상 처리 완료 통보 메일 발송 성공: {}", toEmail);
+                return true;
+            } catch (Exception e) {
+                log.error("신고자 대상 처리 완료 통보 메일 발송 실패: {}", e.getMessage());
+                return false;
+            }
+        });
+    }
 }

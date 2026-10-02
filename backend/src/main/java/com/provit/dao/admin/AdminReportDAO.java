@@ -26,4 +26,7 @@ public interface AdminReportDAO {
     
     // 댓글 블라인드 처리 (내용 변경 및 삭제상태 변경)
     int blindComment(Long commentNum);
+
+    // 대상 작성자 이메일 조회
+    String getTargetUserEmail(String targetType, Long targetNum);
 }

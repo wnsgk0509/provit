@@ -52,4 +52,12 @@ public class AdminReportDAOImpl implements AdminReportDAO {
     public int blindComment(Long commentNum) {
         return sqlSession.update(NAMESPACE + ".blindComment", commentNum);
     }
+
+    @Override
+    public String getTargetUserEmail(String targetType, Long targetNum) {
+        Map<String, Object> params = new java.util.HashMap<>();
+        params.put("targetType", targetType);
+        params.put("targetNum", targetNum);
+        return sqlSession.selectOne(NAMESPACE + ".getTargetUserEmail", params);
+    }
 }

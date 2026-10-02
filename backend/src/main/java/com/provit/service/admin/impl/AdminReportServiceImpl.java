@@ -19,6 +19,12 @@ public class AdminReportServiceImpl implements AdminReportService {
     @Autowired
     private AdminReportDAO adminReportDAO;
 
+    @Autowired
+    private com.provit.dao.auth.UserDAO userDAO;
+
+    @Autowired
+    private com.provit.service.auth.MailService mailService;
+
     @Override
     public boolean isAdmin(Long userNum) {
         return adminReportDAO.isAdmin(userNum);
@@ -60,12 +66,24 @@ public class AdminReportServiceImpl implements AdminReportService {
             throw new Exception("신고 상태 변경에 실패했습니다.");
         }
         
-        // 3. 'RESOLVED' (블라인드 처리)일 경우 해당 원본 데이터 내용 변경
+        // 3. 'RESOLVED' (블라인드 처리)일 경우 해당 원본 데이터 내용 변경 및 메일 발송
         if ("RESOLVED".equals(newStatus)) {
             if ("POST".equals(report.getTargetType())) {
                 adminReportDAO.blindPost(report.getTargetNum());
             } else if ("COMMENT".equals(report.getTargetType())) {
                 adminReportDAO.blindComment(report.getTargetNum());
+            }
+
+            // 피신고자(작성자)에게 사후 블라인드 통보 메일 발송
+            String targetUserEmail = adminReportDAO.getTargetUserEmail(report.getTargetType(), report.getTargetNum());
+            if (targetUserEmail != null) {
+                mailService.sendBlindNotificationMail(targetUserEmail, report.getTargetType());
+            }
+            
+            // 신고자에게 처리 완료 통보 메일 발송
+            com.provit.dto.auth.UserDTO reporter = userDAO.selectByUserNum(report.getReporterNum());
+            if (reporter != null) {
+                mailService.sendReportResolvedMail(reporter.getUserEmail(), report.getTargetType());
             }
         }
     }

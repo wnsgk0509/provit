@@ -183,7 +183,11 @@ function CommentSection({ postNum }) {
                                 
                                 {isDeleted ? (
                                     <div>
-                                        <p className="mb-2 text-muted fst-italic">{comment.commentContent || '삭제된 댓글입니다.'}</p>
+                                        <p className="mb-2 text-muted fst-italic">
+                                            {comment.commentContent === '관리자에 의해 블라인드 처리된 댓글입니다.' 
+                                                ? comment.commentContent 
+                                                : '삭제된 댓글입니다.'}
+                                        </p>
                                     </div>
                                 ) : editingId === comment.commentNum ? (
                                     <div className="mt-2">

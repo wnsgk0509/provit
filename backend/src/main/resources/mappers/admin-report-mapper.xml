@@ -88,5 +88,20 @@
             IS_DELETED = 1
         WHERE COMMENT_NUM = #{commentNum}
     </update>
+    <!-- 7. 대상(게시글/댓글) 작성자의 이메일 조회 -->
+    <select id="getTargetUserEmail" parameterType="map" resultType="string">
+        <if test="targetType == 'POST'">
+            SELECT U.USER_EMAIL
+            FROM T_POST P
+            JOIN T_USER U ON P.USER_NUM = U.USER_NUM
+            WHERE P.POST_NUM = #{targetNum}
+        </if>
+        <if test="targetType == 'COMMENT'">
+            SELECT U.USER_EMAIL
+            FROM T_COMMENT C
+            JOIN T_USER U ON C.USER_NUM = U.USER_NUM
+            WHERE C.COMMENT_NUM = #{targetNum}
+        </if>
+    </select>
 
 </mapper>

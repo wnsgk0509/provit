@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import CommentSection from '../../components/community/CommentSection';
 import ReportModal from '../../components/community/ReportModal';
 import MDEditor from '@uiw/react-md-editor';
+import rehypeSanitize from 'rehype-sanitize';
 
 function CommunityDetail() {
     const { postNum } = useParams();
@@ -158,7 +159,11 @@ function CommunityDetail() {
                         </div>
                     )}
                     <div data-color-mode="light">
-                        <MDEditor.Markdown source={post.postContent} style={{ whiteSpace: 'pre-wrap', backgroundColor: 'transparent' }} />
+                        <MDEditor.Markdown 
+                            source={post.postContent} 
+                            style={{ whiteSpace: 'pre-wrap', backgroundColor: 'transparent' }} 
+                            rehypePlugins={[[rehypeSanitize]]} 
+                        />
                     </div>
                 </div>
                 
