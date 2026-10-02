@@ -1,0 +1,54 @@
+.main-resume-feedback {
+    flex: 0 0 auto;
+    margin-top: 12px;
+    color: #667085;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.main-resume-feedback p {
+    margin: 0;
+}
+
+.main-resume-feedback .main-resume-success {
+    color: #258045;
+}
+
+.main-resume-error,
+.main-resume-load-error {
+    color: #b54747;
+}
+
+.main-resume-load-error {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.main-resume-load-error button {
+    flex: 0 0 auto;
+    min-height: 32px;
+    border: 1px solid #d7dce5;
+    border-radius: 6px;
+    padding: 4px 10px;
+    color: #4059b5;
+    background: #fff;
+    font: inherit;
+    cursor: pointer;
+}
+
+.main-resume-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    border-radius: 6px;
+    padding: 3px 7px;
+    color: #4059b5;
+    background: #eef2ff;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}

@@ -1,21 +1,31 @@
 import { useState } from 'react';
-import { Award, BriefcaseBusiness, GraduationCap, Pencil, Trash2 } from 'lucide-react';
+import { Award, BriefcaseBusiness, GraduationCap, Pencil, Star, Trash2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { deleteResume } from '../../../api/documentApi';
+import { useAuth } from '../../../context/AuthContext';
+import useMainResume from '../../../hooks/useMainResume';
+import MainResumeFeedback from '../../../components/MainResumeFeedback';
 
 function ResumeRead({ document }) {
     const navigate = useNavigate();
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState('');
+    const { updateUser } = useAuth();
+    const mainResumeState = useMainResume();
     const { resume, educationList = [], careerList = [], certificationList = [] } = document;
 
     const handleDelete = async () => {
-        if (!window.confirm('이력서를 삭제하시겠습니까? 삭제한 문서는 복구할 수 없습니다.')) return;
+        const message = mainResumeState.isMainResume(resume.resumeNum)
+            ? '대표이력서를 삭제하시겠습니까? 대표 지정도 해제되며, 삭제한 문서는 복구할 수 없습니다.'
+            : '이력서를 삭제하시겠습니까? 삭제한 문서는 복구할 수 없습니다.';
+        if (!window.confirm(message)) return;
 
         setIsDeleting(true);
         setDeleteError('');
         try {
             await deleteResume(resume.resumeNum);
+            updateUser((previous) => previous && String(previous.mainResumeNum) === String(resume.resumeNum)
+                ? { ...previous, mainResumeNum: null } : previous);
             navigate('/mypage', { replace: true });
             window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
         } catch (error) {
@@ -36,10 +46,15 @@ function ResumeRead({ document }) {
                 <div>
                     <span>RESUME</span>
                     <h2>{valueOrDash(resume.resumeTitle)}</h2>
+                    {mainResumeState.isMainResume(resume.resumeNum) && (
+                        <span className="main-resume-badge"><Star size={12} aria-hidden="true" /> 대표이력서</span>
+                    )}
                     <p>이력서에 저장된 기본 정보와 경력 사항입니다.</p>
                 </div>
                 <DocumentDate createdAt={resume.createdAt} updatedAt={resume.updatedAt} />
             </div>
+
+            <MainResumeFeedback state={mainResumeState} />
 
             <section className="document-form-section" aria-labelledby="resume-read-basic-title">
                 <div className="document-section-heading">
@@ -89,7 +104,15 @@ function ResumeRead({ document }) {
             </ReadListSection>
 
             <div className="document-form-actions">
-                <button type="button" className="document-danger-button" onClick={handleDelete} disabled={isDeleting}>
+                <button type="button" className="document-secondary-button document-main-resume-button"
+                    disabled={isDeleting || mainResumeState.disabled}
+                    onClick={() => mainResumeState.changeMainResume(
+                        mainResumeState.isMainResume(resume.resumeNum) ? null : resume.resumeNum,
+                    )}>
+                    <Star size={17} aria-hidden="true" />
+                    {mainResumeState.saving ? '변경 중...' : mainResumeState.isMainResume(resume.resumeNum) ? '대표 해제' : '대표로 지정'}
+                </button>
+                <button type="button" className="document-danger-button" onClick={handleDelete} disabled={isDeleting || mainResumeState.saving}>
                     <Trash2 size={17} /> {isDeleting ? '삭제 중...' : '이력서 삭제'}
                 </button>
                 <Link

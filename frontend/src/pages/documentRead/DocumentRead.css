@@ -2,6 +2,13 @@
     padding-top: 4px;
 }
 
+.document-main-resume-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
 .document-read-back {
     display: inline-flex;
     align-items: center;
