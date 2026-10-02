@@ -5,6 +5,7 @@ import java.time.ZoneId;
 import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,9 +25,15 @@ public class SazuTodayRequestDTO {
     private Integer birthHour;
     @Builder.Default
     private int birthMinute = 0;
+    
+    @JsonProperty("isFemale")
     private boolean isFemale;
+    
+    @JsonProperty("birthCity")
     @Builder.Default
     private String birthCity = "서울";
+    
+    @JsonProperty("isLunar")
     @Builder.Default
     private boolean isLunar = false;
 
