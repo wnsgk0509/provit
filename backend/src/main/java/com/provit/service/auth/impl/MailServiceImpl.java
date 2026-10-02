@@ -150,12 +150,12 @@ public class MailServiceImpl implements MailService {
     }
 
     @Override
-    public boolean sendReportReceiptMail(String toEmail) {
+    public java.util.concurrent.CompletableFuture<Boolean> sendReportReceiptMail(String toEmail) {
         if (!isMailConfigured()) {
             log.warn(">> [DEV MODE] 신고 접수 메일 발송 생략: {}", toEmail);
-            return true;
+            return java.util.concurrent.CompletableFuture.completedFuture(true);
         }
-        java.util.concurrent.CompletableFuture.runAsync(() -> {
+        return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
             try {
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
@@ -182,20 +182,21 @@ public class MailServiceImpl implements MailService {
                 helper.setText(htmlContent, true);
                 mailSender.send(message);
                 log.info("신고 접수 메일 발송 성공: {}", toEmail);
+                return true;
             } catch (Exception e) {
                 log.error("신고 접수 메일 발송 실패: {}", e.getMessage());
+                return false;
             }
         });
-        return true;
     }
 
     @Override
-    public boolean sendBlindNotificationMail(String toEmail, String targetType) {
+    public java.util.concurrent.CompletableFuture<Boolean> sendBlindNotificationMail(String toEmail, String targetType) {
         if (!isMailConfigured()) {
             log.warn(">> [DEV MODE] 블라인드 통보 메일 발송 생략: {}", toEmail);
-            return true;
+            return java.util.concurrent.CompletableFuture.completedFuture(true);
         }
-        java.util.concurrent.CompletableFuture.runAsync(() -> {
+        return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
             try {
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
@@ -220,20 +221,21 @@ public class MailServiceImpl implements MailService {
                 helper.setText(htmlContent, true);
                 mailSender.send(message);
                 log.info("블라인드 통보 메일 발송 성공: {}", toEmail);
+                return true;
             } catch (Exception e) {
                 log.error("블라인드 통보 메일 발송 실패: {}", e.getMessage());
+                return false;
             }
         });
-        return true;
     }
 
     @Override
-    public boolean sendReportResolvedMail(String toEmail, String targetType) {
+    public java.util.concurrent.CompletableFuture<Boolean> sendReportResolvedMail(String toEmail, String targetType) {
         if (!isMailConfigured()) {
             log.warn(">> [DEV MODE] 신고 처리 완료 메일 발송 생략: {}", toEmail);
-            return true;
+            return java.util.concurrent.CompletableFuture.completedFuture(true);
         }
-        java.util.concurrent.CompletableFuture.runAsync(() -> {
+        return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
             try {
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
@@ -261,10 +263,11 @@ public class MailServiceImpl implements MailService {
                 helper.setText(htmlContent, true);
                 mailSender.send(message);
                 log.info("신고자 대상 처리 완료 통보 메일 발송 성공: {}", toEmail);
+                return true;
             } catch (Exception e) {
                 log.error("신고자 대상 처리 완료 통보 메일 발송 실패: {}", e.getMessage());
+                return false;
             }
         });
-        return true;
     }
 }

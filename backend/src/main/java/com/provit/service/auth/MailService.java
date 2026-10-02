@@ -25,9 +25,9 @@ public interface MailService {
         return sendVerificationCode(toEmail, code);
     }
 
-    boolean sendReportReceiptMail(String toEmail);
+    java.util.concurrent.CompletableFuture<Boolean> sendReportReceiptMail(String toEmail);
 
-    boolean sendBlindNotificationMail(String toEmail, String targetType);
+    java.util.concurrent.CompletableFuture<Boolean> sendBlindNotificationMail(String toEmail, String targetType);
 
-    boolean sendReportResolvedMail(String toEmail, String targetType);
+    java.util.concurrent.CompletableFuture<Boolean> sendReportResolvedMail(String toEmail, String targetType);
 }
