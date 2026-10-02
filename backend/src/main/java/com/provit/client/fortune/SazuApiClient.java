@@ -67,7 +67,7 @@ public class SazuApiClient {
         SazuTodayRequestDTO targetRequest = request != null ? request : SazuTodayRequestDTO.defaultSample();
 
         // Free 샌드박스 키는 지정된 샘플 프로필만 허용하므로, Free 키인 경우 샘플 프로필로 안전하게 전환
-        if (apiKey.startsWith("sazu_free_") && targetRequest.getBirthYear() != 1998) {
+        if (apiKey.startsWith("sazu_free_")) {
             log.info(">> [SazuApiClient] sazu_free 샌드박스 키 감지: 표준 테스트 샘플 프로필로 요청을 전송합니다.");
             targetRequest = SazuTodayRequestDTO.defaultSample();
         }
