@@ -4,6 +4,7 @@ import { fetchPostDetail, deletePost, togglePostLike } from '../../api/community
 import { useAuth } from '../../context/AuthContext';
 import CommentSection from '../../components/community/CommentSection';
 import ReportModal from '../../components/community/ReportModal';
+import MDEditor from '@uiw/react-md-editor';
 
 function CommunityDetail() {
     const { postNum } = useParams();
@@ -156,7 +157,9 @@ function CommunityDetail() {
                             />
                         </div>
                     )}
-                    {post.postContent}
+                    <div data-color-mode="light">
+                        <MDEditor.Markdown source={post.postContent} style={{ whiteSpace: 'pre-wrap', backgroundColor: 'transparent' }} />
+                    </div>
                 </div>
                 
                 {/* 좋아요 버튼 등은 나중에 추가 가능 */}
