@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPost, updatePost, deletePost } from '../../api/communityApi';
 import { uploadFile } from '../../api/fileApi';
 import { useAuth } from '../../context/AuthContext';
+import MDEditor from '@uiw/react-md-editor';
 
 const CATEGORIES = [
     { id: 1, name: '질문' },
@@ -199,17 +200,16 @@ function CommunityWrite() {
 
                         <div className="mb-4">
                             <label htmlFor="postContent" className="form-label fw-semibold">내용</label>
-                            <textarea
-                                className="form-control"
-                                id="postContent"
-                                name="postContent"
-                                rows="15"
-                                placeholder="내용을 입력해주세요"
-                                value={formData.postContent}
-                                onChange={handleChange}
-                                style={{ resize: 'vertical' }}
-                                required
-                            ></textarea>
+                            <div data-color-mode="light">
+                                <MDEditor
+                                    value={formData.postContent}
+                                    onChange={(val) => {
+                                        setIsDirty(true);
+                                        setFormData({ ...formData, postContent: val || '' });
+                                    }}
+                                    height={400}
+                                />
+                            </div>
                         </div>
 
                         <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
