@@ -24,4 +24,10 @@ public interface MailService {
     default boolean sendPasswordResetVerificationCode(String toEmail, String code) {
         return sendVerificationCode(toEmail, code);
     }
+
+    boolean sendReportReceiptMail(String toEmail);
+
+    boolean sendBlindNotificationMail(String toEmail, String targetType);
+
+    boolean sendReportResolvedMail(String toEmail, String targetType);
 }
