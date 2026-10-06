@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchTodayFortune } from '../../api/fortuneApi';
 import { toggleJobScrap } from '../../api/recruitmentApi';
 import { useAuth } from '../../context/AuthContext';
-import { Bookmark, RotateCcw } from 'lucide-react';
+import { Bookmark, RotateCcw, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import './Fortune.css';
 
 function Fortune() {
@@ -14,6 +14,7 @@ function Fortune() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [pendingScraps, setPendingScraps] = useState(new Set());
+    const [isExpanded, setIsExpanded] = useState(false);
 
     // 운세 데이터 로드
     const loadFortune = async () => {
@@ -240,10 +241,31 @@ function Fortune() {
                         </div>
                     </div>
                 </div>
+
+                {/* 메인 총운 카드 하단 펼치기/접기 버튼 */}
+                <div className="fortune-hero-footer">
+                    <button
+                        type="button"
+                        className="fortune-toggle-btn"
+                        onClick={() => setIsExpanded(prev => !prev)}
+                        aria-expanded={isExpanded}
+                    >
+                        <Sparkles size={16} className="text-warning" />
+                        <span>
+                            {isExpanded
+                                ? '오늘의 행운 가이드 및 추천 공고 접기'
+                                : '오늘의 행운 가이드 및 추천 공고 펼쳐보기'}
+                        </span>
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
+                </div>
             </div>
 
-            {/* 2. 행운의 가이드 카드 4종 */}
-            <div className="row g-3 mb-5">
+            {/* 펼치기 영역: 2. 행운의 가이드 카드 4종 & 3. 오늘의 행운 추천 채용 공고 */}
+            {isExpanded && (
+                <div className="fortune-expanded-content">
+                    {/* 2. 행운의 가이드 카드 4종 */}
+                    <div className="row g-3 mb-5">
                 {/* 행운의 직무 */}
                 <div className="col-6 col-md-3">
                     <div className="fortune-guide-card">
@@ -385,9 +407,26 @@ function Fortune() {
                         <p className="mb-0">추천 공고를 준비 중입니다. 전체 채용 공고에서 다양한 공고를 확인해 보세요!</p>
                     </div>
                 )}
-            </div>
 
-            {/* 4. 취업 성향 MBTI 테스트 안내 배너 (Solid Modern Slate) */}
+                {/* 하단 접기 바로가기 버튼 */}
+                <div className="text-center mt-4">
+                    <button
+                        type="button"
+                        className="btn-fortune-collapse-bottom"
+                        onClick={() => {
+                            setIsExpanded(false);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                    >
+                        <ChevronUp size={15} />
+                        <span>행운 가이드 및 추천 공고 접기</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    )}
+
+    {/* 4. 취업 성향 MBTI 테스트 안내 배너 (Solid Modern Slate) */}
             <section className="card fortune-mbti-card mb-4">
                 <div className="fortune-mbti-body">
                     <div className="row align-items-center g-3">
