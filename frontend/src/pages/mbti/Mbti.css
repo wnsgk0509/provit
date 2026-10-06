@@ -31,6 +31,18 @@
   line-height: 1.45;
 }
 
+.mbti-question-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+  margin: 0 auto 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  object-fit: contain;
+  background: #f8fafc;
+}
+
 .mbti-choice {
   width: 100%;
   padding: 1.2rem;
@@ -61,6 +73,16 @@
   white-space: pre-line;
 }
 
+.mbti-analysis-list {
+  display: grid;
+  gap: .55rem;
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #4b5563;
+  font-size: .92rem;
+  line-height: 1.6;
+}
+
 .mbti-detail-box {
   border: 1px solid #e5e7eb;
   background: #fff;
@@ -75,18 +97,53 @@
   box-shadow: 0 8px 20px rgb(0 0 0 / 8%);
 }
 
-.mbti-character-box {
-  padding: 1rem 1.25rem;
-  border: 1px solid #e0e7ff;
+.mbti-compatibility {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid #e5e7eb;
   border-radius: 1rem;
-  background: #f8faff;
-  text-align: center;
+  background: #fff;
 }
 
-.mbti-character-quote {
-  margin-bottom: .5rem;
-  color: #4338ca;
+.mbti-compatibility h3 {
+  margin: 0 0 .7rem;
+  color: #374151;
+  font-size: .9rem;
   font-weight: 700;
+}
+
+.mbti-type-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+
+.mbti-type-tags a {
+  border-radius: 999px;
+  padding: .35rem .6rem;
+  font-size: .78rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.mbti-type-tags a:hover,
+.mbti-type-tags a:focus-visible {
+  color: inherit;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 7px rgba(31, 41, 55, .16);
+}
+
+.mbti-type-tags .is-compatible {
+  color: #3f55a6;
+  background: #e9edff;
+}
+
+.mbti-type-tags .is-incompatible {
+  color: #a54949;
+  background: #fff0f0;
 }
 
 .mbti-primary-button {
@@ -100,6 +157,37 @@
 .mbti-primary-button:hover {
   background: #4338ca;
   color: #fff;
+}
+
+.mbti-share-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  border: 1px solid #c7d2fe;
+  border-radius: .75rem;
+  padding: .8rem 1rem;
+  color: #4338ca;
+  background: #eef2ff;
+  font-weight: 700;
+}
+
+.mbti-share-button:hover {
+  border-color: #818cf8;
+  color: #3730a3;
+  background: #e0e7ff;
+}
+
+.mbti-share-button:focus-visible {
+  outline: 3px solid rgb(99 102 241 / 30%);
+  outline-offset: 2px;
+}
+
+.mbti-share-message {
+  margin: 0;
+  color: #536274;
+  font-size: .8rem;
+  text-align: center;
 }
 
 .mbti-fade-in {
@@ -126,5 +214,15 @@
   .mbti-card {
     padding: 1.5rem;
     border-radius: 1rem;
+  }
+
+  .mbti-question-image {
+    max-height: 320px;
+    margin-bottom: 1rem;
+  }
+
+  .mbti-compatibility {
+    grid-template-columns: 1fr;
+    gap: .85rem;
   }
 }
