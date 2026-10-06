@@ -75,6 +75,7 @@ public class DocumentReviewValidationTest {
                 });
         var reviews = (DocumentReviewDAO) Proxy.newProxyInstance(DocumentReviewDAO.class.getClassLoader(),
                 new Class<?>[] { DocumentReviewDAO.class }, (proxy, method, args) -> {
+                    if (method.getName().equals("selectByRequestId")) return null;
                     if (method.getName().equals("selectReview")) {
                         assertEquals(8, args[0]);
                         reads.incrementAndGet();
@@ -108,6 +109,8 @@ public class DocumentReviewValidationTest {
         assertEquals(401, mvc.perform(post("/api/document-reviews").contentType(MediaType.APPLICATION_JSON)
                 .content(body)).andReturn().getResponse().getStatus());
         assertEquals(401, mvc.perform(get("/api/document-reviews")).andReturn().getResponse().getStatus());
+        assertEquals(401, mvc.perform(get("/api/document-reviews/requests/" + request().getRequestId()))
+                .andReturn().getResponse().getStatus());
         assertEquals(401, mvc.perform(get("/api/document-reviews/1").cookie(new Cookie("provit_access", "invalid")))
                 .andReturn().getResponse().getStatus());
         assertEquals(0, reads.get()); assertEquals(0, writes.get());
@@ -176,7 +179,21 @@ public class DocumentReviewValidationTest {
 
     private DocumentReviewRequestDTO request() {
         var request = new DocumentReviewRequestDTO();
+        request.setRequestId(java.util.UUID.randomUUID().toString());
         request.setResumeNum(11); request.setLetterNum(12); request.setReviewMode("comprehensive");
         return request;
+    }
+
+    @Test
+    public void requestLookupValidatesIdAndNeverLeaksOtherUsersRequests() throws Exception {
+        assertEquals(400, mvc.perform(get("/api/document-reviews/requests/invalid")
+                .cookie(new Cookie("provit_access", "owner"))).andReturn().getResponse().getStatus());
+        assertEquals(404, mvc.perform(get("/api/document-reviews/requests/" + request().getRequestId())
+                .cookie(new Cookie("provit_access", "other"))).andReturn().getResponse().getStatus());
+        var request = request(); request.setRequestId(null);
+        assertEquals(400, mvc.perform(post("/api/document-reviews").contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(request)).cookie(new Cookie("provit_access", "owner")))
+                .andReturn().getResponse().getStatus());
+        assertEquals(0, reads.get()); assertEquals(0, writes.get());
     }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getDocumentReview, getReviewDocument, getReviewDocuments } from '../../api/documentReviewApi';
+import { getDocumentReview, getDocumentReviewByRequestId, getReviewDocument, getReviewDocuments } from '../../api/documentReviewApi';
 import { reviewErrorMessage } from './documentReviewConfig';
 
 export function useReviewDocuments(documentType) {
@@ -80,28 +80,32 @@ export function useReviewSelection(documentType, requestedDocumentNum) {
     return { ...list, selectedDocumentNum, requestedDocumentNum, source };
 }
 
-export function useSavedReview(reviewNum, initialResult) {
+export function useSavedReview(reviewNum, initialResult, requestId = '') {
     const [revision, setRevision] = useState(0);
     const [resource, setResource] = useState(null);
-    const resourceKey = `${reviewNum}:${revision}`;
+    const resourceKey = `${reviewNum || requestId}:${revision}`;
     const cachedResult = revision === 0 && String(initialResult?.reviewNum) === reviewNum ? initialResult : null;
     useEffect(() => {
-        if (!reviewNum || cachedResult) return undefined;
+        if ((!reviewNum && !requestId) || (cachedResult && cachedResult.reviewStatus !== 'PROCESSING')) return undefined;
         let active = true;
-        getDocumentReview(reviewNum).then(
-            (data) => {
-                if (active) setResource({ key: resourceKey, data });
-            },
-            (error) => {
-                if (active) setResource({ key: resourceKey, error: reviewErrorMessage(error, '저장된 첨삭 기록을 불러오지 못했습니다.') });
-            },
-        );
-        return () => { active = false; };
-    }, [reviewNum, resourceKey, cachedResult]);
-    const current = cachedResult ? { data: cachedResult } : resource?.key === resourceKey ? resource : null;
+        let timer;
+        const refresh = async () => {
+            try {
+                const data = reviewNum ? await getDocumentReview(reviewNum) : await getDocumentReviewByRequestId(requestId);
+                if (!active) return;
+                setResource({ key: resourceKey, data });
+                if (data.reviewStatus === 'PROCESSING') timer = setTimeout(refresh, 3000);
+            } catch (error) {
+                if (active) setResource({ key: resourceKey, error: reviewErrorMessage(error, '기존 첨삭 요청을 확인하지 못했습니다. 요청 상태를 다시 확인해 주세요.') });
+            }
+        };
+        refresh();
+        return () => { active = false; clearTimeout(timer); };
+    }, [reviewNum, requestId, resourceKey, cachedResult]);
+    const current = resource?.key === resourceKey ? resource : cachedResult ? { data: cachedResult } : null;
     return {
         result: current?.data || null,
-        isLoading: Boolean(reviewNum) && !current,
+        isLoading: Boolean(reviewNum || requestId) && !current,
         error: current?.error || '',
         reload: () => setRevision((value) => value + 1),
     };

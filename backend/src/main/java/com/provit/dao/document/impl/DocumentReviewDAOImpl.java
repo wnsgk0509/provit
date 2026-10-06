@@ -31,6 +31,9 @@ public class DocumentReviewDAOImpl implements DocumentReviewDAO {
     @Override public DocumentReviewResultDTO selectReview(int userNum, long reviewNum) {
         return sqlSession.selectOne(NS + "selectReview", Map.of("userNum", userNum, "reviewNum", reviewNum));
     }
+    @Override public DocumentReviewDTO selectByRequestId(int userNum, String requestId) {
+        return sqlSession.selectOne(NS + "selectByRequestId", Map.of("userNum", userNum, "requestId", requestId));
+    }
     @Override public List<DocumentReviewDTO> selectReviews(int userNum, int offset, int pageSize) {
         return sqlSession.selectList(NS + "selectReviews", Map.of("userNum", userNum, "offset", offset, "pageSize", pageSize));
     }

@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, FolderOpen, Layers, Sparkles } from 'lucide-react';
-import { requestDocumentReview } from '../../api/documentReviewApi';
+import { ArrowLeft, ArrowRight, Check, FolderOpen, Layers } from 'lucide-react';
+import { requestDocumentReview, getDocumentReviewByRequestId } from '../../api/documentReviewApi';
+import { saveReviewRequest, removeReviewRequest, resumeReviewRequest, reviewSelectionParams, createReviewRequestId } from './reviewRequest';
 import {
     DOCUMENT_REVIEW_TYPES,
     REVIEW_CUSTOM_MAX_LENGTH,
@@ -21,6 +22,8 @@ const REVIEW_STEPS = ['서류 선택', '첨삭 기준 설정', '결과 확인'];
 function DocumentReview() {
     const [searchParams, setSearchParams] = useSearchParams();
     const savedReviewNum = searchParams.get('reviewNum') || '';
+    const pendingRequestId = searchParams.get('requestId') || '';
+    const hasSavedRequest = Boolean(savedReviewNum || pendingRequestId);
     const [historyRevision, setHistoryRevision] = useState(0);
     // Old document links can still preselect one input in the new bundle.
     const legacyType = DOCUMENT_REVIEW_TYPES.find((type) => type.value === searchParams.get('type'));
@@ -40,9 +43,9 @@ function DocumentReview() {
     const [customCriteria, setCustomCriteria] = useState('');
     const [instructions, setInstructions] = useState('');
     const [submission, setSubmission] = useState(null);
-    const savedReview = useSavedReview(savedReviewNum, submission?.result);
+    const savedReview = useSavedReview(savedReviewNum, submission?.result, pendingRequestId);
     const [confirmedSelectionKey, setConfirmedSelectionKey] = useState(null);
-    const [step, setStep] = useState(0);
+    const [step, setStep] = useState(() => pendingRequestId ? 2 : 0);
     const [exampleKey, setExampleKey] = useState(null);
     const workspaceRef = useRef(null);
     const submittingRef = useRef(false);
@@ -52,7 +55,8 @@ function DocumentReview() {
     const contextKey = JSON.stringify({ selectedIds, reviewMode, customCriteria: effectiveCustomCriteria, instructions });
     const currentContextRef = useRef(contextKey);
     const currentSubmission = submission?.key === contextKey ? submission : null;
-    const isSubmitting = currentSubmission?.status === 'loading';
+    const isSubmitting = currentSubmission?.status === 'loading' || savedReview.result?.reviewStatus === 'PROCESSING';
+    const hasUnresolvedRequest = Boolean(pendingRequestId) && !['COMPLETED', 'FAILED'].includes(savedReview.result?.reviewStatus);
     const requiredCount = Number(Boolean(resume.source.document)) + Number(Boolean(coverLetter.source.document));
     const portfolioReady = !selectedIds.portfolioNum || Boolean(portfolio.source.document);
     const isSelectionComplete = confirmedSelectionKey === selectionKey && requiredCount === 2 && portfolioReady;
@@ -60,7 +64,7 @@ function DocumentReview() {
         (reviewMode !== 'custom' || (Boolean(effectiveCustomCriteria) && customCriteria.length <= REVIEW_CUSTOM_MAX_LENGTH));
     const canReview = isSelectionComplete && isCriteriaValid && instructions.length <= REVIEW_INSTRUCTIONS_MAX_LENGTH;
     const activeStep = savedReviewNum ? 2 : step === 1 && !isSelectionComplete ? 0 : step;
-    const showExample = !savedReviewNum && exampleKey === contextKey;
+    const showExample = !hasSavedRequest && exampleKey === contextKey;
     const previousStepRef = useRef(activeStep);
 
     useEffect(() => {
@@ -82,23 +86,28 @@ function DocumentReview() {
     const selectDocument = (key, value) => {
         setConfirmedSelectionKey(null);
         const next = { ...selectedIds, [key]: value };
-        setSearchParams(Object.fromEntries(Object.entries(next).filter(([, id]) => id)), { replace: true });
+        setSearchParams((params) => reviewSelectionParams(params, next), { replace: true });
     };
     const completeSelection = (skipPortfolio) => {
         const next = skipPortfolio ? { ...selectedIds, portfolioNum: '' } : selectedIds;
         if (skipPortfolio) {
-            setSearchParams(Object.fromEntries(Object.entries(next).filter(([, id]) => id)), { replace: true });
+            setSearchParams((params) => reviewSelectionParams(params, next), { replace: true });
         }
         setConfirmedSelectionKey(JSON.stringify(next));
     };
     const changeCustomCriteria = (value) => setCustomCriteria(value.slice(0, REVIEW_CUSTOM_MAX_LENGTH));
     const changeInstructions = (value) => setInstructions(value.slice(0, REVIEW_INSTRUCTIONS_MAX_LENGTH));
-    const clearSavedReview = () => setSearchParams((params) => {
-        const next = new URLSearchParams(params);
-        next.delete('reviewNum');
-        return next;
-    }, { replace: true });
+    const clearSavedReview = () => {
+        if (pendingRequestId && !hasUnresolvedRequest) removeReviewRequest(pendingRequestId, window.sessionStorage);
+        setSearchParams((params) => {
+            const next = new URLSearchParams(params);
+            next.delete('reviewNum');
+            if (!hasUnresolvedRequest) next.delete('requestId');
+            return next;
+        }, { replace: true });
+    };
     const previewResult = () => {
+        if (pendingRequestId) return;
         clearSavedReview();
         setExampleKey(contextKey);
         setStep(2);
@@ -111,6 +120,7 @@ function DocumentReview() {
         setSearchParams((params) => {
             const next = new URLSearchParams(params);
             next.set('reviewNum', String(reviewNum));
+            next.delete('requestId');
             return next;
         });
         setStep(2);
@@ -119,33 +129,66 @@ function DocumentReview() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        if (submittingRef.current || !canReview) return;
+        if (submittingRef.current || isSubmitting || !canReview) return;
         submittingRef.current = true;
         setExampleKey(null);
         setSubmission({ key: contextKey, status: 'loading' });
         setStep(2);
         try {
-            const result = await requestDocumentReview({
+            const request = saveReviewRequest({
                 resumeNum: Number(resume.selectedDocumentNum),
                 letterNum: Number(coverLetter.selectedDocumentNum),
                 portfolioNum: portfolio.selectedDocumentNum ? Number(portfolio.selectedDocumentNum) : null,
                 reviewMode,
                 customCriteria: effectiveCustomCriteria,
                 instructions: instructions.trim(),
-            });
+            }, pendingRequestId, window.sessionStorage, createReviewRequestId);
+            setSearchParams((params) => {
+                const next = new URLSearchParams(params);
+                next.delete('reviewNum');
+                next.set('requestId', request.requestId);
+                return next;
+            }, { replace: true });
+            const result = await requestDocumentReview(request);
             if (activeRef.current) setHistoryRevision((value) => value + 1);
             if (activeRef.current && currentContextRef.current === contextKey) {
                 setSubmission({ key: contextKey, status: 'complete', result });
+                removeReviewRequest(request.requestId, window.sessionStorage);
                 openSavedReview(result.reviewNum);
             }
         } catch (error) {
-            if (activeRef.current) setHistoryRevision((value) => value + 1);
+            if (activeRef.current) {
+                setHistoryRevision((value) => value + 1);
+                savedReview.reload();
+            }
             if (activeRef.current && currentContextRef.current === contextKey)
                 setSubmission({
                     key: contextKey,
                     status: 'error',
-                    error: reviewErrorMessage(error, '통합 첨삭을 완료하지 못했습니다. 다시 시도해 주세요.'),
+                    error: reviewErrorMessage(error, error.message || '통합 첨삭을 완료하지 못했습니다. 기존 요청 상태를 확인해 주세요.'),
                 });
+        } finally {
+            submittingRef.current = false;
+        }
+    };
+
+    const handleResume = async () => {
+        if (submittingRef.current) return;
+        submittingRef.current = true;
+        setSubmission({ key: contextKey, status: 'loading' });
+        try {
+            const result = await resumeReviewRequest(pendingRequestId, window.sessionStorage,
+                getDocumentReviewByRequestId, requestDocumentReview);
+            if (!activeRef.current) return;
+            setSubmission({ key: contextKey, status: 'complete', result });
+            setHistoryRevision((value) => value + 1);
+            removeReviewRequest(pendingRequestId, window.sessionStorage);
+            openSavedReview(result.reviewNum);
+        } catch (error) {
+            if (activeRef.current) {
+                savedReview.reload();
+                setSubmission({ key: contextKey, status: 'error', error: reviewErrorMessage(error, error.message) });
+            }
         } finally {
             submittingRef.current = false;
         }
@@ -191,7 +234,7 @@ function DocumentReview() {
                                         type="button"
                                         aria-current={index === activeStep ? 'step' : undefined}
                                         disabled={isSubmitting || (index === 1 && !isSelectionComplete) ||
-                                            (index === 2 && !currentSubmission && !showExample && !savedReviewNum)}
+                                            (index === 2 && !currentSubmission && !showExample && !hasSavedRequest)}
                                         onClick={() => {
                                             if (index !== 2) clearSavedReview();
                                             setStep(index);
@@ -207,7 +250,7 @@ function DocumentReview() {
                             );
                         })}
                     </ol>
-                    {activeStep !== 2 && (
+                    {activeStep !== 2 && !pendingRequestId && (
                         <button type="button" className="review-text-button" onClick={previewResult}>
                             결과 예시 보기 <ArrowRight size={14} aria-hidden="true" />
                         </button>
@@ -245,9 +288,9 @@ function DocumentReview() {
                         <>
                             <DocumentReviewResult
                                 includePortfolio={Boolean(portfolio.source.document)}
-                                result={savedReviewNum ? savedReview.result : currentSubmission?.result}
+                                result={hasSavedRequest ? savedReview.result : currentSubmission?.result}
                                 isSubmitting={isSubmitting || savedReview.isLoading}
-                                error={savedReviewNum ? savedReview.error : currentSubmission?.error}
+                                error={hasSavedRequest ? savedReview.result ? savedReview.error : currentSubmission?.error || savedReview.error : currentSubmission?.error}
                                 showExample={showExample}
                                 onShowExample={previewResult}
                                 onCloseExample={() => {
@@ -255,7 +298,12 @@ function DocumentReview() {
                                     returnToSetup();
                                 }}
                             />
-                            {savedReview.error && (
+                            {hasUnresolvedRequest && !isSubmitting && (
+                                <button type="button" className="review-secondary-button" onClick={handleResume}>
+                                    기존 요청 확인 · 이어서 진행
+                                </button>
+                            )}
+                            {savedReviewNum && savedReview.error && (
                                 <button type="button" className="review-secondary-button" onClick={savedReview.reload}>
                                     저장된 결과 다시 불러오기
                                 </button>
@@ -268,14 +316,14 @@ function DocumentReview() {
                                     disabled={isSubmitting}
                                 >
                                     <ArrowLeft size={16} aria-hidden="true" />
-                                    {isSelectionComplete ? '첨삭 기준으로' : '서류 선택으로'}
+                                    {savedReview.result?.reviewStatus === 'FAILED' ? '새 첨삭 준비하기' : isSelectionComplete ? '첨삭 기준으로' : '서류 선택으로'}
                                 </button>
                             </div>
                         </>
                     )}
                 </div>
             </div>
-            <ReviewHistory key={historyRevision} currentReviewNum={savedReviewNum} onOpen={openSavedReview} disabled={isSubmitting} />
+            <ReviewHistory key={historyRevision} currentReviewNum={savedReviewNum || String(savedReview.result?.reviewNum || '')} onOpen={openSavedReview} disabled={isSubmitting || hasUnresolvedRequest} />
         </div>
     );
 }

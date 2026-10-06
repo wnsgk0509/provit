@@ -1,6 +1,11 @@
 package com.provit.service.document.impl;
 
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.HexFormat;
+import java.util.Locale;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -9,6 +14,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -26,6 +32,7 @@ import com.provit.service.document.DocumentService;
 import com.provit.service.document.generator.DocumentReviewGenerator;
 import com.provit.service.document.generator.OpenAiDocumentReviewGenerator;
 import com.provit.service.document.DocumentReviewProcessingException;
+import com.provit.service.document.DocumentReviewRequestConflictException;
 
 @Service
 public class DocumentReviewServiceImpl implements DocumentReviewService {
@@ -51,9 +58,15 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public DocumentReviewResultDTO createReview(int userNum, DocumentReviewRequestDTO request) {
         validateRequest(request);
+        String requestId = normalizeRequestId(request.getRequestId());
+        String requestHash = requestHash(request);
+        var existing = reviewDAO.selectByRequestId(userNum, requestId);
+        if (existing != null) return reuseReview(userNum, existing, requestHash);
         var documents = snapshotDocuments(userNum, request);
         var review = new DocumentReviewDTO();
         review.setUserNum(userNum);
+        review.setRequestId(requestId);
+        review.setRequestHash(requestHash);
         String title = "AI 첨삭 · " + documents.get(0).getDocumentTitle();
         review.setReviewTitle(title.substring(0, Math.min(title.length(), MAX_TEXT_LENGTH)));
         review.setReviewMode(request.getReviewMode());
@@ -62,13 +75,19 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
         review.setModelName(OpenAiDocumentReviewGenerator.MODEL);
         review.setPromptVersion(OpenAiDocumentReviewGenerator.PROMPT_VERSION);
         review.setResponseVersion(OpenAiDocumentReviewGenerator.RESPONSE_VERSION);
-        transaction.executeWithoutResult(status -> {
-            reviewDAO.insertReview(review);
-            for (Document document : documents) {
-                document.setReviewNum(review.getReviewNum());
-                reviewDAO.insertDocument(document);
-            }
-        });
+        try {
+            transaction.executeWithoutResult(status -> {
+                reviewDAO.insertReview(review);
+                for (Document document : documents) {
+                    document.setReviewNum(review.getReviewNum());
+                    reviewDAO.insertDocument(document);
+                }
+            });
+        } catch (DuplicateKeyException exception) {
+            existing = reviewDAO.selectByRequestId(userNum, requestId);
+            if (existing == null) throw exception;
+            return reuseReview(userNum, existing, requestHash);
+        }
         try {
             var result = generator.generate(request, documents);
             transaction.executeWithoutResult(status -> saveResult(userNum, review, documents, result));
@@ -140,6 +159,37 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
 
     @Override
     @Transactional(readOnly = true)
+    public DocumentReviewResultDTO getReviewByRequestId(int userNum, String requestId) {
+        var review = reviewDAO.selectByRequestId(userNum, normalizeRequestId(requestId));
+        if (review == null) throw new NoSuchElementException("첨삭 요청 기록을 찾을 수 없습니다.");
+        return getReview(userNum, review.getReviewNum());
+    }
+
+    private DocumentReviewResultDTO reuseReview(int userNum, DocumentReviewDTO review, String requestHash) {
+        if (!requestHash.equals(review.getRequestHash())) throw new DocumentReviewRequestConflictException();
+        return getReview(userNum, review.getReviewNum());
+    }
+
+    private String normalizeRequestId(String requestId) {
+        if (requestId == null || !requestId.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))
+            throw new IllegalArgumentException("올바른 첨삭 요청 ID가 필요합니다.");
+        return requestId.toLowerCase(Locale.ROOT);
+    }
+
+    private String requestHash(DocumentReviewRequestDTO request) {
+        try {
+            byte[] payload = objectMapper.writeValueAsBytes(Arrays.asList(request.getResumeNum(), request.getLetterNum(),
+                    request.getPortfolioNum(), request.getReviewMode(),
+                    "custom".equals(request.getReviewMode()) ? request.getCustomCriteria().strip() : null,
+                    normalizeOptionalText(request.getInstructions())));
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(payload));
+        } catch (IOException | NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("첨삭 요청을 확인하지 못했습니다.", exception);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public DocumentReviewResultDTO getReview(int userNum, long reviewNum) {
         if (reviewNum < 1) throw new IllegalArgumentException("첨삭 기록 번호가 올바르지 않습니다.");
         var result = reviewDAO.selectReview(userNum, reviewNum);
@@ -192,6 +242,7 @@ public class DocumentReviewServiceImpl implements DocumentReviewService {
 
     private void validateRequest(DocumentReviewRequestDTO request) {
         if (request == null) throw new IllegalArgumentException("첨삭 요청이 필요합니다.");
+        normalizeRequestId(request.getRequestId());
         validateDocumentNum(request.getResumeNum(), "이력서");
         validateDocumentNum(request.getLetterNum(), "자기소개서");
         if (request.getPortfolioNum() != null) validateDocumentNum(request.getPortfolioNum(), "포트폴리오");
