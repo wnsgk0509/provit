@@ -57,7 +57,7 @@ function StudyCreateModal({ show, onClose, onSuccess }) {
                         <div className="modal-body p-4">
                             <form id="studyForm" onSubmit={handleSubmit}>
                                 <div className="mb-3">
-                                    <label className="form-label fw-semibold text-secondary small">스터디 이름</label>
+                                    <label className="form-label fw-semibold small">스터디 이름</label>
                                     <input 
                                         type="text" 
                                         className="form-control" 
@@ -68,7 +68,7 @@ function StudyCreateModal({ show, onClose, onSuccess }) {
                                     />
                                 </div>
                                 <div className="mb-3">
-                                    <label className="form-label fw-semibold text-secondary small">최대 참여 인원</label>
+                                    <label className="form-label fw-semibold small">최대 참여 인원</label>
                                     <input 
                                         type="number" 
                                         className="form-control" 
@@ -83,13 +83,13 @@ function StudyCreateModal({ show, onClose, onSuccess }) {
                                     <textarea 
                                         className="form-control" 
                                         rows="5" 
-                                        placeholder="예) 매주 수요일 20:00 · 온라인 음성 · 최대 6명&#13;&#10;&#13;&#10;스터디 소개..."
+                                        placeholder="예) 매주 수요일 20:00 · 온라인 음성 · 최대 6명&#13;&#10;&#13;&#10;스터디 소개...&#13;&#10;&#13;&#10;모임 링크..."
                                         value={studyExplain}
                                         onChange={(e) => setStudyExplain(e.target.value)}
                                         style={{ resize: 'none' }}
                                     ></textarea>
                                 </div>
-                                <button type="submit" className="btn btn-primary w-100 py-3 fw-bold rounded-3">
+                                <button type="submit" className="btn btn-primary w-100 py-2 fw-bold rounded-3">
                                     스터디 개설
                                 </button>
                             </form>
