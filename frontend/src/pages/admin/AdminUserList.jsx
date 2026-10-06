@@ -94,33 +94,36 @@ const AdminUserList = () => {
         </li>
         <li className="nav-item">
           <Link to="/admin/reports" className="nav-link text-muted">
-            신고 관리 (모더레이션)
+            신고 관리
           </Link>
         </li>
       </ul>
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         {/* 필터 탭 */}
-        <ul className="nav nav-pills">
-          <li className="nav-item me-2">
+        <ul className="nav nav-pills flex-nowrap text-nowrap justify-content-between w-100">
+          <li className="nav-item flex-fill me-1">
             <button 
-              className={`nav-link ${statusFilter === "" ? "active" : "bg-light text-dark border"}`} 
+              className={`nav-link w-100 px-1 py-1 text-center ${statusFilter === "" ? "active" : "bg-light text-dark border"}`} 
+              style={{ fontSize: '0.85rem' }}
               onClick={() => { setStatusFilter(""); setPage(1); }}
             >
               전체
             </button>
           </li>
-          <li className="nav-item me-2">
+          <li className="nav-item flex-fill me-1">
             <button 
-              className={`nav-link ${statusFilter === "ACTIVE" ? "active" : "bg-light text-dark border"}`} 
+              className={`nav-link w-100 px-1 py-1 text-center ${statusFilter === "ACTIVE" ? "active" : "bg-light text-dark border"}`} 
+              style={{ fontSize: '0.85rem' }}
               onClick={() => { setStatusFilter("ACTIVE"); setPage(1); }}
             >
               정상 회원
             </button>
           </li>
-          <li className="nav-item">
+          <li className="nav-item flex-fill">
             <button 
-              className={`nav-link ${statusFilter === "BLOCKED" ? "active" : "bg-light text-dark border"}`} 
+              className={`nav-link w-100 px-1 py-1 text-center ${statusFilter === "BLOCKED" ? "active" : "bg-light text-dark border"}`} 
+              style={{ fontSize: '0.85rem' }}
               onClick={() => { setStatusFilter("BLOCKED"); setPage(1); }}
             >
               정지된 회원
@@ -129,21 +132,22 @@ const AdminUserList = () => {
         </ul>
 
         {/* 검색 폼 */}
-        <form onSubmit={handleSearch} className="d-flex" style={{ maxWidth: '300px' }}>
+        <form onSubmit={handleSearch} className="d-flex mt-2 mt-md-0" style={{ width: '100%', maxWidth: '350px' }}>
           <input
             type="text"
-            className="form-control me-2"
+            className="form-control form-control-sm me-2 flex-grow-1"
             placeholder="이메일 또는 닉네임"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
+            style={{ fontSize: '0.85rem' }}
           />
-          <button type="submit" className="btn btn-primary text-nowrap">검색</button>
+          <button type="submit" className="btn btn-primary btn-sm text-nowrap px-3" style={{ fontSize: '0.85rem' }}>검색</button>
         </form>
       </div>
 
-      {/* 회원 목록 테이블 */}
-      <div className="table-responsive">
-        <table className="table table-hover align-middle border-top">
+      {/* PC 버전 회원 목록 테이블 */}
+      <div className="table-responsive d-none d-md-block">
+        <table className="table table-hover align-middle border-top text-nowrap">
           <thead className="table-light">
             <tr>
               <th scope="col" className="text-center">회원번호</th>
@@ -189,7 +193,8 @@ const AdminUserList = () => {
                     </td>
                     <td className="text-center">
                       <button
-                        className={`btn btn-sm ${blocked ? "btn-outline-success" : "btn-outline-danger"}`}
+                        className={`btn btn-sm px-1 py-0 d-flex align-items-center justify-content-center mx-auto ${blocked ? "btn-outline-success" : "btn-outline-danger"}`}
+                        style={{ fontSize: '0.85rem', width: '70px' }}
                         onClick={() => handleStatusChange(user.userNum, user.blockedDate)}
                         disabled={isWithdrawn}
                       >
@@ -202,6 +207,61 @@ const AdminUserList = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* 모바일 버전 회원 목록 카드 */}
+      <div className="d-block d-md-none">
+        {users.length === 0 ? (
+          <div className="text-center py-5 text-muted border rounded bg-light">
+            조건에 맞는 회원이 없습니다.
+          </div>
+        ) : (
+          users.map((user) => {
+            const blocked = isBlocked(user.blockedDate);
+            const isWithdrawn = user.userIsDeleted === 1;
+
+            return (
+              <div key={`mobile-${user.userNum}`} className="card mb-3 shadow-sm border-0">
+                <div className="card-body border rounded">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h6 className="card-title mb-0 fw-bold">
+                      {user.userName} <span className="text-muted small">({user.userNickname})</span>
+                    </h6>
+                    <div>
+                      {isWithdrawn ? (
+                        <span className="badge bg-secondary">탈퇴</span>
+                      ) : blocked ? (
+                        <span className="badge bg-danger">정지됨</span>
+                      ) : (
+                        <span className="badge bg-success">정상</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mb-2 text-muted small">
+                    <div><strong>회원번호:</strong> {user.userNum}</div>
+                    <div><strong>이메일:</strong> {user.userEmail}</div>
+                    <div><strong>가입일:</strong> {formatDate(user.userRegisterDate)}</div>
+                    {blocked && (
+                      <div className="text-danger mt-1">
+                        정지 기한: ~{formatDate(user.blockedDate)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-end mt-3">
+                    <button
+                      className={`btn btn-sm w-100 px-1 py-0 d-flex align-items-center justify-content-center ${blocked ? "btn-outline-success" : "btn-outline-danger"}`}
+                      style={{ fontSize: '0.85rem' }}
+                      onClick={() => handleStatusChange(user.userNum, user.blockedDate)}
+                      disabled={isWithdrawn}
+                    >
+                      {blocked ? "정지 해제" : "계정 정지"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* 페이지네이션 */}

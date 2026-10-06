@@ -19,6 +19,7 @@ public class AdminReportDTO {
     private String targetType; // 'POST' or 'COMMENT'
     private Long targetNum;
     private String targetContentPreview; // 게시글 제목 또는 댓글 내용 앞부분
+    private Long commentPostNum; // 댓글 신고 시 원본 게시글 번호
     
     private String reportReason;
     private String reportStatus; // PENDING, RESOLVED, REJECTED
