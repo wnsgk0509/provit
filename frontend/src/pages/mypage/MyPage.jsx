@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, Eye, EyeOff, FileText, KeyRound, ShieldCheck, Sparkles } from 'lucide-react';
+import { ChevronRight, Eye, EyeOff, FileText, KeyRound, ShieldCheck, Sparkles, Star } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import client from '../../api/client';
 import { getCoverLetterList, getPortfolioList, getResumeList } from '../../api/documentApi';
 import './MyPage.css';
 import InterviewDashboard from './components/InterviewDashboard';
+import MyCommunityActivity from './components/MyCommunityActivity';
+import useMainResume from '../../hooks/useMainResume';
+import MainResumeFeedback from '../../components/MainResumeFeedback';
 
 // 회원가입과 동일한 비밀번호 규칙: 8자 이상, 영문 대/소문자·숫자·특수문자 포함
 const PASSWORD_PATTERN = /^(?=\S{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).*$/;
@@ -50,6 +53,7 @@ function MyPage() {
     const [documentList, setDocumentList] = useState([]);
     const [isDocumentListLoading, setIsDocumentListLoading] = useState(true);
     const [documentListError, setDocumentListError] = useState('');
+    const mainResumeState = useMainResume();
 
     useEffect(() => {
         setDisplayNickname(userNickname);
@@ -298,6 +302,8 @@ function MyPage() {
                         ))}
                     </fieldset>
 
+                    {selectedDocumentType === 'resume' && <MainResumeFeedback state={mainResumeState} />}
+
                     <div className="mypage-document-list" aria-live="polite" role="region" aria-label="취업 문서 목록" tabIndex={0}>
                         {isDocumentListLoading && (
                             <div className="mypage-document-state" role="status">
@@ -318,20 +324,35 @@ function MyPage() {
                         )}
 
                         {!isDocumentListLoading && !documentListError && documentList.map((documentItem) => (
-                            <Link
-                                className="mypage-document-item"
-                                to={`/documents/${selectedDocumentType}/${documentItem.documentNum}`}
-                                key={documentItem.documentNum}
-                            >
-                                <span className="mypage-document-icon" aria-hidden="true">
-                                    <FileText size={20} />
-                                </span>
-                                <span className="mypage-document-info">
-                                    <strong>{documentItem.documentTitle || '제목 없음'}</strong>
-                                    <span>작성일 {formatDocumentDate(documentItem.createdAt)}</span>
-                                </span>
-                                <ChevronRight size={19} aria-hidden="true" />
-                            </Link>
+                            <div className={`mypage-document-row ${selectedDocumentType === 'resume' && mainResumeState.isMainResume(documentItem.documentNum) ? 'is-main-resume' : ''}`}
+                                key={documentItem.documentNum}>
+                                <Link className="mypage-document-item"
+                                    to={`/documents/${selectedDocumentType}/${documentItem.documentNum}`}>
+                                    <span className="mypage-document-icon" aria-hidden="true"><FileText size={20} /></span>
+                                    <span className="mypage-document-info">
+                                        <span className="mypage-document-title">
+                                            <strong>{documentItem.documentTitle || '제목 없음'}</strong>
+                                            {selectedDocumentType === 'resume' && mainResumeState.isMainResume(documentItem.documentNum) && (
+                                                <span className="main-resume-badge"><Star size={12} aria-hidden="true" /> 대표</span>
+                                            )}
+                                        </span>
+                                        <span>작성일 {formatDocumentDate(documentItem.createdAt)}</span>
+                                    </span>
+                                    <ChevronRight size={19} aria-hidden="true" />
+                                </Link>
+                                {selectedDocumentType === 'resume' && (
+                                    <button type="button" className="mypage-main-resume-button"
+                                        disabled={mainResumeState.disabled}
+                                        aria-label={`${documentItem.documentTitle || '제목 없음'} ${mainResumeState.isMainResume(documentItem.documentNum) ? '대표 해제' : '대표로 지정'}`}
+                                        onClick={() => mainResumeState.changeMainResume(
+                                            mainResumeState.isMainResume(documentItem.documentNum) ? null : documentItem.documentNum,
+                                        )}>
+                                        {mainResumeState.saving && (mainResumeState.pendingResumeNum === documentItem.documentNum
+                                            || (mainResumeState.pendingResumeNum === null && mainResumeState.isMainResume(documentItem.documentNum)))
+                                            ? '변경 중...' : mainResumeState.isMainResume(documentItem.documentNum) ? '대표 해제' : '대표로 지정'}
+                                    </button>
+                                )}
+                            </div>
                         ))}
                     </div>
 
@@ -351,6 +372,8 @@ function MyPage() {
                     </div>
                 </section>
             </InterviewDashboard>
+
+            <MyCommunityActivity />
 
             <form className="mypage-edit-form" onSubmit={handleSubmit}>
                 <section aria-labelledby="profile-edit-title">

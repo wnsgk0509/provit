@@ -22,6 +22,9 @@
         JOIN T_USER u ON p.USER_NUM = u.USER_NUM
         <where>
             <!-- 카테고리 필터가 넘어왔을 때만 동작 -->
+            <if test="authorUserNum != null">
+                AND p.USER_NUM = #{authorUserNum}
+            </if>
             <if test="categoryNum != null">
                 AND p.CATEGORY_NUM = #{categoryNum}
             </if>
@@ -81,6 +84,9 @@
         FROM T_POST p
         JOIN T_USER u ON p.USER_NUM = u.USER_NUM
         <where>
+            <if test="authorUserNum != null">
+                AND p.USER_NUM = #{authorUserNum}
+            </if>
             <if test="categoryNum != null">
                 AND p.CATEGORY_NUM = #{categoryNum}
             </if>

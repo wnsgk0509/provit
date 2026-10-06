@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.provit.mapper.document.DocumentReviewMapper">
     <sql id="reviewColumns">
-        REVIEW_NUM, USER_NUM, REVIEW_TITLE, REVIEW_STATUS, REVIEW_MODE, CUSTOM_CRITERIA,
+        REVIEW_NUM, USER_NUM, REQUEST_ID, REQUEST_HASH, REVIEW_TITLE, REVIEW_STATUS, REVIEW_MODE, CUSTOM_CRITERIA,
         INSTRUCTIONS, MODEL_NAME, PROMPT_VERSION, RESPONSE_VERSION, CREATED_AT, FINISHED_AT, ERROR_MESSAGE
     </sql>
 
@@ -11,9 +11,9 @@
             SELECT SEQ_T_DOCUMENT_REVIEW.NEXTVAL FROM DUAL
         </selectKey>
         INSERT INTO T_DOCUMENT_REVIEW
-            (REVIEW_NUM, USER_NUM, REVIEW_TITLE, REVIEW_STATUS, REVIEW_MODE, CUSTOM_CRITERIA,
+            (REVIEW_NUM, USER_NUM, REQUEST_ID, REQUEST_HASH, REVIEW_TITLE, REVIEW_STATUS, REVIEW_MODE, CUSTOM_CRITERIA,
              INSTRUCTIONS, MODEL_NAME, PROMPT_VERSION, RESPONSE_VERSION, CAREER_PREPARATION_JSON)
-        VALUES (#{reviewNum}, #{userNum}, #{reviewTitle}, 'PROCESSING', #{reviewMode},
+        VALUES (#{reviewNum}, #{userNum}, #{requestId,jdbcType=VARCHAR}, #{requestHash,jdbcType=VARCHAR}, #{reviewTitle}, 'PROCESSING', #{reviewMode},
                 #{customCriteria,jdbcType=VARCHAR}, #{instructions,jdbcType=VARCHAR},
                 #{modelName}, #{promptVersion}, #{responseVersion}, #{careerPreparationJson,jdbcType=CLOB})
     </insert>
@@ -85,6 +85,10 @@
         FROM T_DOCUMENT_REVIEW WHERE USER_NUM = #{userNum}
         ORDER BY CREATED_AT DESC, REVIEW_NUM DESC
         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+    <select id="selectByRequestId" resultType="com.provit.dto.document.DocumentReviewDTO">
+        SELECT <include refid="reviewColumns"/>
+        FROM T_DOCUMENT_REVIEW WHERE USER_NUM = #{userNum} AND REQUEST_ID = #{requestId}
     </select>
     <select id="selectDocuments" resultType="com.provit.dto.document.DocumentReviewResultDTO$Document">
         SELECT REVIEW_DOCUMENT_NUM, REVIEW_NUM, DOCUMENT_TYPE, SOURCE_DOCUMENT_NUM, DOCUMENT_TITLE,

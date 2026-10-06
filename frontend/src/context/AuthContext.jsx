@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import client, { refreshAccessToken } from '../api/client';
 
 const AuthContext = createContext();
@@ -76,7 +76,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const updateUser = (userData) => setUser(userData);
+  const updateUser = useCallback((userData) => setUser(userData), []);
   const clearSessionExpired = () => {
     localStorage.removeItem(AUTH_SESSION_KEY);
     setSessionExpired(false);

@@ -17,6 +17,7 @@ public interface DocumentReviewDAO {
     int updateDocumentSummary(Document document);
     String lockReview(int userNum, long reviewNum);
     DocumentReviewResultDTO selectReview(int userNum, long reviewNum);
+    DocumentReviewDTO selectByRequestId(int userNum, String requestId);
     List<DocumentReviewDTO> selectReviews(int userNum, int offset, int pageSize);
     List<Document> selectDocuments(long reviewNum);
     List<Strength> selectStrengths(long reviewNum);

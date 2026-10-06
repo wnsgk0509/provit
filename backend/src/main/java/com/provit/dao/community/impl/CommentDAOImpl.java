@@ -25,6 +25,11 @@ public class CommentDAOImpl implements CommentDAO {
     }
 
     @Override
+    public List<CommentDTO> selectMyCommentList(Long userNum) {
+        return sqlSession.selectList(NAMESPACE + "selectMyCommentList", userNum);
+    }
+
+    @Override
     public CommentDTO selectCommentDetail(Long commentNum) {
         return sqlSession.selectOne(NAMESPACE + "selectCommentDetail", commentNum);
     }
