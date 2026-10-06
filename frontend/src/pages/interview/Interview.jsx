@@ -330,8 +330,8 @@ function Interview() {
 
             <div className="interview-explain">
                 <span>1. 질문은 마이페이지에서 업로드한 유저의 서류 기반 질문과 선택한 직무 역량 질문으로 총 5문항 구성되어있습니다.</span><br />
-                <span>2. 유저는 제출할 문서와 난이도를 선택하고 일대일 면접을 진행합니다.</span><br />
-                <span>3. 면접이 종료되면 유저는 AI로부터 점수와 총평을 받을 수 있고 마이페이지에 기록됩니다.</span>
+                <span>2. 유저는 제출할 문서와 난이도를 선택하고 AI 면접관과 면접을 진행합니다.</span><br />
+                <span>3. 면접이 종료되면 점수와 총평을 받고 해당 정보는 마이페이지에 기록됩니다.</span>
             </div>
 
             <div className="interview-container">

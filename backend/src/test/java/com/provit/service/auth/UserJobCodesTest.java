@@ -112,7 +112,30 @@ public class UserJobCodesTest {
                 public String createRefreshToken(UserDTO user) { return "local-test-refresh-token"; }
             };
             service = new AuthServiceImpl(dao, new BCryptPasswordEncoder(4), jwt,
-                    (email, code) -> { verificationCode.set(code); return true; });
+                    new MailService() {
+                        @Override
+                        public boolean sendVerificationCode(String email, String code) {
+                            verificationCode.set(code);
+                            return true;
+                        }
+
+                        @Override
+                        public java.util.concurrent.CompletableFuture<Boolean> sendReportReceiptMail(String email) {
+                            return java.util.concurrent.CompletableFuture.completedFuture(true);
+                        }
+
+                        @Override
+                        public java.util.concurrent.CompletableFuture<Boolean> sendBlindNotificationMail(
+                                String email, String targetType) {
+                            return java.util.concurrent.CompletableFuture.completedFuture(true);
+                        }
+
+                        @Override
+                        public java.util.concurrent.CompletableFuture<Boolean> sendReportResolvedMail(
+                                String email, String targetType) {
+                            return java.util.concurrent.CompletableFuture.completedFuture(true);
+                        }
+                    });
         }
 
         SignupRequestDTO request() {

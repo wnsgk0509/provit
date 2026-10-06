@@ -53,6 +53,20 @@ export async function getResumeList() {
     return response.data.data;
 }
 
+export async function getMainResume() {
+    const response = await client.get('/documents/main-resume');
+    return response.data.data;
+}
+
+export async function setMainResume(resumeNum) {
+    const response = await client.put('/documents/main-resume', { resumeNum });
+    return response.data.data;
+}
+
+export async function clearMainResume() {
+    await client.delete('/documents/main-resume');
+}
+
 export async function getCoverLetter(letterNum) {
     const response = await client.get(`/documents/cover-letters/${letterNum}`);
     return response.data.data;

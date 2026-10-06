@@ -87,4 +87,23 @@
             COMMENT_NUM = #{commentNum}
     </select>
 
+    <select id="selectMyCommentList" resultType="com.provit.dto.community.CommentDTO" parameterType="Long">
+        SELECT
+            C.COMMENT_NUM AS commentNum,
+            C.POST_NUM AS postNum,
+            C.USER_NUM AS userNum,
+            C.COMMENT_CONTENT AS commentContent,
+            TO_CHAR(C.COMMENT_DATE, 'YYYY-MM-DD HH24:MI:SS') AS commentDate,
+            C.PARENT_COMMENT_NUM AS parentCommentNum,
+            C.IS_DELETED AS isDeleted,
+            P.POST_TITLE AS postTitle,
+            U.USER_NICKNAME AS userNickname
+        FROM T_COMMENT C
+        JOIN T_POST P ON C.POST_NUM = P.POST_NUM
+        JOIN T_USER U ON C.USER_NUM = U.USER_NUM
+        WHERE C.USER_NUM = #{value}
+          AND C.IS_DELETED = 0
+        ORDER BY C.COMMENT_DATE DESC, C.COMMENT_NUM DESC
+    </select>
+
 </mapper>

@@ -41,6 +41,11 @@ export async function getDocumentReview(reviewNum) {
     return response.data.data;
 }
 
+export async function getDocumentReviewByRequestId(requestId) {
+    const response = await client.get(`/document-reviews/requests/${encodeURIComponent(requestId)}`);
+    return response.data.data;
+}
+
 export async function getDocumentReviewHistory(offset = 0, pageSize = 20) {
     const response = await client.get('/document-reviews', { params: { offset, pageSize } });
     return response.data.data;

@@ -16,6 +16,20 @@ export const fetchPostList = async (params) => {
 };
 
 /**
+ * 현재 로그인한 사용자가 작성한 게시글 목록 조회
+ * @param {Object} params - 페이지 파라미터 (page, pageSize)
+ */
+export const fetchMyPosts = async (params) => {
+    try {
+        const response = await client.get('/community/posts/me', { params });
+        return response.data;
+    } catch (error) {
+        console.error('내 게시글 목록 조회 실패:', error);
+        throw error;
+    }
+};
+
+/**
  * 인기 게시글 목록 조회
  * @param {number} limit - 가져올 게시글 수
  */

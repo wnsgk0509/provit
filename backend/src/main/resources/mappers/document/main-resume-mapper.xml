@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.provit.mapper.document.MainResumeMapper">
+    <resultMap id="MainResumeJobInfoResultMap" type="com.provit.dto.document.MainResumeJobInfoDTO">
+        <id property="resumeNum" column="RESUME_NUM" />
+        <result property="resumeTitle" column="RESUME_TITLE" />
+        <result property="occupationCode" column="OCCUPATION_CODE" />
+        <result property="occupationName" column="OCCUPATION_NAME" />
+        <result property="jobCode" column="JOB_CODE" />
+        <result property="jobName" column="JOB_NAME" />
+    </resultMap>
+
+    <!-- 소유자 조건을 UPDATE에 포함해 타인의 이력서 지정과 사전 조회 사이의 변경을 방지한다. -->
+    <update id="updateMainResume" parameterType="map">
+        UPDATE T_USER U
+        SET MAIN_RESUME_NUM = #{resumeNum}
+        WHERE U.USER_NUM = #{userNum}
+          AND U.USER_IS_DELETED = 0
+          AND EXISTS (
+              SELECT 1 FROM T_RESUME R
+              WHERE R.RESUME_NUM = #{resumeNum}
+                AND R.USER_NUM = U.USER_NUM
+          )
+    </update>
+
+    <update id="clearMainResume" parameterType="long">
+        UPDATE T_USER
+        SET MAIN_RESUME_NUM = NULL
+        WHERE USER_NUM = #{userNum}
+          AND USER_IS_DELETED = 0
+    </update>
+
+    <select id="selectMainResumeJobInfo" parameterType="long" resultMap="MainResumeJobInfoResultMap">
+        SELECT R.RESUME_NUM, R.RESUME_TITLE,
+               R.OCCUPATION_CODE, O.OCCUPATION_NAME, R.JOB_CODE, J.JOB_NAME
+        FROM T_USER U
+        JOIN T_RESUME R ON R.RESUME_NUM = U.MAIN_RESUME_NUM AND R.USER_NUM = U.USER_NUM
+        LEFT JOIN T_OCCUPATION O ON O.OCCUPATION_CODE = R.OCCUPATION_CODE
+        LEFT JOIN T_JOB J ON J.JOB_CODE = R.JOB_CODE AND J.OCCUPATION_CODE = R.OCCUPATION_CODE
+        WHERE U.USER_NUM = #{userNum}
+          AND U.USER_IS_DELETED = 0
+    </select>
+</mapper>

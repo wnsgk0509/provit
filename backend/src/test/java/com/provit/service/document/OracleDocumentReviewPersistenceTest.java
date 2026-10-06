@@ -289,6 +289,30 @@ public class OracleDocumentReviewPersistenceTest {
         });
     }
 
+    @Test
+    public void requestIdUniquenessPreservesMultipleLegacyRecordsAndReusesSavedResults() throws Exception {
+        var request = request(false);
+        var first = service.createReview(7, request);
+        documentsDeleted = true;
+        assertEquals(first, service.createReview(7, request));
+        assertEquals(first, service.getReviewByRequestId(7, request.getRequestId()));
+
+        var duplicate = new DocumentReviewDTO();
+        org.springframework.beans.BeanUtils.copyProperties(first, duplicate);
+        assertThrows(org.springframework.dao.DuplicateKeyException.class,
+                () -> transaction.executeWithoutResult(status -> dao.insertReview(duplicate)));
+        for (int i = 0; i < 2; i++) {
+            var legacy = new DocumentReviewDTO();
+            org.springframework.beans.BeanUtils.copyProperties(first, legacy);
+            legacy.setRequestId(null); legacy.setRequestHash(null);
+            transaction.executeWithoutResult(status -> dao.insertReview(legacy));
+        }
+        assertEquals(3, service.getReviews(7, 0, 20).size());
+        assertEquals(2, dao.selectDocuments(first.getReviewNum()).size());
+        assertNotNull(dao.selectByRequestId(7, request.getRequestId()).getRequestHash());
+        assertNull(dao.selectByRequestId(8, request.getRequestId()));
+    }
+
     private DocumentReviewResultDTO reviewFixture(boolean includePortfolio) throws Exception {
         var result = new ObjectMapper().readValue(Files.readString(Path.of("docs/examples/document-review/response.example.json")),
                 DocumentReviewResultDTO.class);
@@ -460,6 +484,7 @@ public class OracleDocumentReviewPersistenceTest {
 
     private DocumentReviewRequestDTO request(boolean portfolio) {
         var request = new DocumentReviewRequestDTO();
+        request.setRequestId(UUID.randomUUID().toString());
         request.setResumeNum(11); request.setLetterNum(12); request.setPortfolioNum(portfolio ? 13 : null);
         request.setReviewMode("comprehensive");
         return request;

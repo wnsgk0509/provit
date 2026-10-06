@@ -18,6 +18,7 @@ import com.provit.dto.document.DocumentReviewResultDTO;
 import com.provit.dto.response.ApiResponse;
 import com.provit.service.document.DocumentReviewService;
 import com.provit.service.document.DocumentReviewProcessingException;
+import com.provit.service.document.DocumentReviewRequestConflictException;
 
 @RestController
 @RequestMapping("/api/document-reviews")
@@ -49,6 +50,19 @@ public class DocumentReviewController {
         if (userNum == null) return unauthorized();
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(ApiResponse.success(reviewService.getReview(Math.toIntExact(userNum), reviewNum)));
+    }
+
+    @GetMapping("/requests/{requestId}")
+    public ResponseEntity<ApiResponse<DocumentReviewResultDTO>> requestDetail(@LoginUser Long userNum, @PathVariable String requestId) {
+        if (userNum == null) return unauthorized();
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(ApiResponse.success(reviewService.getReviewByRequestId(Math.toIntExact(userNum), requestId)));
+    }
+
+    @ExceptionHandler(DocumentReviewRequestConflictException.class)
+    public ResponseEntity<ApiResponse<String>> requestConflict(DocumentReviewRequestConflictException exception) {
+        return ResponseEntity.status(409).cacheControl(CacheControl.noStore())
+                .body(ApiResponse.error(ResponseCode.BAD_REQUEST, exception.getMessage()));
     }
 
     @ExceptionHandler(DataAccessException.class)
