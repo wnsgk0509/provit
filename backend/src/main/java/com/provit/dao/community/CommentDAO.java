@@ -5,6 +5,7 @@ import java.util.List;
 
 public interface CommentDAO {
     List<CommentDTO> selectCommentList(Long postNum);
+    List<CommentDTO> selectMyCommentList(Long userNum);
     CommentDTO selectCommentDetail(Long commentNum);
     int insertComment(CommentDTO commentDto);
     int updateComment(CommentDTO commentDto);

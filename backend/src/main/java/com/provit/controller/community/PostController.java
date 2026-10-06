@@ -46,11 +46,21 @@ public class PostController {
      */
     @GetMapping
     public ApiResponse<PageResponseDTO<PostDTO>> getPostList(@ModelAttribute PostSearchDTO searchDto) {
+        searchDto.setAuthorUserNum(null);
         // 1. 웨이터가 프론트에서 온 파라미터(searchDto)를 그대로 주방장(Service)에게 전달해 요리를 부탁합니다.
         PageResponseDTO<PostDTO> responseData = postService.getPostList(searchDto);
 
         // 2. 완성된 요리를 규격화된 공통 접시(ApiResponse)에 담아 손님(React)에게 서빙합니다.
         return ApiResponse.success(responseData);
+    }
+
+    @GetMapping("/me")
+    public ApiResponse<PageResponseDTO<PostDTO>> getMyPostList(
+            @ModelAttribute PostSearchDTO searchDto,
+            @LoginUser Long userNum) {
+        if (userNum == null) return new ApiResponse<>(ResponseCode.AUTH_UNAUTHORIZED, null);
+        searchDto.setAuthorUserNum(userNum);
+        return ApiResponse.success(postService.getPostList(searchDto));
     }
 
     /**

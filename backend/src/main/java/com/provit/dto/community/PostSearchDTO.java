@@ -15,6 +15,7 @@ public class PostSearchDTO {
     private Integer categoryNum; // 카테고리 필터 (null일 경우 전체 조회)
     private String searchType;   // 검색 타입 (예: TITLE, CONTENT, WRITER)
     private String keyword;      // 검색 키워드
+    private Long authorUserNum;
 
     // 2. 페이징 처리 변수
     private int page = 1;        // 요청 페이지 (기본 1페이지)

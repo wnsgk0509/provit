@@ -27,6 +27,11 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    public List<CommentDTO> getMyCommentList(Long userNum) {
+        return commentDao.selectMyCommentList(userNum);
+    }
+
+    @Override
     @Transactional
     public Long createComment(CommentDTO commentDto) {
         if (commentDto.getParentCommentNum() != null) {
