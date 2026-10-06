@@ -7,11 +7,13 @@
 
 /* 상단 배너/헤더 */
 .job-header-card {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border-radius: 12px;
+    background-color: #162439;
+    border: 1px solid #23354d;
+    border-radius: 16px;
     color: #ffffff;
-    padding: 2rem 2.5rem;
+    padding: 2.25rem 2.5rem;
     margin-bottom: 2rem;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
 /* 필터 카드 */
@@ -39,9 +41,9 @@
 }
 
 .job-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 14px 28px -4px rgba(99, 102, 241, 0.12), 0 8px 12px -6px rgba(0, 0, 0, 0.04);
-    border-color: #818cf8;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+    border-color: #93c5fd;
 }
 
 /* 마감 임박 공고 (D-Day 1~3일, 오늘마감) 긴급 액센트 바 */
@@ -119,37 +121,39 @@
 
 /* 모의면접 핵심 CTA 버튼 */
 .btn-interview-cta {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    border: none;
+    background-color: #2563eb;
+    border: 1px solid #2563eb;
     color: #ffffff !important;
-    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.2);
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     transition: all 0.18s ease;
 }
 
 .btn-interview-cta:hover {
-    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    background-color: #1d4ed8;
+    border-color: #1d4ed8;
     color: #ffffff !important;
-    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.22);
     transform: translateY(-1px);
 }
 
 .btn-interview-cta:active {
     transform: translateY(0);
-    box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 /* D-Day 뱃지 */
 .badge-dday-urgent {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background-color: #ef4444;
     color: #ffffff;
     font-weight: 700;
     border-radius: 6px;
     padding: 0.28rem 0.55rem;
-    box-shadow: 0 1px 4px rgba(239, 68, 68, 0.25);
 }
 
 .badge-dday-warning {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    background-color: #f59e0b;
     color: #ffffff;
     font-weight: 700;
     border-radius: 6px;
@@ -157,7 +161,7 @@
 }
 
 .badge-dday-normal {
-    background-color: #3b82f6;
+    background-color: #2563eb;
     color: #ffffff;
     font-weight: 600;
     border-radius: 6px;
@@ -208,24 +212,14 @@
 
 /* 맞춤 추천 공고 섹션 */
 .recommend-section {
-    background: linear-gradient(135deg, #f8faff 0%, #eef2ff 50%, #fdf4ff 100%);
-    border: 1px solid #c7d2fe;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #2563eb;
     border-radius: 16px;
     padding: 1.6rem;
     margin-bottom: 2rem;
-    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.06);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
     position: relative;
-    overflow: hidden;
-}
-
-.recommend-section::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
 }
 
 .recommend-header {
@@ -238,43 +232,48 @@
 }
 
 .recommend-badge {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    color: #ffffff;
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
     font-size: 0.75rem;
     font-weight: 700;
-    padding: 0.32rem 0.7rem;
-    border-radius: 20px;
+    padding: 0.28rem 0.65rem;
+    border-radius: 6px;
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
+}
+
+.recommend-badge-popular {
+    background-color: #fef2f2 !important;
+    color: #b91c1c !important;
+    border-color: #fecaca !important;
 }
 
 .recommend-pick-tag {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    background-color: #1e293b;
     color: #ffffff;
     font-size: 0.68rem;
     font-weight: 700;
-    padding: 0.15rem 0.45rem;
+    padding: 0.16rem 0.45rem;
     border-radius: 4px;
     letter-spacing: -0.2px;
     flex-shrink: 0;
-    box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25);
 }
 
 .recommend-card {
     background: #ffffff;
-    border: 1px solid #e0e7ff;
+    border: 1px solid #e2e8f0;
     border-radius: 12px;
-    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
     height: 100%;
     position: relative;
 }
 
 .recommend-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 24px -4px rgba(99, 102, 241, 0.18);
-    border-color: #818cf8;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px -3px rgba(15, 23, 42, 0.08);
+    border-color: #93c5fd;
 }
 
 /* ==========================================

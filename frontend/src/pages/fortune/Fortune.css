@@ -1,0 +1,374 @@
+/* Fortune.css - 오늘의 취업 운세 페이지 스타일링 */
+
+.fortune-page-container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+/* 1. 상단 총운 메인 카드 (Solid Modern Navy) */
+.fortune-hero-card {
+    background-color: #162439;
+    border: 1px solid #23354d;
+    border-radius: 16px;
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+    margin-bottom: 1.75rem;
+}
+
+.fortune-hero-body {
+    padding: 2.25rem 2.5rem;
+}
+
+@media (max-width: 767.98px) {
+    .fortune-hero-body {
+        padding: 1.75rem 1.25rem;
+    }
+}
+
+.fortune-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    color: #60a5fa;
+    text-transform: uppercase;
+    margin-bottom: 0.65rem;
+}
+
+.fortune-pill-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 1.15rem;
+}
+
+.fortune-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.28rem 0.7rem;
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.fortune-pill-highlight {
+    background-color: rgba(245, 158, 11, 0.18);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #fbbf24;
+}
+
+.fortune-title {
+    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+    font-weight: 800;
+    line-height: 1.35;
+    color: #ffffff;
+    margin-bottom: 0.85rem;
+    letter-spacing: -0.02em;
+}
+
+.fortune-summary {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #cbd5e1;
+    margin-bottom: 1.35rem;
+}
+
+/* 오늘의 행동 조언 박스 */
+.fortune-advice-box {
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+}
+
+.fortune-advice-label {
+    color: #f59e0b;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.fortune-advice-text {
+    color: #e2e8f0;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    margin: 0.2rem 0 0;
+}
+
+/* 취업 활력 지수 스코어 위젯 */
+.fortune-score-widget {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 1.75rem 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.fortune-score-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 0.35rem;
+    letter-spacing: -0.01em;
+}
+
+.fortune-score-value {
+    font-size: 3.25rem;
+    font-weight: 900;
+    line-height: 1.05;
+    color: #60a5fa;
+    margin: 0.25rem 0 0.5rem;
+    letter-spacing: -0.03em;
+}
+
+.fortune-score-badge {
+    display: inline-block;
+    background-color: rgba(34, 197, 94, 0.16);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.28);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+}
+
+.fortune-score-sinsal {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin-top: 1.15rem;
+    padding-top: 0.85rem;
+    font-size: 0.78rem;
+    color: #94a3b8;
+    line-height: 1.5;
+}
+
+/* 2. 행운의 가이드 카드 4종 */
+.fortune-guide-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    height: 100%;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
+                box-shadow 0.2s ease, 
+                border-color 0.2s ease;
+}
+
+.fortune-guide-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 18px -2px rgba(15, 23, 42, 0.06);
+    border-color: #cbd5e1;
+}
+
+.fortune-guide-icon {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 0.75rem;
+    border-radius: 10px;
+    background-color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.fortune-guide-label {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+}
+
+.fortune-guide-value {
+    font-size: 1.05rem;
+    font-weight: 750;
+    color: #0f172a;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+/* 3. 추천 채용 공고 카드 */
+.fortune-job-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.35rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
+                box-shadow 0.2s ease, 
+                border-color 0.2s ease;
+}
+
+.fortune-job-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px -3px rgba(15, 23, 42, 0.08);
+    border-color: #93c5fd;
+}
+
+.fortune-job-company {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.fortune-job-title {
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.45;
+    min-height: 2.9rem;
+    margin-bottom: 0.65rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.fortune-tag-pill {
+    font-size: 0.74rem;
+    font-weight: 500;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    padding: 0.22rem 0.52rem;
+    border-radius: 6px;
+}
+
+.fortune-job-footer {
+    border-top: 1px solid #f1f5f9;
+    padding-top: 0.85rem;
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-fortune-apply {
+    background-color: #2563eb;
+    border: 1px solid #2563eb;
+    color: #ffffff !important;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: 0.32rem 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.18s ease;
+}
+
+.btn-fortune-apply:hover {
+    background-color: #1d4ed8;
+    border-color: #1d4ed8;
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2);
+    transform: translateY(-1px);
+}
+
+/* 4. 취업 MBTI 검사 배너 (Solid Slate) */
+.fortune-mbti-card {
+    background-color: #162439;
+    border: 1px solid #23354d;
+    border-radius: 16px;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
+}
+
+.fortune-mbti-body {
+    padding: 2.25rem 2.5rem;
+}
+
+@media (max-width: 767.98px) {
+    .fortune-mbti-body {
+        padding: 1.75rem 1.25rem;
+    }
+}
+
+.fortune-mbti-badge {
+    display: inline-block;
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 0.74rem;
+    font-weight: 600;
+    padding: 0.24rem 0.65rem;
+    border-radius: 20px;
+    margin-bottom: 0.75rem;
+}
+
+.fortune-mbti-title {
+    font-weight: 800;
+    font-size: clamp(1.25rem, 2.2vw, 1.55rem);
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+}
+
+.fortune-mbti-desc {
+    color: #cbd5e1;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    margin-bottom: 0;
+}
+
+.btn-fortune-mbti {
+    background-color: #ffffff;
+    color: #162439 !important;
+    font-weight: 700;
+    border: 1px solid #ffffff;
+    border-radius: 8px;
+    padding: 0.6rem 1.35rem;
+    font-size: 0.9rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.btn-fortune-mbti:hover {
+    background-color: #f1f5f9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* 관심 공고 스크랩(북마크) 버튼 */
+.fortune-page-container .job-scrap-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    padding: 0.3rem;
+    border-radius: 8px;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s ease, background-color 0.15s ease;
+}
+
+.fortune-page-container .job-scrap-btn:hover {
+    color: #f59e0b;
+    background-color: #fef3c7;
+    transform: scale(1.15);
+}
+
+.fortune-page-container .job-scrap-btn.active {
+    color: #f59e0b;
+}
+
+.fortune-page-container .job-scrap-btn.active:hover {
+    color: #d97706;
+}
+
+.fortune-page-container .job-scrap-btn:disabled {
+    cursor: wait;
+    opacity: 0.6;
+    transform: none;
+}
