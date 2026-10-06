@@ -6,6 +6,7 @@ import client from '../../api/client';
 import { getCoverLetterList, getPortfolioList, getResumeList } from '../../api/documentApi';
 import './MyPage.css';
 import InterviewDashboard from './components/InterviewDashboard';
+import MyCommunityActivity from './components/MyCommunityActivity';
 import useMainResume from '../../hooks/useMainResume';
 import MainResumeFeedback from '../../components/MainResumeFeedback';
 
@@ -371,6 +372,8 @@ function MyPage() {
                     </div>
                 </section>
             </InterviewDashboard>
+
+            <MyCommunityActivity />
 
             <form className="mypage-edit-form" onSubmit={handleSubmit}>
                 <section aria-labelledby="profile-edit-title">

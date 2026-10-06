@@ -14,6 +14,19 @@ export const fetchComments = async (postNum) => {
 };
 
 /**
+ * 현재 로그인한 사용자가 작성한 댓글 목록 조회
+ */
+export const fetchMyComments = async () => {
+    try {
+        const response = await client.get('/community/comments/me');
+        return response.data;
+    } catch (error) {
+        console.error('내 댓글 목록 조회 실패:', error);
+        throw error;
+    }
+};
+
+/**
  * 댓글 작성
  */
 export const createComment = async (postNum, commentDto) => {
