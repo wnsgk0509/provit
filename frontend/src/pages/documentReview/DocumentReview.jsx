@@ -156,10 +156,8 @@ function DocumentReview() {
             <header className="review-page-header">
                 <div>
                     <span>AI ONE-CLICK REVIEW</span>
-                    <h1>
-                        AI원클릭첨삭 <Sparkles size={27} aria-hidden="true" />
-                    </h1>
-                    <p>서류 간 일관성과 문서별 첨삭을 확인하고, 지원 직무에 맞는 취업 준비 항목도 살펴보세요.</p>
+                    <h1>AI원클릭첨삭</h1>
+                    <p>서류 간 일관성과 개선사항을 확인하고, 지원 직무에 맞는 추천 스펙업도 확인해보세요.</p>
                 </div>
                 <Link to="/mypage">
                     <FolderOpen size={16} aria-hidden="true" /> 취업 문서 관리{' '}
@@ -168,7 +166,7 @@ function DocumentReview() {
             </header>
             <div className="review-availability" role="status">
                 <span>AI 통합 첨삭</span>
-                <p>선택한 서류를 한 번에 분석하고, 첨삭 결과와 지원 직무에 도움이 될 준비 항목을 함께 저장합니다.</p>
+                <p>선택한 서류를 한 번에 분석하고, 개선사항과 지원 직무에 도움이 될 준비 항목을 함께 저장합니다.</p>
             </div>
             <div className="review-bundle-guide">
                 <Layers size={22} aria-hidden="true" />
