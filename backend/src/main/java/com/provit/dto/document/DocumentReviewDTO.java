@@ -8,6 +8,9 @@ import lombok.Data;
 @Data
 public class DocumentReviewDTO {
     private Long reviewNum;
+    private String requestId;
+    @JsonIgnore
+    private String requestHash;
     @JsonIgnore
     private int userNum;
     private String reviewTitle;

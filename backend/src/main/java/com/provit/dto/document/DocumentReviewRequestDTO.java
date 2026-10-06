@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class DocumentReviewRequestDTO {
+    private String requestId;
     private Integer resumeNum;
     private Integer letterNum;
     private Integer portfolioNum;

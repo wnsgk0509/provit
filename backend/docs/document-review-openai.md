@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 라우팅 | 로그인한 사용자의 `/document-review` SPA 화면 | [App.jsx](../../frontend/src/App.jsx) |
 | 화면 | 서류 선택 → 첨삭 기준 설정 → 결과 확인, 이력서·자기소개서 필수, 포트폴리오 선택 | [DocumentReview.jsx](../../frontend/src/pages/documentReview/DocumentReview.jsx) |
-| 요청 | 선택한 문서 번호와 `reviewMode`, `customCriteria`, `instructions`를 전송 | [documentReviewApi.js](../../frontend/src/api/documentReviewApi.js), [요청 DTO](../src/main/java/com/provit/dto/document/DocumentReviewRequestDTO.java) |
+| 요청 | `requestId`, 선택한 문서 번호와 `reviewMode`, `customCriteria`, `instructions`를 전송 | [documentReviewApi.js](../../frontend/src/api/documentReviewApi.js), [요청 DTO](../src/main/java/com/provit/dto/document/DocumentReviewRequestDTO.java) |
 | Controller | `POST /api/document-reviews` → `createReview()`, HTTP 201과 저장된 상세 결과 반환 | [DocumentReviewController.java](../src/main/java/com/provit/controller/document/DocumentReviewController.java) |
 | Service | 요청·소유권 검증 → PROCESSING/원문 저장 → AI 호출 → 검증·결과 저장 → 상세 조회 | [DocumentReviewServiceImpl.java](../src/main/java/com/provit/service/document/impl/DocumentReviewServiceImpl.java) |
 | Generator | Java 17 HttpClient로 단일 Responses POST, PDF 직접 첨부, 스키마·인용·직무 검증 | [OpenAiDocumentReviewGenerator.java](../src/main/java/com/provit/service/document/generator/OpenAiDocumentReviewGenerator.java) |
@@ -16,6 +16,8 @@
 | DB | 6개 테이블에 요청·원문 보관본·결과를 저장 | [document_review_mapper.xml](../src/main/resources/mappers/document/document_review_mapper.xml), [저장 설계](document-review-storage.md) |
 
 정상 실행의 OpenAI 생성 호출은 **1회**다. 기준과 추가 요청을 실제 입력에 반영한다. 포트폴리오는 PDFBox로 파일·암호·페이지 수를 확인한 뒤 원본 바이트를 같은 요청에 첨부한다. 더미 생성기로 대체하는 경로는 없다. 과거 `DUMMY` 기록과 정적 화면 예시는 그대로 구분해 표시한다.
+
+모든 첨삭 POST에는 `requestId` UUID가 필수다. 같은 사용자·ID·입력의 재전송은 기존 상태·결과를 반환하며 AI를 다시 호출하지 않는다. 다른 입력으로 같은 ID를 재사용하면 HTTP 409다. 새로고침·응답 유실 복구와 기존 DB 마이그레이션은 [저장 설계의 요청 ID 설명](document-review-storage.md#요청-id와-중복-실행-방지)을 참고한다.
 
 첨삭 요청에는 `recruitmentNum`이나 JD가 없다. `jobFit`은 현재 입력만 사용할 때 이력서의 `jobName`, `occupationName`에 대한 검토다. 특정 채용 공고와의 적합도 분석을 하려면 별도 입력 확장이 필요하다.
 
@@ -64,6 +66,7 @@ Content-Type: application/json
 
 ```json
 {
+  "requestId": "7d8f6541-abcd-4b4d-9b02-37e7532b9259",
   "resumeNum": 101,
   "letterNum": 201,
   "portfolioNum": null,

@@ -2,6 +2,18 @@
 
 현재 결과 화면의 모든 데이터는 6개 테이블에 저장한다. 한 번의 통합 첨삭을 `REVIEW_NUM`으로 묶고, 같은 서류를 다시 첨삭하면 새로운 기록을 만든다. 완료된 기록은 원본 문서 변경에 따라 덮어쓰지 않는다.
 
+## 요청 ID와 중복 실행 방지
+
+기존 DB에는 배포 전에 [migrate_document_review_request_id.sql](../src/main/resources/sql_query/migrate_document_review_request_id.sql)을 적용해야 한다. 신규 `schema.sql`과 첨삭 전용 DDL에는 같은 컬럼·인덱스가 포함되어 있다. 이 작업에서 실제 Oracle DB에는 실행하지 않았다.
+
+`POST /api/document-reviews`는 UUID 형식의 `requestId`가 필수다. 서버는 소유자와 요청 ID로 기존 기록을 먼저 찾고, 같은 문서 번호·기준·추가 요청이면 `PROCESSING`, `COMPLETED`, `FAILED` 중 현재 상태와 저장된 결과를 반환한다. 원본 문서가 변경·삭제되어도 다시 읽거나 AI를 호출하지 않는다. 같은 ID의 조건이 달라지면 HTTP 409를 반환한다. 실패한 요청을 새로 실행하려면 사용자가 새 첨삭을 준비해 새로운 ID를 발급받아야 한다.
+
+`REQUEST_HASH`는 정규화한 문서 번호·선택 기준·직접 입력·추가 요청의 SHA-256이다. 직접 입력을 사용하지 않는 기준에서는 해당 값을 제외하고 입력의 앞뒤 공백과 빈 추가 요청을 정규화한다. 이 해시는 응답 JSON에 노출하지 않는다. 함수 기반 고유 인덱스 `UQ_REVIEW_USER_REQUEST`는 사용자별 동일 ID의 동시 INSERT를 차단한다. 충돌한 트랜잭션은 롤백한 뒤 기존 기록을 반환하므로 AI 호출과 자식 기록 저장은 최초 요청만 수행한다. AI 호출 중에는 DB 트랜잭션을 유지하지 않는다.
+
+과거 기록은 `REQUEST_ID`, `REQUEST_HASH`를 모두 NULL로 유지하며 고유 인덱스에서 제외한다. 기존 행 삭제·재생성·임의 ID 부여는 하지 않는다. 기존 ID 없는 기록을 소급해서 중복 요청과 연결하지는 않는다.
+
+화면은 POST 전 요청 ID를 URL에, 재전송에 필요한 문서 번호와 설정을 탭의 `sessionStorage`에 보관한다. 새로고침하면 `GET /api/document-reviews/requests/{requestId}`로 본인 요청을 조회한다. 처리 중인 결과는 3초마다 GET으로 갱신하며, 조회 오류 시 자동 재전송하지 않는다. 사용자가 이어서 진행을 누르면 기존 기록을 먼저 조회하고 HTTP 404인 경우에만 보관한 동일 ID·입력을 POST한다. 요청 보관 실패 시 최초 POST도 실행하지 않는다. 이력서·자기소개서 본문과 PDF는 브라우저 복구 저장소에 복사하지 않는다.
+
 DDL: [document_review_schema.sql](../src/main/resources/sql_query/document_review_schema.sql). 기존 `T_USER`가 있는 Oracle 19c 스키마에 한 번 적용하는 별도 스크립트다. 기존 `schema.sql`과 `drop.sql`에는 통합하지 않았다. 2026-09-29 로컬 DB에서 6개 테이블·5개 시퀀스와 200자 입력 컬럼을 확인했다. 이미 적용한 DB에 CREATE 스크립트를 다시 실행하지 않는다.
 
 현재 구현은 **OpenAI Responses API 생성 1회로 첨삭과 취업 준비 추천을 받아 저장한다.** `MODEL_NAME = 'gpt-6-sol'`, effort `medium`, `PROMPT_VERSION = 'document-review-v4'`, `RESPONSE_VERSION = 3`, `resultSource = 'AI'`를 사용한다. 강점은 제목·원문·판단 이유·유지 또는 개선 문장을 가진 객체다. 과거 `dummy-document-review-*` 기록은 `DUMMY`로 표시하며 새 요청에는 더미 생성기를 사용하지 않는다. 실제 요청·검증·프롬프트는 [OpenAI 연결 문서](document-review-openai.md)를 참고한다.

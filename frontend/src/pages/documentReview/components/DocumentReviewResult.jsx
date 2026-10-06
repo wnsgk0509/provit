@@ -81,7 +81,7 @@ function DocumentReviewResult({ includePortfolio, result, isSubmitting, error, s
                     )}
                     {isIncomplete ? (
                         <div className={`review-status${result.reviewStatus === 'FAILED' ? ' is-error' : ''}`} role="status">
-                            <p>{result.reviewStatus === 'FAILED' ? result.errorMessage || '첨삭 처리에 실패했습니다.' : '첨삭 처리 중입니다. 잠시 후 기록을 다시 열어 주세요.'}</p>
+                            <p>{result.reviewStatus === 'FAILED' ? result.errorMessage || '첨삭 처리에 실패했습니다.' : '첨삭 처리 중입니다. 결과가 준비되면 자동으로 표시됩니다.'}</p>
                         </div>
                     ) : <>
                     <section className="review-summary">
