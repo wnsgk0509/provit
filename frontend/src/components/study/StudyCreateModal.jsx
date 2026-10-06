@@ -51,7 +51,7 @@ function StudyCreateModal({ show, onClose, onSuccess }) {
                 <div className="modal-dialog modal-dialog-centered">
                     <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '1rem' }}>
                         <div className="modal-header border-bottom-0 pb-0">
-                            <h5 className="modal-title fw-bold">스터디 만들기</h5>
+                            <h5 className="modal-title fw-bold">✏️ 스터디 만들기</h5>
                             <button type="button" className="btn-close" onClick={onClose}></button>
                         </div>
                         <div className="modal-body p-4">
@@ -79,11 +79,11 @@ function StudyCreateModal({ show, onClose, onSuccess }) {
                                     />
                                 </div>
                                 <div className="mb-4">
-                                    <label className="form-label fw-bold small">운영 방식</label>
+                                    <label className="form-label fw-bold small">스터디 소개 및 목표</label>
                                     <textarea 
                                         className="form-control" 
                                         rows="5" 
-                                        placeholder="예) 매주 수요일 20:00 · 온라인 음성 · 최대 6명&#13;&#10;&#13;&#10;스터디 소개...&#13;&#10;&#13;&#10;모임 링크..."
+                                        placeholder="스터디 진행 방식, 목표, 링크 등을 입력해 주세요."
                                         value={studyExplain}
                                         onChange={(e) => setStudyExplain(e.target.value)}
                                         style={{ resize: 'none' }}

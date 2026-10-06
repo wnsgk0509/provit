@@ -93,15 +93,32 @@ function CommunityDetail() {
             url: window.location.href,
         };
 
-        if (navigator.share) {
+        // 1. 모바일 기기의 기본 공유 창 띄우기 (HTTPS 환경에서만 동작)
+        if (navigator.share && window.isSecureContext) {
             try {
                 await navigator.share(shareData);
             } catch (err) {
                 console.log('공유 취소 또는 실패', err);
             }
         } else {
-            navigator.clipboard.writeText(window.location.href);
-            alert('게시글 주소가 복사되었습니다!');
+            // 2. HTTPS가 아닌 로컬 테스트(http://192.168...) 환경이거나 PC인 경우 클립보드 복사로 대체
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(window.location.href);
+                } else {
+                    // HTTP 로컬 테스트 환경을 위한 Fallback (예전 방식)
+                    const textArea = document.createElement("textarea");
+                    textArea.value = window.location.href;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(textArea);
+                }
+                alert('게시글 주소가 복사되었습니다!');
+            } catch (err) {
+                console.error(err);
+                alert('주소 복사에 실패했습니다. 브라우저 주소창에서 직접 복사해주세요.');
+            }
         }
     };
 
