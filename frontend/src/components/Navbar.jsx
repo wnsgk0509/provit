@@ -73,7 +73,7 @@ function Navbar() {
                             <>
                                 {user?.userType === 'ADMIN' && (
                                     <Link className="provit-navbar-admin me-3" to="/admin/reports" title="관리자 페이지" style={{ textDecoration: 'none' }}>
-                                        🛡️관리자
+                                        🛡️대시보드
                                     </Link>
                                 )}
                                 <Link className="provit-navbar-mypage" to="/mypage">

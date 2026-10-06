@@ -128,7 +128,7 @@ function StudyListSection({ createCounter, keyword }) {
                                 );
                             }
                             return filteredStudies.map((study) => (
-                                <div className="col-md-6 col-lg-4" key={study.studyNum}>
+                                <div className="col-md-6" key={study.studyNum}>
                                 <div 
                                     className="card h-100 shadow-sm border-1 border-light-subtle" 
                                     style={{ borderRadius: '1rem', transition: 'box-shadow 0.2s ease', cursor: 'pointer' }}
