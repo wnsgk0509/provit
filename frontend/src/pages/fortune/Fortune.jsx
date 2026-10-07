@@ -195,7 +195,12 @@ function Fortune() {
                 <div className="fortune-hero-body">
                     <div className="row align-items-center g-4">
                         <div className="col-lg-8">
-                            <div className="fortune-eyebrow">Today's Career Insight</div>
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <div className="fortune-eyebrow mb-0">Today's Career Insight</div>
+                                <span className="fortune-source-badge">
+                                    {fortune.engineSource === 'SAZU_API' ? '⚡ SAZU API 연동' : '⚙️ Provit 자체 사주 엔진'}
+                                </span>
+                            </div>
                             <div className="fortune-pill-group">
                                 <span className="fortune-pill">
                                     나의 일간: <strong>{fortune.dayMaster} ({fortune.dayMasterElement})</strong>

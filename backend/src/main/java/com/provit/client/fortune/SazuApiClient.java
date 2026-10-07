@@ -59,7 +59,7 @@ public class SazuApiClient {
      * @return sazu.app 응답의 'data' JsonNode 객체
      */
     public JsonNode getTodayFortune(SazuTodayRequestDTO request) {
-        if (apiKey.isEmpty() || apiKey.contains("발급") || apiKey.contains("입력")) {
+        if (apiKey == null || apiKey.isBlank() || apiKey.contains("발급") || apiKey.contains("입력")) {
             log.warn(">> [SazuApiClient] 사주 API 키가 설정되지 않았습니다. api.properties 확인 필요");
             throw new IllegalStateException("사주 API 키가 설정되지 않았습니다.");
         }
@@ -117,17 +117,21 @@ public class SazuApiClient {
     }
 
     /**
-     * API 키 등록 및 유효성 여부 확인
+     * API 키 등록 및 유효성 여부 확인 (null 안전 가드 포함)
      */
     public boolean isConfigured() {
-        return !apiKey.isEmpty() && !apiKey.contains("발급") && !apiKey.contains("입력");
+        return apiKey != null && !apiKey.isBlank() && !apiKey.contains("발급") && !apiKey.contains("입력");
     }
 
     /**
-     * 무료(Free/Sandbox) 플랜 키 여부 확인
-     * sazu.app의 Free 키(sazu_free_...)는 특정 샘플 5종만 지원하는 샌드박스입니다.
+     * 무료(Free/Sandbox) 플랜 키 여부 확인 (null 안전 가드 및 prefix 기반 엄격한 검증)
+     * sazu.app 공식 무료 샌드박스 키는 반드시 'sazu_free_' 접두사로 시작합니다.
+     * 유료 키 문자열에 우연히 'free'가 포함되는 오판 위험을 방지하기 위해 prefix로만 한정합니다.
      */
     public boolean isFreeTier() {
-        return apiKey.startsWith("sazu_free_") || apiKey.toLowerCase().contains("free");
+        if (apiKey == null || apiKey.isBlank()) {
+            return false;
+        }
+        return apiKey.startsWith("sazu_free_");
     }
 }

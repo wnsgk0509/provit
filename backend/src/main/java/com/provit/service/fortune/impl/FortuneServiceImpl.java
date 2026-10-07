@@ -169,6 +169,7 @@ public class FortuneServiceImpl implements FortuneService {
                 .luckyNumber(itemFortune.number)
                 .sinsalName(sinsalName)
                 .sinsalAdvice(sinsalAdvice)
+                .engineSource("SAZU_API")
                 .recommendRecruitments(recommendList)
                 .build();
     }
@@ -411,6 +412,7 @@ public class FortuneServiceImpl implements FortuneService {
                 .luckyNumber(itemFortune.number)
                 .sinsalName(result.getSinsalName())
                 .sinsalAdvice(sinsalAdvice)
+                .engineSource("LOCAL_ENGINE")
                 .recommendRecruitments(recommendList)
                 .build();
     }
@@ -440,6 +442,7 @@ public class FortuneServiceImpl implements FortuneService {
                 .luckyNumber(7)
                 .sinsalName("장성살")
                 .sinsalAdvice("만인을 이끄는 리더십과 카리스마가 돋보입니다. 면접에서 주도적인 태도로 답변을 이끌어보세요.")
+                .engineSource("STATIC_FALLBACK")
                 .recommendRecruitments(fallbackRecruits)
                 .build();
     }

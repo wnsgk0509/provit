@@ -72,6 +72,10 @@ public class TodayFortuneDTO {
     /** 신살 맞춤 취업 조언 */
     private String sinsalAdvice;
 
+    /** 운세 데이터 산출 출처 엔진 (SAZU_API: 외부 만세력 REST API, LOCAL_ENGINE: Provit 자체 만세력 도메인 엔진) */
+    @Builder.Default
+    private String engineSource = "LOCAL_ENGINE";
+
     /** 운세 기반 오늘의 추천 채용 공고 목록 (최대 6건) */
     private List<RecruitmentDTO> recommendRecruitments;
 }

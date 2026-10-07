@@ -35,6 +35,17 @@
     margin-bottom: 0.65rem;
 }
 
+.fortune-source-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #94a3b8;
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    padding: 0.18rem 0.5rem;
+    border-radius: 6px;
+    letter-spacing: 0.02em;
+}
+
 .fortune-pill-group {
     display: flex;
     flex-wrap: wrap;
