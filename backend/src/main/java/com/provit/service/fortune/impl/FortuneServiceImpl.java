@@ -22,6 +22,7 @@ import com.provit.dto.auth.UserDTO;
 import com.provit.dto.fortune.TodayFortuneDTO;
 import com.provit.dto.recruitment.RecruitmentDTO;
 import com.provit.service.fortune.FortuneService;
+import com.provit.util.sazu.LocalSazuEngine;
 
 /**
  * 오늘의 취업 운세 및 행운 추천 공고 서비스 구현체
@@ -49,6 +50,7 @@ public class FortuneServiceImpl implements FortuneService {
 
         String userNickname = "취준생";
         SazuTodayRequestDTO requestDTO = SazuTodayRequestDTO.defaultSample();
+        LocalDate userBirthDate = null;
 
         // 1. 사용자 정보 확인 및 생년월일 파싱
         if (userNum != null) {
@@ -62,18 +64,22 @@ public class FortuneServiceImpl implements FortuneService {
                     if (userDTO.getUserBirthDate() != null) {
                         Calendar cal = Calendar.getInstance();
                         cal.setTime(userDTO.getUserBirthDate());
+                        int birthYear = cal.get(Calendar.YEAR);
+                        int birthMonth = cal.get(Calendar.MONTH) + 1;
+                        int birthDay = cal.get(Calendar.DAY_OF_MONTH);
+                        userBirthDate = LocalDate.of(birthYear, birthMonth, birthDay);
+
                         requestDTO = SazuTodayRequestDTO.builder()
-                                .birthYear(cal.get(Calendar.YEAR))
-                                .birthMonth(cal.get(Calendar.MONTH) + 1)
-                                .birthDay(cal.get(Calendar.DAY_OF_MONTH))
+                                .birthYear(birthYear)
+                                .birthMonth(birthMonth)
+                                .birthDay(birthDay)
                                 .birthHour(9)
                                 .birthMinute(0)
                                 .isLunar(false)
                                 .isFemale(false)
                                 .birthCity("서울")
                                 .build();
-                        log.info(">> [FortuneService] 회원 생년월일 적용: {}-{}-{}",
-                                requestDTO.getBirthYear(), requestDTO.getBirthMonth(), requestDTO.getBirthDay());
+                        log.info(">> [FortuneService] 회원 생년월일 적용: {}", userBirthDate);
                     }
                 }
             } catch (Exception e) {
@@ -81,16 +87,29 @@ public class FortuneServiceImpl implements FortuneService {
             }
         }
 
-        // 2. 사주 API 호출 및 오늘의 명리 데이터 추출 (장애 시 Fallback 지원)
-        JsonNode data = null;
-        try {
-            data = sazuApiClient.getTodayFortune(requestDTO);
-        } catch (Exception e) {
-            log.error(">> [FortuneService] 사주 API 연동 실패, 안정적인 기본 운세 모델로 대체합니다: {}", e.getMessage());
-            return buildFallbackFortune(userNickname, userNum);
+        // 2. 사주 API 키 티어 판별 및 운세 엔진 분기
+        // - 유료(Pro/Enterprise) 키: 외부 sazu.app REST API를 직접 호출하여 데이터 추출
+        // - 무료(Free 샌드박스) 키: sazu_free_... 키는 고정된 특정 샘플 1인의 데이터만 반환하므로,
+        //   모든 회원의 실제 생년월일 기반 1:1 개인화 운세를 위해 LocalSazuEngine을 직접 구동
+        // - 미설정/통신 장애: LocalSazuEngine으로 안전하게 전환
+        if (sazuApiClient.isConfigured() && !sazuApiClient.isFreeTier()) {
+            try {
+                JsonNode data = sazuApiClient.getTodayFortune(requestDTO);
+                return parseAndBuildFortuneFromApi(data, userNickname, userNum);
+            } catch (Exception e) {
+                log.warn(">> [FortuneService] 유료 사주 API 호출 실패. LocalSazuEngine 기반 정밀 계산으로 전환합니다: {}", e.getMessage());
+                return buildLocalEngineFortune(userNickname, userBirthDate, userNum);
+            }
+        } else {
+            log.info(">> [FortuneService] 무료(Free 샌드박스) API 환경 감지: 전 회원 실제 생년월일 기반 1:1 맞춤 운세를 위해 LocalSazuEngine을 직접 가동합니다.");
+            return buildLocalEngineFortune(userNickname, userBirthDate, userNum);
         }
+    }
 
-        // 3. API 응답 데이터 파싱
+    /**
+     * Sazu API 성공 응답 데이터를 TodayFortuneDTO로 변환
+     */
+    private TodayFortuneDTO parseAndBuildFortuneFromApi(JsonNode data, String userNickname, Long userNum) {
         String fortuneDate = data.path("reference").path("date").asText(LocalDate.now().toString());
 
         JsonNode fourPillars = data.path("modules").path("fourPillars");
@@ -357,6 +376,43 @@ public class FortuneServiceImpl implements FortuneService {
         }
 
         return "오늘 하루 당신의 꾸준한 노력이 취업 성공을 향한 가장 든든한 디딤돌이 되어줄 것입니다.";
+    }
+
+    /**
+     * LocalSazuEngine을 통해 회원 실제 생년월일 기반 1:1 맞춤 운세 모델 동적 생성
+     */
+    private TodayFortuneDTO buildLocalEngineFortune(String userNickname, LocalDate userBirthDate, Long userNum) {
+        log.info(">> [FortuneService] LocalSazuEngine 정밀 계산 시작: userNickname={}, userBirthDate={}", userNickname, userBirthDate);
+
+        LocalSazuEngine.SazuCalculationResult result = LocalSazuEngine.calculate(userBirthDate, LocalDate.now());
+
+        TenGodsInterpretation interpretation = interpretTenGods(result.getStemSipseong());
+        ElementFortune itemFortune = interpretElement(result.getTodayStemElement());
+        String sinsalAdvice = interpretSinsal(result.getSinsalName(), "");
+
+        List<RecruitmentDTO> recommendList = fetchRecommendRecruitments(interpretation.luckyJobKeyword, userNum, 6);
+
+        return TodayFortuneDTO.builder()
+                .fortuneDate(LocalDate.now().toString())
+                .userNickname(userNickname)
+                .dayMaster(result.getDayMaster())
+                .dayMasterElement(result.getDayMasterElement())
+                .todayIlju(result.getTodayIlju())
+                .todayElement(result.getTodayElement())
+                .tenGodsRelation(result.getStemSipseong())
+                .tenGodsMeaning(interpretation.meaning)
+                .overallScore(interpretation.score)
+                .overallSummary(interpretation.summary)
+                .advice(interpretation.advice)
+                .luckyJobName(interpretation.luckyJobDisplay)
+                .luckyKeyword(interpretation.luckyKeyword)
+                .luckyColor(itemFortune.color)
+                .luckyDirection(itemFortune.direction)
+                .luckyNumber(itemFortune.number)
+                .sinsalName(result.getSinsalName())
+                .sinsalAdvice(sinsalAdvice)
+                .recommendRecruitments(recommendList)
+                .build();
     }
 
     /**

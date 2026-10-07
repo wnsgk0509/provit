@@ -122,4 +122,12 @@ public class SazuApiClient {
     public boolean isConfigured() {
         return !apiKey.isEmpty() && !apiKey.contains("발급") && !apiKey.contains("입력");
     }
+
+    /**
+     * 무료(Free/Sandbox) 플랜 키 여부 확인
+     * sazu.app의 Free 키(sazu_free_...)는 특정 샘플 5종만 지원하는 샌드박스입니다.
+     */
+    public boolean isFreeTier() {
+        return apiKey.startsWith("sazu_free_") || apiKey.toLowerCase().contains("free");
+    }
 }
