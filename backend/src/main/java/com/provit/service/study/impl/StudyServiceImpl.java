@@ -91,7 +91,8 @@ public class StudyServiceImpl implements StudyService {
     @Override
     @Transactional
     public void joinStudy(Long studyNum, Long userNum) {
-        StudyDTO study = studyDao.selectStudyDetail(studyNum);
+        // 비관적 락(Pessimistic Lock)을 사용하여 동시성 문제 해결
+        StudyDTO study = studyDao.selectStudyDetailForUpdate(studyNum);
         if (study == null) {
             throw new IllegalArgumentException("존재하지 않는 스터디입니다.");
         }
@@ -100,13 +101,17 @@ public class StudyServiceImpl implements StudyService {
         params.put("studyNum", studyNum);
         params.put("userNum", userNum);
         
-        // 중복 참여 방지 로직 및 정원 초과 검증 로직 (원자적 SQL로 처리)
-        if (studyDao.checkStudyMember(params) == 0) {
-            int inserted = studyDao.insertStudyMember(params);
-            if (inserted == 0) {
-                throw new IllegalArgumentException("스터디 정원이 가득 차서 참여할 수 없습니다.");
-            }
+        // 중복 참여 검증
+        if (studyDao.checkStudyMember(params) > 0) {
+            return; // 이미 가입된 경우
         }
+
+        // 정원 검증
+        if (study.getMemberCount() >= study.getMaxMembers()) {
+            throw new IllegalArgumentException("스터디 정원이 가득 차서 참여할 수 없습니다.");
+        }
+        
+        studyDao.insertStudyMember(params);
     }
 
     @Override
