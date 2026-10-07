@@ -66,7 +66,7 @@ function StudyEditModal({ show, onClose, onSuccess, initialData }) {
                         <div className="modal-body">
                             <form id="studyEditForm" onSubmit={handleSubmit}>
                                 <div className="mb-3">
-                                    <label className="form-label fw-semibold text-secondary small">스터디 이름</label>
+                                    <label className="form-label fw-semibold small">스터디 이름</label>
                                     <input 
                                         type="text" 
                                         className="form-control" 
@@ -77,7 +77,7 @@ function StudyEditModal({ show, onClose, onSuccess, initialData }) {
                                     />
                                 </div>
                                 <div className="mb-3">
-                                    <label className="form-label fw-semibold text-secondary small">최대 참여 인원</label>
+                                    <label className="form-label fw-semibold small">최대 참여 인원</label>
                                     <input 
                                         type="number" 
                                         className="form-control" 
@@ -88,11 +88,11 @@ function StudyEditModal({ show, onClose, onSuccess, initialData }) {
                                     />
                                 </div>
                                 <div className="mb-3">
-                                    <label className="form-label fw-semibold text-secondary small">스터디 소개 및 목표</label>
+                                    <label className="form-label fw-semibold small">스터디 소개 및 목표</label>
                                     <textarea 
                                         className="form-control" 
                                         rows="4" 
-                                        placeholder="스터디 진행 방식, 목표, 우대 사항 등을 적어주세요."
+                                        placeholder="스터디 진행 방식, 목표, 링크 등을 입력해 주세요."
                                         value={studyExplain}
                                         onChange={(e) => setStudyExplain(e.target.value)}
                                         style={{ resize: 'none' }}

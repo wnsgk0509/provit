@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { fetchTodayFortune } from '../../api/fortuneApi';
 import { toggleJobScrap } from '../../api/recruitmentApi';
 import { useAuth } from '../../context/AuthContext';
+import { Bookmark, RotateCcw, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import './Fortune.css';
 
 function Fortune() {
     const navigate = useNavigate();
@@ -12,6 +14,7 @@ function Fortune() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [pendingScraps, setPendingScraps] = useState(new Set());
+    const [isExpanded, setIsExpanded] = useState(false);
 
     // 운세 데이터 로드
     const loadFortune = async () => {
@@ -166,7 +169,7 @@ function Fortune() {
     }
 
     return (
-        <div className="container my-4" style={{ maxWidth: '1100px' }}>
+        <div className="fortune-page-container my-4">
             {/* 상단 헤더 & 인사말 */}
             <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
                 <div>
@@ -182,98 +185,125 @@ function Fortune() {
                 </div>
                 <div className="mt-3 mt-md-0">
                     <button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-sm" onClick={loadFortune}>
-                        <i className="bi bi-arrow-clockwise"></i> 새로고침
+                        <RotateCcw size={14} /> 새로고침
                     </button>
                 </div>
             </div>
 
-            {/* 1. 메인 총운 카드 (Hero Section) */}
-            <div className="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-                <div className="card-body p-4 p-md-5" style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', color: '#fff' }}>
-                    <div className="row align-items-center">
+            {/* 1. 메인 총운 카드 (Hero Section - Solid Modern Navy) */}
+            <div className="card fortune-hero-card">
+                <div className="fortune-hero-body">
+                    <div className="row align-items-center g-4">
                         <div className="col-lg-8">
-                            <div className="d-flex flex-wrap gap-2 mb-3">
-                                <span className={`badge ${getElementBadgeClass(fortune.dayMasterElement)} px-3 py-2 rounded-pill`}>
-                                    나의 일간: {fortune.dayMaster}
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <div className="fortune-eyebrow mb-0">Today's Career Insight</div>
+                                <span className="fortune-source-badge">
+                                    {fortune.engineSource === 'SAZU_API' ? '⚡ SAZU API 연동' : '⚙️ Provit 자체 사주 엔진'}
                                 </span>
-                                <span className="badge bg-light text-dark px-3 py-2 rounded-pill">
-                                    오늘의 일진: {fortune.todayIlju} ({fortune.todayElement})
+                            </div>
+                            <div className="fortune-pill-group">
+                                <span className="fortune-pill">
+                                    나의 일간: <strong>{fortune.dayMaster} ({fortune.dayMasterElement})</strong>
                                 </span>
-                                <span className="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold">
-                                    십성: {fortune.tenGodsRelation}
+                                <span className="fortune-pill">
+                                    오늘의 일진: <strong>{fortune.todayIlju} ({fortune.todayElement})</strong>
+                                </span>
+                                <span className="fortune-pill fortune-pill-highlight">
+                                    십성: <strong>{fortune.tenGodsRelation}</strong>
                                 </span>
                             </div>
 
-                            <h3 className="fw-bold mb-3" style={{ lineHeight: '1.4' }}>
+                            <h3 className="fortune-title">
                                 "{fortune.tenGodsMeaning}"
                             </h3>
 
-                            <p className="fs-6 opacity-90 mb-4" style={{ lineHeight: '1.7' }}>
+                            <p className="fortune-summary">
                                 {fortune.overallSummary}
                             </p>
 
-                            <div className="p-3 rounded-3" style={{ backgroundColor: 'rgba(255, 255, 255, 0.12)', backdropFilter: 'blur(8px)' }}>
+                            <div className="fortune-advice-box">
                                 <div className="d-flex align-items-start gap-2">
                                     <span className="fs-5">💡</span>
                                     <div>
-                                        <strong className="text-warning">오늘의 행동 조언:</strong>
-                                        <p className="mb-0 mt-1 small opacity-90">{fortune.advice}</p>
+                                        <div className="fortune-advice-label">오늘의 행동 조언</div>
+                                        <p className="fortune-advice-text">{fortune.advice}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* 운세 총점 스코어 */}
-                        <div className="col-lg-4 text-center mt-4 mt-lg-0 border-lg-start ps-lg-4">
-                            <div className="d-inline-flex flex-column align-items-center justify-content-center p-4 rounded-circle bg-white text-dark shadow-lg" style={{ width: '170px', height: '170px' }}>
-                                <span className="text-muted small fw-semibold">취업 활력 지수</span>
-                                <span className="display-4 fw-black text-primary my-1">{fortune.overallScore}</span>
-                                <span className="badge bg-success-subtle text-success fw-bold">100점 만점</span>
-                            </div>
-                            <div className="mt-3 small text-white-50">
-                                신살: <strong className="text-white">{fortune.sinsalName}</strong> ({fortune.sinsalAdvice})
+                        {/* 운세 총점 스코어 위젯 */}
+                        <div className="col-lg-4 text-center ps-lg-3">
+                            <div className="fortune-score-widget">
+                                <div className="fortune-score-label">취업 활력 지수</div>
+                                <div className="fortune-score-value">{fortune.overallScore}</div>
+                                <span className="fortune-score-badge">100점 만점</span>
+                                <div className="fortune-score-sinsal">
+                                    오늘의 신살: <strong className="text-white">{fortune.sinsalName}</strong>
+                                    {fortune.sinsalAdvice && <div className="mt-1 opacity-75">{fortune.sinsalAdvice}</div>}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                {/* 메인 총운 카드 하단 펼치기/접기 버튼 */}
+                <div className="fortune-hero-footer">
+                    <button
+                        type="button"
+                        className="fortune-toggle-btn"
+                        onClick={() => setIsExpanded(prev => !prev)}
+                        aria-expanded={isExpanded}
+                    >
+                        <Sparkles size={16} className="text-warning" />
+                        <span>
+                            {isExpanded
+                                ? '오늘의 행운 가이드 및 추천 공고 접기'
+                                : '오늘의 행운 가이드 및 추천 공고 펼쳐보기'}
+                        </span>
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
+                </div>
             </div>
 
-            {/* 2. 행운의 가이드 카드 4종 */}
-            <div className="row g-3 mb-5">
+            {/* 펼치기 영역: 2. 행운의 가이드 카드 4종 & 3. 오늘의 행운 추천 채용 공고 */}
+            {isExpanded && (
+                <div className="fortune-expanded-content">
+                    {/* 2. 행운의 가이드 카드 4종 */}
+                    <div className="row g-3 mb-5">
                 {/* 행운의 직무 */}
                 <div className="col-6 col-md-3">
-                    <div className="card h-100 border-0 shadow-sm rounded-3 text-center p-3">
-                        <div className="fs-3 mb-2">💼</div>
-                        <span className="text-muted small fw-semibold">오늘의 행운 직무</span>
-                        <h6 className="fw-bold text-primary mt-2 mb-0">{fortune.luckyJobName}</h6>
+                    <div className="fortune-guide-card">
+                        <div className="fortune-guide-icon">💼</div>
+                        <div className="fortune-guide-label">오늘의 행운 직무</div>
+                        <h6 className="fortune-guide-value text-primary">{fortune.luckyJobName}</h6>
                     </div>
                 </div>
 
                 {/* 행운의 키워드 */}
                 <div className="col-6 col-md-3">
-                    <div className="card h-100 border-0 shadow-sm rounded-3 text-center p-3">
-                        <div className="fs-3 mb-2">🎯</div>
-                        <span className="text-muted small fw-semibold">행운의 핵심 키워드</span>
-                        <h6 className="fw-bold text-dark mt-2 mb-0">{fortune.luckyKeyword}</h6>
+                    <div className="fortune-guide-card">
+                        <div className="fortune-guide-icon">🎯</div>
+                        <div className="fortune-guide-label">행운의 핵심 키워드</div>
+                        <h6 className="fortune-guide-value">{fortune.luckyKeyword}</h6>
                     </div>
                 </div>
 
                 {/* 행운의 아이템 */}
                 <div className="col-6 col-md-3">
-                    <div className="card h-100 border-0 shadow-sm rounded-3 text-center p-3">
-                        <div className="fs-3 mb-2">🎨</div>
-                        <span className="text-muted small fw-semibold">행운의 컬러 & 방위</span>
-                        <p className="mb-0 small fw-bold text-dark mt-1">{fortune.luckyColor}</p>
-                        <span className="text-muted small mt-1">{fortune.luckyDirection}</span>
+                    <div className="fortune-guide-card">
+                        <div className="fortune-guide-icon">🎨</div>
+                        <div className="fortune-guide-label">행운 컬러 & 방위</div>
+                        <h6 className="fortune-guide-value">{fortune.luckyColor} · {fortune.luckyDirection}</h6>
                     </div>
                 </div>
 
                 {/* 행운의 숫자 */}
                 <div className="col-6 col-md-3">
-                    <div className="card h-100 border-0 shadow-sm rounded-3 text-center p-3">
-                        <div className="fs-3 mb-2">🍀</div>
-                        <span className="text-muted small fw-semibold">행운의 숫자</span>
-                        <h4 className="fw-bold text-success mt-2 mb-0">{fortune.luckyNumber}</h4>
+                    <div className="fortune-guide-card">
+                        <div className="fortune-guide-icon">🍀</div>
+                        <div className="fortune-guide-label">행운의 숫자</div>
+                        <h6 className="fortune-guide-value text-success">{fortune.luckyNumber}</h6>
                     </div>
                 </div>
             </div>
@@ -284,7 +314,7 @@ function Fortune() {
                     <div>
                         <h4 className="fw-bold mb-1 d-flex align-items-center gap-2">
                             <span>🚀 오늘의 행운 추천 공고</span>
-                            <span className="badge bg-danger-subtle text-danger fs-6 rounded-pill px-3">
+                            <span className="badge bg-primary-subtle text-primary fs-6 rounded-pill px-3">
                                 #{fortune.luckyJobName}
                             </span>
                         </h4>
@@ -305,20 +335,7 @@ function Fortune() {
                         {fortune.recommendRecruitments.map((job) => (
                             <div key={job.recruitmentNum} className="col-12 col-md-6 col-lg-4">
                                 <div
-                                    className="card h-100 border-0 shadow-sm rounded-3 p-3 position-relative job-recommend-card"
-                                    style={{
-                                        cursor: 'pointer',
-                                        transition: 'transform 0.2s, box-shadow 0.2s',
-                                        backgroundColor: '#fff'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.transform = 'translateY(-4px)';
-                                        e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.08)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.transform = 'translateY(0)';
-                                        e.currentTarget.style.boxShadow = '0 .125rem .25rem rgba(0,0,0,.075)';
-                                    }}
+                                    className="card fortune-job-card"
                                     onClick={() => {
                                         if (job.jobUrl) {
                                             window.open(job.jobUrl, '_blank', 'noopener,noreferrer');
@@ -327,53 +344,51 @@ function Fortune() {
                                 >
                                     {/* 상단 기업명 & 스크랩 버튼 */}
                                     <div className="d-flex justify-content-between align-items-start mb-2">
-                                        <span className="fw-bold text-secondary small text-truncate" style={{ maxWidth: '75%' }}>
-                                            {job.companyName}
+                                        <span className="fortune-job-company text-truncate pe-2">
+                                            🏢 {job.companyName}
                                         </span>
                                         <button
                                             type="button"
-                                            className="btn btn-sm p-0 border-0 bg-transparent text-danger fs-5"
-                                            title={job.isScrapped === 1 ? '스크랩 취소' : '스크랩 저장'}
+                                            className={`job-scrap-btn ${job.isScrapped === 1 ? 'active' : ''}`}
+                                            title={job.isScrapped === 1 ? '관심 공고 스크랩 취소' : '관심 공고 스크랩 등록'}
                                             disabled={pendingScraps.has(job.recruitmentNum)}
                                             onClick={(e) => handleScrapToggle(e, job.recruitmentNum)}
+                                            aria-label="관심 공고 스크랩"
                                         >
-                                            {job.isScrapped === 1 ? '❤️' : '🤍'}
+                                            <Bookmark
+                                                size={17}
+                                                fill={job.isScrapped === 1 ? "currentColor" : "none"}
+                                                strokeWidth={job.isScrapped === 1 ? 2.5 : 2}
+                                            />
                                         </button>
                                     </div>
 
                                     {/* 공고 제목 */}
-                                    <h6 className="fw-bold text-dark mb-2 text-truncate-2" style={{
-                                        display: '-webkit-box',
-                                        WebkitLineClamp: 2,
-                                        WebkitBoxOrient: 'vertical',
-                                        overflow: 'hidden',
-                                        minHeight: '44px',
-                                        lineHeight: '1.4'
-                                    }}>
+                                    <h6 className="fortune-job-title" title={job.title}>
                                         {job.title}
                                     </h6>
 
                                     {/* 태그 / 정보 */}
-                                    <div className="d-flex flex-wrap gap-1 mb-3 mt-auto">
+                                    <div className="d-flex flex-wrap gap-1 mb-3">
                                         {job.jobName && (
-                                            <span className="badge bg-light text-secondary border small">
+                                            <span className="fortune-tag-pill">
                                                 {job.jobName}
                                             </span>
                                         )}
                                         {job.locationName && (
-                                            <span className="badge bg-light text-secondary border small">
-                                                {job.locationName}
+                                            <span className="fortune-tag-pill">
+                                                📍 {job.locationName}
                                             </span>
                                         )}
                                         {job.experienceLevel && (
-                                            <span className="badge bg-light text-secondary border small">
-                                                {job.experienceLevel}
+                                            <span className="fortune-tag-pill">
+                                                💼 {job.experienceLevel}
                                             </span>
                                         )}
                                     </div>
 
                                     {/* 하단 마감일 및 지원하기 버튼 */}
-                                    <div className="d-flex justify-content-between align-items-center pt-2 mt-auto border-top">
+                                    <div className="fortune-job-footer">
                                         <div>
                                             {getDdayBadge(job.expirationDate, job.closeType)}
                                         </div>
@@ -381,8 +396,7 @@ function Fortune() {
                                             href={job.jobUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="btn btn-primary btn-sm px-3 rounded-pill fw-semibold text-nowrap d-inline-flex align-items-center gap-1 shadow-sm"
-                                            style={{ fontSize: "0.8rem" }}
+                                            className="btn-fortune-apply"
                                             onClick={(e) => e.stopPropagation()}
                                         >
                                             <span>지원하기</span>
@@ -398,25 +412,42 @@ function Fortune() {
                         <p className="mb-0">추천 공고를 준비 중입니다. 전체 채용 공고에서 다양한 공고를 확인해 보세요!</p>
                     </div>
                 )}
-            </div>
 
-            {/* 4. 취업 성향 MBTI 테스트 안내 배너 (기존 섹션 유지 및 업그레이드) */}
-            <section className="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-                <div className="card-body p-4 p-md-5 text-white" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
-                    <div className="row align-items-center">
+                {/* 하단 접기 바로가기 버튼 */}
+                <div className="text-center mt-4">
+                    <button
+                        type="button"
+                        className="btn-fortune-collapse-bottom"
+                        onClick={() => {
+                            setIsExpanded(false);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                    >
+                        <ChevronUp size={15} />
+                        <span>행운 가이드 및 추천 공고 접기</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    )}
+
+    {/* 4. 취업 성향 MBTI 테스트 안내 배너 (Solid Modern Slate) */}
+            <section className="card fortune-mbti-card mb-4">
+                <div className="fortune-mbti-body">
+                    <div className="row align-items-center g-3">
                         <div className="col-md-8">
-                            <span className="badge text-bg-light text-primary mb-3 px-3 py-1 rounded-pill fw-semibold">
+                            <span className="fortune-mbti-badge">
                                 취업 준비 성향 테스트
                             </span>
-                            <h3 className="fw-bold mb-2">나의 취업 MBTI는 무엇일까요?</h3>
-                            <p className="mb-md-0 opacity-75">
+                            <h3 className="fortune-mbti-title">나의 취업 MBTI는 무엇일까요?</h3>
+                            <p className="fortune-mbti-desc">
                                 12가지 실전문항으로 취업 준비와 면접 상황에서의 나의 성향을 파악하고 강점을 극대화해 보세요.
                             </p>
                         </div>
-                        <div className="col-md-4 text-md-end mt-3 mt-md-0">
+                        <div className="col-md-4 text-md-end">
                             <button
                                 type="button"
-                                className="btn btn-light fw-bold text-primary px-4 py-2 rounded-pill shadow-sm"
+                                className="btn btn-fortune-mbti"
                                 onClick={() => navigate('/mbti')}
                             >
                                 MBTI 검사 시작하기 &rarr;

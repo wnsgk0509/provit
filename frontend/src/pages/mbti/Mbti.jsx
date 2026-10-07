@@ -32,6 +32,11 @@ function Mbti() {
         <div className="progress mb-4" aria-label="검사 진행률">
           <div className="progress-bar" style={{ width: `${((questionIndex + 1) / QUESTIONS.length) * 100}%` }} />
         </div>
+        <img
+          className="mbti-question-image"
+          src={`/images/mbti/questions/Q${questionIndex + 1}.jpg`}
+          alt={`${questionIndex + 1}번 질문 상황 일러스트`}
+        />
         <h1 className="h3 fw-bold text-dark mb-4 mbti-question">{question.question}</h1>
         <div className="d-grid gap-3">
           <button type="button" className="mbti-choice" onClick={() => selectAnswer(question.firstType)}>{question.first}</button>

@@ -86,6 +86,42 @@ function CommunityDetail() {
         setShowReportModal(true);
     };
 
+    const handleShare = async () => {
+        const shareData = {
+            title: post.postTitle,
+            text: 'Provit에서 이 게시글을 확인해보세요!',
+            url: window.location.href,
+        };
+
+        // 1. 모바일 기기의 기본 공유 창 띄우기 (HTTPS 환경에서만 동작)
+        if (navigator.share && window.isSecureContext) {
+            try {
+                await navigator.share(shareData);
+            } catch (err) {
+                console.log('공유 취소 또는 실패', err);
+            }
+        } else {
+            // 2. HTTPS가 아닌 로컬 테스트(http://192.168...) 환경이거나 PC인 경우 클립보드 복사로 대체
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(window.location.href);
+                } else {
+                    // HTTP 로컬 테스트 환경을 위한 Fallback (예전 방식)
+                    const textArea = document.createElement("textarea");
+                    textArea.value = window.location.href;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(textArea);
+                }
+                alert('게시글 주소가 복사되었습니다!');
+            } catch (err) {
+                console.error(err);
+                alert('주소 복사에 실패했습니다. 브라우저 주소창에서 직접 복사해주세요.');
+            }
+        }
+    };
+
     // 날짜 포맷팅 유틸 (YYYY-MM-DD HH:mm)
     const formatDateTime = (dateString) => {
         if (!dateString) return '';
@@ -129,17 +165,8 @@ function CommunityDetail() {
                             조회수 {post.viewCount}
                         </span>
                     </div>
-                    <div className="d-flex justify-content-between align-items-start mb-3">
-                        <h3 className="card-title fw-bold mb-0">{post.postTitle}</h3>
-                        {!isAuthor && (
-                            <button 
-                                className="btn btn-sm btn-link text-muted text-decoration-none p-0" 
-                                onClick={handleReport}
-                                title="신고하기"
-                            >
-                                <i className="bi bi-exclamation-triangle-fill text-danger me-1"></i>신고
-                            </button>
-                        )}
+                    <div className="mb-3">
+                        <h3 className="card-title fw-bold mb-0 text-break">{post.postTitle}</h3>
                     </div>
                     <div className="d-flex justify-content-between text-muted small">
                         <span><strong>{post.userNickname || '익명'}</strong></span>
@@ -167,31 +194,59 @@ function CommunityDetail() {
                     </div>
                 </div>
                 
-                {/* 좋아요 버튼 등은 나중에 추가 가능 */}
-                <div className="card-footer bg-white border-top text-center py-3">
-                    <button 
-                        className={`btn px-4 rounded-pill ${post.isLiked ? 'btn-danger' : 'btn-outline-danger'}`}
-                        onClick={handleLike}
-                    >
-                        <i className={`bi ${post.isLiked ? 'bi-heart-fill' : 'bi-heart'} me-1`}></i> 
-                        좋아요 {post.postLikeCount || 0}
-                    </button>
+                {/* 좋아요 및 공유 버튼, 신고 버튼 */}
+                <div className="card-footer bg-white border-top py-3">
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div style={{ width: '80px' }} className="d-none d-sm-block"></div>
+                        
+                        <div className="d-flex justify-content-center gap-3">
+                            <button 
+                                className={`btn btn-sm px-3 py-1 rounded-pill ${post.isLiked ? 'btn-danger' : 'btn-outline-danger'}`}
+                                style={{ fontSize: '0.85rem' }}
+                                onClick={handleLike}
+                            >
+                                <i className={`bi ${post.isLiked ? 'bi-heart-fill' : 'bi-heart'} me-1`}></i> 
+                                좋아요 {post.postLikeCount || 0}
+                            </button>
+                            <button 
+                                className="btn btn-sm btn-outline-secondary px-3 py-1 rounded-pill"
+                                style={{ fontSize: '0.85rem' }}
+                                onClick={handleShare}
+                            >
+                                <i className="bi bi-share-fill me-1"></i> 
+                                공유하기
+                            </button>
+                        </div>
+                        
+                        <div className="text-end" style={{ minWidth: '80px' }}>
+                            {!isAuthor && (
+                                <button 
+                                    className="btn btn-sm btn-outline-danger px-3 py-1"
+                                    style={{ fontSize: '0.85rem' }}
+                                    onClick={handleReport}
+                                    title="신고하기"
+                                >
+                                    <i className="bi bi-exclamation-triangle-fill me-1"></i>🚨신고
+                                </button>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div className="d-flex justify-content-between mt-4 mb-4">
-                <Link to="/community" className="btn btn-secondary">
+                <Link to="/community" className="btn btn-sm btn-secondary px-3 py-1" style={{ fontSize: '0.85rem' }}>
                     목록으로
                 </Link>
                 
                 {(isAuthor || isAdmin) && (
                     <div className="gap-2 d-flex">
                         {isAuthor && (
-                            <Link to={`/community/edit/${postNum}`} className="btn btn-outline-primary">
+                            <Link to={`/community/edit/${postNum}`} className="btn btn-sm btn-outline-primary px-3 py-1" style={{ fontSize: '0.85rem' }}>
                                 수정
                             </Link>
                         )}
-                        <button className="btn btn-outline-danger" onClick={handleDelete}>
+                        <button className="btn btn-sm btn-outline-danger px-3 py-1" style={{ fontSize: '0.85rem' }} onClick={handleDelete}>
                             삭제
                         </button>
                     </div>

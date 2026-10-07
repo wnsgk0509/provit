@@ -644,7 +644,7 @@ function JobList() {
                                         <span className="recommend-badge">📂 직군 맞춤 추천</span>
                                     )}
                                     {recommendation.recommendType === "POPULAR_FALLBACK" && (
-                                        <span className="recommend-badge bg-danger">🔥 실시간 인기 공고</span>
+                                        <span className="recommend-badge recommend-badge-popular">🔥 실시간 인기 공고</span>
                                     )}
                                     <h4 className="fw-bold mb-0 text-dark">
                                         {recommendation.recommendType === "JOB_MATCH" && (
