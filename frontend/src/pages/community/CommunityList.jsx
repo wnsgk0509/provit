@@ -50,12 +50,18 @@ function CommunityList() {
             const result = await fetchPostList(params);
             if (result && result.responseCode && result.responseCode.code === 200) {
                 setPosts(result.data.list || []);
+                const current = result.data.currentPage || 1;
+                const total = result.data.totalPages || 0;
+                const displayPageNum = 5; // 한 번에 보여줄 페이지 번호 개수
+                const startPage = Math.floor((current - 1) / displayPageNum) * displayPageNum + 1;
+                const endPage = Math.min(startPage + displayPageNum - 1, total);
+
                 setPageInfo({
-                    currentPage: result.data.currentPage,
-                    totalPages: result.data.totalPages,
-                    startPage: result.data.startPage,
-                    endPage: result.data.endPage,
-                    hasPrevious: result.data.hasPrevious,
+                    currentPage: current,
+                    totalPages: total,
+                    startPage: startPage,
+                    endPage: endPage,
+                    hasPrevious: result.data.hasPrev, // 백엔드 응답 키: hasPrev
                     hasNext: result.data.hasNext
                 });
             } else {
@@ -306,7 +312,7 @@ function CommunityList() {
                                         <li className={`page-item ${!pageInfo.hasPrevious ? 'disabled' : ''}`}>
                                             <button
                                                 className="page-link"
-                                                onClick={() => handlePageChange(pageInfo.startPage - 1)}
+                                                onClick={() => handlePageChange(pageInfo.currentPage - 1)}
                                                 disabled={!pageInfo.hasPrevious}
                                             >
                                                 이전
@@ -324,7 +330,7 @@ function CommunityList() {
                                         <li className={`page-item ${!pageInfo.hasNext ? 'disabled' : ''}`}>
                                             <button
                                                 className="page-link"
-                                                onClick={() => handlePageChange(pageInfo.endPage + 1)}
+                                                onClick={() => handlePageChange(pageInfo.currentPage + 1)}
                                                 disabled={!pageInfo.hasNext}
                                             >
                                                 다음
