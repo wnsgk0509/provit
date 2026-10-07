@@ -33,7 +33,7 @@ public class AdminReportController {
             return ApiResponse.success(response);
         } catch (Exception e) {
             e.printStackTrace();
-            return ApiResponse.error(ResponseCode.INTERNAL_SERVER_ERROR, "Error: " + e.getMessage() + " | Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "none"));
+            return ApiResponse.error(ResponseCode.INTERNAL_SERVER_ERROR, "신고 목록 조회 중 오류가 발생했습니다.");
         }
     }
 

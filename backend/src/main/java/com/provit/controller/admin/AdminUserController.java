@@ -24,10 +24,12 @@ import com.provit.service.admin.AdminUserService;
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
+    private final com.provit.dao.admin.AdminReportDAO adminReportDAO;
 
     @Autowired
-    public AdminUserController(AdminUserService adminUserService) {
+    public AdminUserController(AdminUserService adminUserService, com.provit.dao.admin.AdminReportDAO adminReportDAO) {
         this.adminUserService = adminUserService;
+        this.adminReportDAO = adminReportDAO;
     }
 
     @GetMapping
@@ -38,12 +40,9 @@ public class AdminUserController {
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "status", required = false) String status) {
 
-        if (loginUserNum == null) {
-            throw new SecurityException("로그인이 필요합니다.");
+        if (loginUserNum == null || !adminReportDAO.isAdmin(loginUserNum)) {
+            throw new SecurityException("관리자 권한이 없습니다.");
         }
-        
-        // 권한 체크는 향후 인터셉터에서 전역 처리 권장
-        // 임시로 하드코딩된 체크를 생략하거나 AdminUserDAO 등으로 체크해야 함 (이 예제에서는 생략하거나 AuthService 등 연동)
 
         PageResponseDTO<AdminUserDTO> response = adminUserService.getUserList(page, size, keyword, status);
         return ResponseEntity.ok(new ApiResponse<>(ResponseCode.SUCCESS, response));
@@ -55,8 +54,8 @@ public class AdminUserController {
             @PathVariable("userNum") Long userNum,
             @RequestBody AdminUserRequestDTO requestDTO) {
 
-        if (loginUserNum == null) {
-            throw new SecurityException("로그인이 필요합니다.");
+        if (loginUserNum == null || !adminReportDAO.isAdmin(loginUserNum)) {
+            throw new SecurityException("관리자 권한이 없습니다.");
         }
 
         adminUserService.updateUserBlockStatus(userNum, requestDTO);
