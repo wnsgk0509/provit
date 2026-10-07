@@ -3,6 +3,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { deleteCoverLetter } from '../../../api/documentApi';
 import { DocumentDate } from './ResumeRead';
+import { useModal } from '../../../context/ModalContext';
 
 const coverLetterFields = [
     { name: 'growthProcess', label: '성장 과정' },
@@ -13,25 +14,34 @@ const coverLetterFields = [
 
 function CoverLetterRead({ document }) {
     const navigate = useNavigate();
+    const { showConfirm, showToast, showAlert } = useModal();
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState('');
 
     const handleDelete = async () => {
-        if (!window.confirm('자기소개서를 삭제하시겠습니까? 삭제한 문서는 복구할 수 없습니다.')) return;
+        const ok = await showConfirm('자기소개서를 삭제하시겠습니까?\n삭제한 문서는 복구할 수 없습니다.', {
+            title: '자기소개서 삭제',
+            type: 'warning',
+            confirmText: '삭제',
+            cancelText: '취소',
+            isDestructive: true
+        });
+        if (!ok) return;
 
         setIsDeleting(true);
         setDeleteError('');
         try {
             await deleteCoverLetter(document.letterNum);
+            showToast('자기소개서가 삭제되었습니다.', 'info');
             navigate('/mypage', { replace: true });
             window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
         } catch (error) {
             const responseData = error.response?.data;
-            setDeleteError(
-                responseData?.data
+            const errMsg = responseData?.data
                 || responseData?.responseCode?.message
-                || '자기소개서를 삭제하지 못했습니다.',
-            );
+                || '자기소개서를 삭제하지 못했습니다.';
+            setDeleteError(errMsg);
+            showAlert(errMsg, { type: 'error' });
         } finally {
             setIsDeleting(false);
         }

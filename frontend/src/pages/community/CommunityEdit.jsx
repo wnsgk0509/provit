@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { fetchPostDetail, updatePost } from '../../api/communityApi';
 import { uploadFile, deleteFile } from '../../api/fileApi';
 import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../context/ModalContext';
 import MDEditor from '@uiw/react-md-editor';
 import rehypeSanitize from 'rehype-sanitize';
 
@@ -16,6 +17,7 @@ function CommunityEdit() {
     const { postNum } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { showAlert, showConfirm, showToast } = useModal();
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
     const [file, setFile] = useState(null); // 추가된 첨부파일 상태
@@ -55,7 +57,7 @@ function CommunityEdit() {
                     const post = result.data;
                     // 작성자 본인인지 2차 검증 (프론트 단)
                     if (!user || user.userNum !== post.userNum) {
-                        alert('수정 권한이 없습니다.');
+                        await showAlert('수정 권한이 없습니다.', { type: 'warning' });
                         navigate('/community');
                         return;
                     }
@@ -68,11 +70,11 @@ function CommunityEdit() {
                     });
                     setOriginalPostFile(currentPostFile);
                 } else {
-                    alert('게시글 정보를 불러오지 못했습니다.');
+                    await showAlert('게시글 정보를 불러오지 못했습니다.', { type: 'error' });
                     navigate('/community');
                 }
             } catch (error) {
-                alert('서버 오류가 발생했습니다.');
+                await showAlert('서버 오류가 발생했습니다.', { type: 'error' });
                 navigate('/community');
             } finally {
                 setInitialLoading(false);
@@ -82,8 +84,9 @@ function CommunityEdit() {
         if (user) {
             loadPost();
         } else {
-            alert('로그인이 필요합니다.');
-            navigate('/login');
+            showAlert('로그인이 필요합니다.', { type: 'warning' }).then(() => {
+                navigate('/login');
+            });
         }
     }, [postNum, user, navigate]);
 
@@ -112,8 +115,15 @@ function CommunityEdit() {
         }
     };
 
-    const handleDeleteExistingFile = () => {
-        if (window.confirm("기존 첨부파일을 삭제하시겠습니까? (수정 완료 시 영구 삭제됩니다)")) {
+    const handleDeleteExistingFile = async () => {
+        const ok = await showConfirm("기존 첨부파일을 삭제하시겠습니까?\n(수정 완료 시 영구 삭제됩니다)", {
+            title: "첨부파일 삭제",
+            type: "warning",
+            confirmText: "삭제",
+            cancelText: "취소",
+            isDestructive: true
+        });
+        if (ok) {
             setIsDirty(true);
             setDeleteExistingFile(true);
             setFormData({ ...formData, postFile: '' });
@@ -124,12 +134,12 @@ function CommunityEdit() {
         e.preventDefault();
         
         if (!formData.postTitle.trim()) {
-            alert('제목을 입력해주세요.');
+            showAlert('제목을 입력해주세요.', { type: 'warning' });
             return;
         }
 
         if (!formData.postContent.trim()) {
-            alert('내용을 입력해주세요.');
+            showAlert('내용을 입력해주세요.', { type: 'warning' });
             return;
         }
 
@@ -169,21 +179,31 @@ function CommunityEdit() {
 
             const result = await updatePost(postDto);
             if (result && result.responseCode && result.responseCode.code === 200) {
-                alert('게시글이 성공적으로 수정되었습니다.');
+                showToast('게시글이 성공적으로 수정되었습니다.', 'success');
                 setIsDirty(false); // 서밋 성공 시 경고 해제
                 navigate(`/community/${postNum}`);
             } else {
-                alert(result.message || '수정에 실패했습니다.');
+                showAlert(result?.message || '수정에 실패했습니다.', { type: 'error' });
             }
         } catch (error) {
-            alert('서버와의 통신 오류가 발생했습니다.');
+            showAlert('서버와의 통신 오류가 발생했습니다.', { type: 'error' });
         } finally {
             setLoading(false);
         }
     };
 
-    const handleCancel = () => {
-        if (window.confirm('수정을 취소하시겠습니까? 변경 사항은 저장되지 않습니다.')) {
+    const handleCancel = async () => {
+        if (!isDirty) {
+            navigate(`/community/${postNum}`);
+            return;
+        }
+        const ok = await showConfirm('수정을 취소하시겠습니까?\n변경 사항은 저장되지 않습니다.', {
+            title: '수정 취소',
+            type: 'warning',
+            confirmText: '작성 취소',
+            cancelText: '계속 수정'
+        });
+        if (ok) {
             navigate(`/community/${postNum}`);
         }
     };

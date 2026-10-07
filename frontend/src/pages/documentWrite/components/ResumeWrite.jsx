@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { createResume, updateResume } from '../../../api/documentApi';
 import { fetchOccupations, fetchJobsByOccupation } from '../../../api/recruitmentApi';
 import { getResumeDateError, getTodayInSeoul } from '../resumeDateValidation';
+import { useModal } from '../../../context/ModalContext';
 
 const emptyResume = {
     resumeTitle: '', highestLevel: '', motivation: '',
@@ -18,6 +19,7 @@ const emptyCertification = { certName: '', certGrade: '', issueDate: '' };
 
 function ResumeWrite({ initialData = null, onSaved, onCancel }) {
     const navigate = useNavigate();
+    const { showToast } = useModal();
     const isEditMode = Boolean(initialData?.resume?.resumeNum);
     const [resume, setResume] = useState(() => normalizeFormItem(emptyResume, initialData?.resume));
     const [educations, setEducations] = useState(() => (
@@ -145,7 +147,7 @@ function ResumeWrite({ initialData = null, onSaved, onCancel }) {
                 return;
             }
             if (!resumeNum) throw new Error('저장된 이력서 번호를 확인하지 못했습니다.');
-            window.alert('이력서가 저장되었습니다.');
+            showToast('이력서가 저장되었습니다.', 'success');
             navigate(`/documents/resume/${resumeNum}`, { replace: true });
             window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
         } catch (error) {

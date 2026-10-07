@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getInterviewAvailability } from '../../../api/interviewApi';
 import { useAuth } from '../../../context/AuthContext';
+import { useModal } from '../../../context/ModalContext';
 import { clearInterviewProgress, MAINTENANCE_MESSAGE } from '../interviewProgress';
 
 function InterviewAccessGate({ children }) {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { showAlert } = useModal();
     const [allowed, setAllowed] = useState(false);
     const [error, setError] = useState(false);
     const redirectedRef = useRef(false);
@@ -16,12 +18,12 @@ function InterviewAccessGate({ children }) {
         let checking = false;
         let verified = false;
         let boundaryTimer;
-        const block = () => {
+        const block = async () => {
             if (!active || redirectedRef.current) return;
             redirectedRef.current = true;
             setAllowed(false);
             if (user?.userNum) clearInterviewProgress(user.userNum);
-            window.alert(MAINTENANCE_MESSAGE);
+            await showAlert(MAINTENANCE_MESSAGE, { title: '점검 안내', type: 'warning' });
             navigate('/', { replace: true });
         };
         const check = async () => {

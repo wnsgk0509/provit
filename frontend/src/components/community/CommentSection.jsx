@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { fetchComments, createComment, updateComment, deleteComment } from '../../api/commentApi';
 import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../context/ModalContext';
 import ReportModal from './ReportModal';
 
 function CommentSection({ postNum }) {
     const { user } = useAuth();
+    const { showAlert, showConfirm, showToast } = useModal();
     const [comments, setComments] = useState([]);
     
     // 새 댓글(최상위) 작성 폼 상태
@@ -40,11 +42,11 @@ function CommentSection({ postNum }) {
     const handleCreateSubmit = async (e) => {
         e.preventDefault();
         if (!user) {
-            alert('로그인이 필요합니다.');
+            showAlert('로그인이 필요합니다.', { type: 'warning' });
             return;
         }
         if (!newComment.trim()) {
-            alert('내용을 입력해주세요.');
+            showAlert('내용을 입력해주세요.', { type: 'warning' });
             return;
         }
 
@@ -53,12 +55,13 @@ function CommentSection({ postNum }) {
             const result = await createComment(postNum, dto);
             if (result && result.responseCode && result.responseCode.code === 200) {
                 setNewComment('');
+                showToast('댓글이 등록되었습니다.', 'success');
                 loadComments();
             } else {
-                alert('댓글 등록에 실패했습니다.');
+                showAlert(result?.message || '댓글 등록에 실패했습니다.', { type: 'error' });
             }
         } catch (error) {
-            alert('서버 오류가 발생했습니다.');
+            showAlert('서버 오류가 발생했습니다.', { type: 'error' });
         }
     };
 
@@ -72,11 +75,11 @@ function CommentSection({ postNum }) {
     // 답글(대댓글) 제출
     const handleReplySubmit = async (parentCommentNum) => {
         if (!user) {
-            alert('로그인이 필요합니다.');
+            showAlert('로그인이 필요합니다.', { type: 'warning' });
             return;
         }
         if (!replyContent.trim()) {
-            alert('내용을 입력해주세요.');
+            showAlert('내용을 입력해주세요.', { type: 'warning' });
             return;
         }
 
@@ -90,12 +93,13 @@ function CommentSection({ postNum }) {
             if (result && result.responseCode && result.responseCode.code === 200) {
                 setReplyingTo(null);
                 setReplyContent('');
+                showToast('답글이 등록되었습니다.', 'success');
                 loadComments();
             } else {
-                alert('답글 등록에 실패했습니다.');
+                showAlert(result?.message || '답글 등록에 실패했습니다.', { type: 'error' });
             }
         } catch (error) {
-            alert('서버 오류가 발생했습니다.');
+            showAlert('서버 오류가 발생했습니다.', { type: 'error' });
         }
     };
 
@@ -107,7 +111,7 @@ function CommentSection({ postNum }) {
 
     const handleEditSubmit = async (commentNum) => {
         if (!editContent.trim()) {
-            alert('수정할 내용을 입력해주세요.');
+            showAlert('수정할 내용을 입력해주세요.', { type: 'warning' });
             return;
         }
         try {
@@ -116,26 +120,36 @@ function CommentSection({ postNum }) {
             if (result && result.responseCode && result.responseCode.code === 200) {
                 setEditingId(null);
                 setEditContent('');
+                showToast('댓글이 수정되었습니다.', 'success');
                 loadComments();
             } else {
-                alert('댓글 수정에 실패했습니다.');
+                showAlert(result?.message || '댓글 수정에 실패했습니다.', { type: 'error' });
             }
         } catch (error) {
-            alert('서버 오류가 발생했습니다.');
+            showAlert('서버 오류가 발생했습니다.', { type: 'error' });
         }
     };
 
     const handleDelete = async (commentNum) => {
-        if (!window.confirm('정말 삭제하시겠습니까?')) return;
+        const ok = await showConfirm('댓글을 정말 삭제하시겠습니까?', {
+            title: '댓글 삭제',
+            type: 'warning',
+            confirmText: '삭제',
+            cancelText: '취소',
+            isDestructive: true
+        });
+        if (!ok) return;
+
         try {
             const result = await deleteComment(postNum, commentNum);
             if (result && result.responseCode && result.responseCode.code === 200) {
+                showToast('댓글이 삭제되었습니다.', 'info');
                 loadComments();
             } else {
-                alert('삭제에 실패했습니다.');
+                showAlert(result?.message || '삭제에 실패했습니다.', { type: 'error' });
             }
         } catch (error) {
-            alert('서버 오류가 발생했습니다.');
+            showAlert('서버 오류가 발생했습니다.', { type: 'error' });
         }
     };
 

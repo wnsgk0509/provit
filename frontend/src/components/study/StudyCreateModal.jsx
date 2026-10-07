@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { createStudy } from '../../api/studyApi';
 import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../context/ModalContext';
 
 function StudyCreateModal({ show, onClose, onSuccess }) {
     const { user } = useAuth();
+    const { showAlert, showToast } = useModal();
     const [studyName, setStudyName] = useState('');
     const [studyExplain, setStudyExplain] = useState('');
     const [maxMembers, setMaxMembers] = useState(10);
@@ -14,11 +16,11 @@ function StudyCreateModal({ show, onClose, onSuccess }) {
         e.preventDefault();
         
         if (!user) {
-            alert('로그인이 필요합니다.');
+            showAlert('로그인이 필요합니다.', { type: 'warning' });
             return;
         }
         if (!studyName.trim() || !studyExplain.trim()) {
-            alert('스터디 이름과 소개를 모두 입력해주세요.');
+            showAlert('스터디 이름과 소개를 모두 입력해주세요.', { type: 'warning' });
             return;
         }
 
@@ -31,17 +33,17 @@ function StudyCreateModal({ show, onClose, onSuccess }) {
             });
             
             if (result && result.responseCode && result.responseCode.code === 200) {
-                alert('스터디가 성공적으로 개설되었습니다!');
+                showToast('스터디가 성공적으로 개설되었습니다!', 'success');
                 setStudyName('');
                 setStudyExplain('');
                 setMaxMembers(10);
                 onSuccess(); // 목록 새로고침
                 onClose(); // 모달 닫기
             } else {
-                alert('스터디 개설에 실패했습니다.');
+                showAlert(result?.message || '스터디 개설에 실패했습니다.', { type: 'error' });
             }
         } catch (error) {
-            alert('서버 오류가 발생했습니다.');
+            showAlert('서버 오류가 발생했습니다.', { type: 'error' });
         }
     };
 

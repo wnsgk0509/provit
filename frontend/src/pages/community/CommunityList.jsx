@@ -5,6 +5,8 @@ import StudyListSection from '../../components/study/StudyListSection';
 import PopularPostsWidget from '../../components/community/PopularPostsWidget';
 import PolicyWidget from '../../components/community/PolicyWidget';
 import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../context/ModalContext';
+import Pagination from '../../components/common/Pagination';
 
 const CATEGORIES = [
     { id: '', name: '전체' },
@@ -16,6 +18,7 @@ const CATEGORIES = [
 
 function CommunityList() {
     const { isLoggedIn } = useAuth();
+    const { showAlert, showConfirm } = useModal();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const initialCategory = searchParams.get('tab') === 'study' || searchParams.get('category') === 'study' ? 'study' : '';
@@ -59,20 +62,43 @@ function CommunityList() {
                     hasNext: result.data.hasNext
                 });
             } else {
-                alert(result.message || '게시글을 불러오는데 실패했습니다.');
+                showAlert(result?.message || '게시글을 불러오는데 실패했습니다.', { type: 'error' });
             }
         } catch (error) {
-            alert('서버와의 통신 오류가 발생했습니다.');
+            showAlert('서버와의 통신 오류가 발생했습니다.', { type: 'error' });
         } finally {
             setLoading(false);
         }
     };
 
-    const handleWriteClick = (e) => {
+    const handleWriteClick = async (e) => {
         if (!isLoggedIn) {
             e.preventDefault();
-            alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.');
-            navigate('/login');
+            const ok = await showConfirm('로그인이 필요한 서비스입니다.\n로그인 페이지로 이동하시겠습니까?', {
+                title: '로그인 필요',
+                type: 'info',
+                confirmText: '로그인하기',
+                cancelText: '취소'
+            });
+            if (ok) {
+                navigate('/login');
+            }
+        }
+    };
+
+    const handleCreateStudyClick = async () => {
+        if (isLoggedIn) {
+            setCreateStudyCounter(prev => prev + 1);
+        } else {
+            const ok = await showConfirm('로그인이 필요한 서비스입니다.\n로그인 페이지로 이동하시겠습니까?', {
+                title: '로그인 필요',
+                type: 'info',
+                confirmText: '로그인하기',
+                cancelText: '취소'
+            });
+            if (ok) {
+                navigate('/login');
+            }
         }
     };
 
@@ -195,14 +221,7 @@ function CommunityList() {
                                 <button 
                                     className="btn btn-sm px-4 rounded-pill text-white"
                                     style={{ backgroundColor: '#677381', border: 'none' }}
-                                    onClick={() => {
-                                        if (isLoggedIn) {
-                                            setCreateStudyCounter(prev => prev + 1);
-                                        } else {
-                                            alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.');
-                                            navigate('/login');
-                                        }
-                                    }}
+                                    onClick={handleCreateStudyClick}
                                 >
                                     스터디 만들기
                                 </button>
@@ -225,14 +244,7 @@ function CommunityList() {
                             <button 
                                 className="btn w-100 rounded-pill fw-bold py-1 shadow-sm text-white"
                                 style={{ backgroundColor: '#677381', border: 'none', fontSize: '0.9rem' }}
-                                onClick={() => {
-                                    if (isLoggedIn) {
-                                        setCreateStudyCounter(prev => prev + 1);
-                                    } else {
-                                        alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.');
-                                        navigate('/login');
-                                    }
-                                }}
+                                onClick={handleCreateStudyClick}
                             >
                                 스터디 만들기
                             </button>
@@ -300,37 +312,11 @@ function CommunityList() {
 
                             {/* 페이징 컴포넌트 */}
                             {pageInfo.totalPages > 0 && (
-                                <nav aria-label="Page navigation" className="mt-4">
-                                    <ul className="pagination justify-content-center">
-                                        <li className={`page-item ${!pageInfo.hasPrevious ? 'disabled' : ''}`}>
-                                            <button
-                                                className="page-link"
-                                                onClick={() => handlePageChange(pageInfo.startPage - 1)}
-                                                disabled={!pageInfo.hasPrevious}
-                                            >
-                                                이전
-                                            </button>
-                                        </li>
-
-                                        {Array.from({ length: pageInfo.endPage - pageInfo.startPage + 1 }, (_, i) => pageInfo.startPage + i).map(num => (
-                                            <li key={num} className={`page-item ${pageInfo.currentPage === num ? 'active' : ''}`}>
-                                                <button className="page-link" onClick={() => handlePageChange(num)}>
-                                                    {num}
-                                                </button>
-                                            </li>
-                                        ))}
-
-                                        <li className={`page-item ${!pageInfo.hasNext ? 'disabled' : ''}`}>
-                                            <button
-                                                className="page-link"
-                                                onClick={() => handlePageChange(pageInfo.endPage + 1)}
-                                                disabled={!pageInfo.hasNext}
-                                            >
-                                                다음
-                                            </button>
-                                        </li>
-                                    </ul>
-                                </nav>
+                                <Pagination
+                                    currentPage={pageInfo.currentPage}
+                                    totalPages={pageInfo.totalPages}
+                                    onPageChange={handlePageChange}
+                                />
                             )}
                         </>
                     )}

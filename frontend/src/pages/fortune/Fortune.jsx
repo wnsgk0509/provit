@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { fetchTodayFortune } from '../../api/fortuneApi';
 import { toggleJobScrap } from '../../api/recruitmentApi';
 import { useAuth } from '../../context/AuthContext';
-import { Bookmark, RotateCcw, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { useModal } from '../../context/ModalContext';
+import { Bookmark, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import './Fortune.css';
 
 function Fortune() {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { showConfirm, showToast, showAlert } = useModal();
 
     const [fortune, setFortune] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -44,7 +46,13 @@ function Fortune() {
         e.stopPropagation();
 
         if (!user) {
-            if (window.confirm('채용 공고 스크랩은 로그인이 필요한 기능입니다. 로그인 페이지로 이동하시겠습니까?')) {
+            const ok = await showConfirm('채용 공고 스크랩은 로그인이 필요한 기능입니다.\n로그인 페이지로 이동하시겠습니까?', {
+                title: '로그인 필요',
+                type: 'info',
+                confirmText: '로그인하기',
+                cancelText: '취소'
+            });
+            if (ok) {
                 navigate('/login');
             }
             return;
@@ -71,6 +79,7 @@ function Fortune() {
             const res = await toggleJobScrap(recruitmentNum);
             if (res && res.data) {
                 const finalStatus = res.data.isScrapped !== undefined ? res.data.isScrapped : res.data.scrapped;
+                showToast(finalStatus === 1 ? '공고를 스크랩했습니다.' : '스크랩을 취소했습니다.', 'info');
                 setFortune(prev => {
                     if (!prev || !prev.recommendRecruitments) return prev;
                     return {
@@ -97,7 +106,7 @@ function Fortune() {
                     )
                 };
             });
-            alert('스크랩 처리 중 오류가 발생했습니다.');
+            showAlert('스크랩 처리 중 오류가 발생했습니다.', { type: 'error' });
         } finally {
             setPendingScraps(prev => {
                 const next = new Set(prev);
@@ -171,36 +180,24 @@ function Fortune() {
     return (
         <div className="fortune-page-container my-4">
             {/* 상단 헤더 & 인사말 */}
-            <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
-                <div>
-                    <h2 className="fw-bold mb-1 d-flex align-items-center gap-2">
-                        <span>🔮 오늘의 취업 운세</span>
-                        <span className="badge bg-primary-subtle text-primary fs-6 fw-normal px-3 py-1 rounded-pill">
-                            {fortune.fortuneDate}
-                        </span>
-                    </h2>
-                    <p className="text-muted mb-0">
-                        <strong className="text-dark">{fortune.userNickname}</strong>님의 타고난 사주와 오늘 일진의 상호작용을 분석한 맞춤 취업 가이드입니다.
-                    </p>
-                </div>
-                <div className="mt-3 mt-md-0">
-                    <button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-sm" onClick={loadFortune}>
-                        <RotateCcw size={14} /> 새로고침
-                    </button>
-                </div>
+            <div className="mb-4 pb-2 border-bottom">
+                <h2 className="fw-bold mb-1 d-flex align-items-center gap-2">
+                    <span>🔮 오늘의 취업 운세</span>
+                    <span className="badge bg-primary-subtle text-primary fs-6 fw-normal px-3 py-1 rounded-pill">
+                        {fortune.fortuneDate}
+                    </span>
+                </h2>
+                <p className="text-muted mb-0">
+                    <strong className="text-dark">{fortune.userNickname}</strong>님의 타고난 사주와 오늘 일진의 상호작용을 분석한 맞춤 취업 가이드입니다.
+                </p>
             </div>
 
-            {/* 1. 메인 총운 카드 (Hero Section - Solid Modern Navy) */}
+            {/* 1. 메인 총운 카드 (Hero Section - Clean Modern Light) */}
             <div className="card fortune-hero-card">
                 <div className="fortune-hero-body">
                     <div className="row align-items-center g-4">
                         <div className="col-lg-8">
-                            <div className="d-flex justify-content-between align-items-center mb-2">
-                                <div className="fortune-eyebrow mb-0">Today's Career Insight</div>
-                                <span className="fortune-source-badge">
-                                    {fortune.engineSource === 'SAZU_API' ? '⚡ SAZU API 연동' : '⚙️ Provit 자체 사주 엔진'}
-                                </span>
-                            </div>
+                            <div className="fortune-eyebrow mb-2">Today's Career Insight</div>
                             <div className="fortune-pill-group">
                                 <span className="fortune-pill">
                                     나의 일간: <strong>{fortune.dayMaster} ({fortune.dayMasterElement})</strong>
@@ -239,8 +236,8 @@ function Fortune() {
                                 <div className="fortune-score-value">{fortune.overallScore}</div>
                                 <span className="fortune-score-badge">100점 만점</span>
                                 <div className="fortune-score-sinsal">
-                                    오늘의 신살: <strong className="text-white">{fortune.sinsalName}</strong>
-                                    {fortune.sinsalAdvice && <div className="mt-1 opacity-75">{fortune.sinsalAdvice}</div>}
+                                    오늘의 신살: <strong className="text-dark">{fortune.sinsalName}</strong>
+                                    {fortune.sinsalAdvice && <div className="mt-1 text-muted">{fortune.sinsalAdvice}</div>}
                                 </div>
                             </div>
                         </div>

@@ -3,11 +3,13 @@ import { Award, BriefcaseBusiness, GraduationCap, Pencil, Star, Trash2 } from 'l
 import { Link, useNavigate } from 'react-router-dom';
 import { deleteResume } from '../../../api/documentApi';
 import { useAuth } from '../../../context/AuthContext';
+import { useModal } from '../../../context/ModalContext';
 import useMainResume from '../../../hooks/useMainResume';
 import MainResumeFeedback from '../../../components/MainResumeFeedback';
 
 function ResumeRead({ document }) {
     const navigate = useNavigate();
+    const { showConfirm, showToast, showAlert } = useModal();
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState('');
     const { updateUser } = useAuth();
@@ -16,9 +18,16 @@ function ResumeRead({ document }) {
 
     const handleDelete = async () => {
         const message = mainResumeState.isMainResume(resume.resumeNum)
-            ? '대표이력서를 삭제하시겠습니까? 대표 지정도 해제되며, 삭제한 문서는 복구할 수 없습니다.'
-            : '이력서를 삭제하시겠습니까? 삭제한 문서는 복구할 수 없습니다.';
-        if (!window.confirm(message)) return;
+            ? '대표이력서를 삭제하시겠습니까?\n대표 지정도 함께 해제되며, 삭제한 문서는 복구할 수 없습니다.'
+            : '이력서를 삭제하시겠습니까?\n삭제한 문서는 복구할 수 없습니다.';
+        const ok = await showConfirm(message, {
+            title: '이력서 삭제',
+            type: 'warning',
+            confirmText: '삭제',
+            cancelText: '취소',
+            isDestructive: true
+        });
+        if (!ok) return;
 
         setIsDeleting(true);
         setDeleteError('');
@@ -26,15 +35,16 @@ function ResumeRead({ document }) {
             await deleteResume(resume.resumeNum);
             updateUser((previous) => previous && String(previous.mainResumeNum) === String(resume.resumeNum)
                 ? { ...previous, mainResumeNum: null } : previous);
+            showToast('이력서가 삭제되었습니다.', 'info');
             navigate('/mypage', { replace: true });
             window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
         } catch (error) {
             const responseData = error.response?.data;
-            setDeleteError(
-                responseData?.data
+            const errMsg = responseData?.data
                 || responseData?.responseCode?.message
-                || '이력서를 삭제하지 못했습니다.',
-            );
+                || '이력서를 삭제하지 못했습니다.';
+            setDeleteError(errMsg);
+            showAlert(errMsg, { type: 'error' });
         } finally {
             setIsDeleting(false);
         }

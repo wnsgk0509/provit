@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { getAdminReportList, updateAdminReportStatus } from "../../api/adminApi";
 import { Link } from "react-router-dom";
+import { useModal } from "../../context/ModalContext";
+import Pagination from "../../components/common/Pagination";
 
 const AdminReportList = () => {
+  const { showAlert, showConfirm, showToast } = useModal();
   const [reports, setReports] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -17,7 +20,7 @@ const AdminReportList = () => {
       }
     } catch (error) {
       console.error("신고 목록 조회 실패:", error);
-      alert("신고 목록을 불러오는데 실패했습니다.");
+      showAlert("신고 목록을 불러오는데 실패했습니다.", { type: "error" });
     }
   };
 
@@ -42,19 +45,25 @@ const AdminReportList = () => {
       ? "해당 게시물/댓글을 블라인드 처리하시겠습니까?"
       : "해당 신고를 반려 처리하시겠습니까?";
 
-    if (!window.confirm(confirmMsg)) return;
+    const ok = await showConfirm(confirmMsg, {
+      title: isBlind ? "게시물 블라인드" : "신고 반려",
+      type: isBlind ? "warning" : "info",
+      confirmText: isBlind ? "블라인드" : "반려",
+      cancelText: "취소"
+    });
+    if (!ok) return;
 
     try {
       const data = await updateAdminReportStatus(reportNum, newStatus);
       if (data.responseCode && data.responseCode.code === 200) {
-        alert("처리가 완료되었습니다.");
+        showToast("처리가 완료되었습니다.", "success");
         fetchReports(); // 목록 새로고침
       } else {
-        alert(data.responseCode?.message || "처리에 실패했습니다.");
+        showAlert(data.responseCode?.message || "처리에 실패했습니다.", { type: "error" });
       }
     } catch (error) {
       console.error("신고 상태 변경 실패:", error);
-      alert("서버 오류가 발생했습니다.");
+      showAlert("서버 오류가 발생했습니다.", { type: "error" });
     }
   };
 
@@ -264,28 +273,12 @@ const AdminReportList = () => {
       </div>
 
       {/* 페이지네이션 */}
-      {totalPages > 1 && (
-        <nav className="mt-4">
-          <ul className="pagination justify-content-center">
-            <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
-              <button className="page-link" onClick={() => setPage(page - 1)}>
-                이전
-              </button>
-            </li>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-              <li key={num} className={`page-item ${page === num ? "active" : ""}`}>
-                <button className="page-link" onClick={() => setPage(num)}>
-                  {num}
-                </button>
-              </li>
-            ))}
-            <li className={`page-item ${page === totalPages ? "disabled" : ""}`}>
-              <button className="page-link" onClick={() => setPage(page + 1)}>
-                다음
-              </button>
-            </li>
-          </ul>
-        </nav>
+      {totalPages > 0 && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
       )}
     </div>
   );
