@@ -34,11 +34,13 @@ public class DocumentReviewIdempotencyTest {
     private DocumentReviewService service;
     private volatile CyclicBarrier firstLookupBarrier;
     private final AtomicInteger lookups = new AtomicInteger();
+    private RuntimeException duplicateInsertFailure;
 
     @Before
     public void setUp() {
         records.clear(); byNumber.clear(); snapshots.clear();
         insertCount.set(0); sourceReads.set(0); aiCalls.set(0); lookups.set(0);
+        duplicateInsertFailure = new DuplicateKeyException("Unique request ID");
         dao = (DocumentReviewDAO) Proxy.newProxyInstance(DocumentReviewDAO.class.getClassLoader(),
                 new Class<?>[] { DocumentReviewDAO.class }, (proxy, method, args) -> {
                     switch (method.getName()) {
@@ -52,7 +54,7 @@ public class DocumentReviewIdempotencyTest {
                             var key = review.getUserNum() + ":" + review.getRequestId();
                             review.setReviewNum((long) review.getUserNum());
                             review.setReviewStatus("PROCESSING");
-                            if (records.putIfAbsent(key, review) != null) throw new DuplicateKeyException("Unique request ID");
+                            if (records.putIfAbsent(key, review) != null) throw duplicateInsertFailure;
                             byNumber.put(review.getReviewNum(), review);
                             snapshots.put(review.getReviewNum(), new CopyOnWriteArrayList<>());
                             insertCount.incrementAndGet();
@@ -136,6 +138,24 @@ public class DocumentReviewIdempotencyTest {
 
     @Test
     public void concurrentRequestsAcrossServiceInstancesGenerateAndSaveOnlyOnce() throws Exception {
+        assertConcurrentRequestsReuseOneRecord();
+    }
+
+    @Test
+    public void genericOracleIntegrityExceptionStillReusesTheConcurrentRequest() throws Exception {
+        duplicateInsertFailure = new org.springframework.dao.DataIntegrityViolationException("Oracle unique constraint",
+                new java.sql.SQLException("Unique request ID", "23000", 1));
+        assertConcurrentRequestsReuseOneRecord();
+    }
+
+    @Test
+    public void uncategorizedOracleUniqueExceptionStillReusesTheConcurrentRequest() throws Exception {
+        duplicateInsertFailure = new org.springframework.jdbc.UncategorizedSQLException("insert", "INSERT",
+                new java.sql.SQLException("Unique request ID", "23000", 1));
+        assertConcurrentRequestsReuseOneRecord();
+    }
+
+    private void assertConcurrentRequestsReuseOneRecord() throws Exception {
         firstLookupBarrier = new CyclicBarrier(2);
         var started = new CountDownLatch(1); var release = new CountDownLatch(1);
         DocumentReviewGenerator generator = (request, inputs) -> {
@@ -159,6 +179,31 @@ public class DocumentReviewIdempotencyTest {
             assertEquals(1, aiCalls.get()); assertEquals(1, insertCount.get());
             assertEquals(2, snapshots.get(7L).size());
         } finally { release.countDown(); executor.shutdownNow(); }
+    }
+
+    @Test
+    public void otherIntegrityFailuresAreNotTreatedAsSuccessfulDuplicates() {
+        var failure = new org.springframework.dao.DataIntegrityViolationException("Too long",
+                new java.sql.SQLException("Title exceeds column size", "72000", 12899));
+        assertReservationFailureIsPropagated(failure);
+    }
+
+    @Test
+    public void duplicateWithoutMatchingSavedRequestPropagatesTheOriginalFailure() {
+        assertReservationFailureIsPropagated(new DuplicateKeyException("Unrelated unique constraint"));
+    }
+
+    private void assertReservationFailureIsPropagated(RuntimeException failure) {
+        var originalDAO = dao;
+        dao = (DocumentReviewDAO) Proxy.newProxyInstance(DocumentReviewDAO.class.getClassLoader(),
+                new Class<?>[] { DocumentReviewDAO.class }, (proxy, method, args) -> {
+                    if (method.getName().equals("insertReview")) throw failure;
+                    try { return method.invoke(originalDAO, args); }
+                    catch (java.lang.reflect.InvocationTargetException exception) { throw exception.getCause(); }
+                });
+        var failing = service((request, inputs) -> { aiCalls.incrementAndGet(); return result(); });
+        assertSame(failure, assertThrows(RuntimeException.class, () -> failing.createReview(7, request())));
+        assertEquals(0, aiCalls.get()); assertEquals(0, insertCount.get());
     }
 
     @Test
