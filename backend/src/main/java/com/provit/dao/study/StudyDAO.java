@@ -7,6 +7,7 @@ import java.util.Map;
 public interface StudyDAO {
     List<StudyDTO> selectStudyList(Long userNum);
     StudyDTO selectStudyDetail(Long studyNum);
+    StudyDTO selectStudyDetailForUpdate(Long studyNum);
     int insertStudy(StudyDTO studyDto);
     int updateStudy(StudyDTO studyDto);
     int deleteStudy(Map<String, Object> params);

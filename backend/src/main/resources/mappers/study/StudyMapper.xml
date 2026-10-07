@@ -57,6 +57,24 @@
 		S.STUDY_NUM = #{studyNum}
 	</select>
 
+	<!-- 2-1. 단일 스터디 상세 조회 (FOR UPDATE - 동시성 제어용) -->
+	<select id="selectStudyDetailForUpdate"
+		resultType="com.provit.dto.study.StudyDTO" parameterType="Long">
+		SELECT
+		S.STUDY_NUM AS studyNum,
+		S.USER_NUM AS userNum,
+		S.STUDY_NAME AS studyName,
+		S.STUDY_EXPLAIN AS studyExplain,
+		S.MAX_MEMBERS AS maxMembers,
+		(SELECT COUNT(*) FROM T_STUDY_MEMBER M WHERE M.STUDY_NUM = S.STUDY_NUM) AS
+		memberCount
+		FROM
+		T_STUDY S
+		WHERE
+		S.STUDY_NUM = #{studyNum}
+		FOR UPDATE
+	</select>
+
 	<!-- 3. 스터디 개설 (생성) -->
 	<insert id="insertStudy"
 		parameterType="com.provit.dto.study.StudyDTO">
@@ -104,18 +122,15 @@
 	<!-- 스터디 멤버(참여자) 관리 쿼리 -->
 	<!-- ============================================== -->
 
-	<!-- 5. 스터디 참여 (이 부분의 < 기호를 수정했습니다) -->
+	<!-- 5. 스터디 참여 (동시성 제어를 위해 Java 로직에서 검증 후 INSERT 수행) -->
 	<insert id="insertStudyMember" parameterType="map">
 		INSERT INTO T_STUDY_MEMBER (
-		STUDY_NUM,
-		USER_NUM
+			STUDY_NUM,
+			USER_NUM
+		) VALUES (
+			#{studyNum},
+			#{userNum}
 		)
-		SELECT
-		#{studyNum},
-		#{userNum}
-		FROM DUAL
-		WHERE (SELECT COUNT(*) FROM T_STUDY_MEMBER WHERE STUDY_NUM = #{studyNum}) &lt;
-		(SELECT MAX_MEMBERS FROM T_STUDY WHERE STUDY_NUM = #{studyNum})
 	</insert>
 
 	<!-- 6. 스터디 탈퇴 -->
