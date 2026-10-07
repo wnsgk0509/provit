@@ -110,7 +110,8 @@ function CommunityList() {
             ...params,
             searchType: searchInput.searchType,
             keyword: searchInput.keyword,
-            page: 1 // 검색 시 1페이지로 리셋
+            page: 1, // 검색 시 1페이지로 리셋
+            ...(params.categoryNum !== 'study' && { categoryNum: '' }) // 스터디 탭이 아니면 전체 카테고리로 리셋
         });
     };
 
