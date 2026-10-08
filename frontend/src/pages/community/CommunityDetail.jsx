@@ -195,10 +195,14 @@ function CommunityDetail() {
                         </div>
                     )}
                     <div data-color-mode="light">
-                        <MDEditor.Markdown 
-                            source={post.postContent} 
+                        <MDEditor 
+                            value={post.postContent} 
+                            preview="preview"
+                            hideToolbar={true}
                             style={{ whiteSpace: 'pre-wrap', backgroundColor: 'transparent' }} 
-                            rehypePlugins={[[rehypeSanitize]]} 
+                            previewOptions={{
+                                rehypePlugins: [[rehypeSanitize]]
+                            }}
                         />
                     </div>
                 </div>
