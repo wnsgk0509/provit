@@ -1,0 +1,140 @@
+package com.provit.service.community.impl;
+
+import com.provit.dao.community.PostDAO;
+import com.provit.dto.common.PageResponseDTO;
+import com.provit.dto.community.PostDTO;
+import com.provit.dto.community.PostSearchDTO;
+import com.provit.service.community.PostService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 게시판 비즈니스 로직을 실제 수행하는 서비스 구현체 (주방장)
+ */
+@Service
+public class PostServiceImpl implements PostService {
+
+    private final PostDAO postDao;
+    private final com.provit.dao.auth.UserDAO userDAO;
+
+    // DAO(창고 관리인)를 주입받습니다.
+    @Autowired
+    public PostServiceImpl(PostDAO postDao, com.provit.dao.auth.UserDAO userDAO) {
+        this.postDao = postDao;
+        this.userDAO = userDAO;
+    }
+
+    @Override
+    public PageResponseDTO<PostDTO> getPostList(PostSearchDTO searchDto) {
+        // 1. 전체 게시글 수 조회 (페이징 계산을 위해 필요)
+        int totalCount = postDao.countPosts(searchDto);
+
+        // 2. 현재 페이지에 노출될 게시글 목록 조회
+        List<PostDTO> list = postDao.selectPostList(searchDto);
+
+        // 3. 조회된 목록과 전체 수, 페이지 정보를 담은 통합 응답 객체를 반환
+        return new PageResponseDTO<>(list, totalCount, searchDto.getPage(), searchDto.getPageSize());
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public PostDTO getPostDetail(Long postNum, Long userNum, boolean shouldIncreaseViewCount) {
+        // 1. 조건에 따라 조회수를 1 증가시킵니다.
+        if (shouldIncreaseViewCount) {
+            postDao.updateViewCount(postNum);
+        }
+        
+        // 2. 최신 정보(증가된 조회수 포함)로 게시글 데이터를 조회하여 반환합니다.
+        PostDTO post = postDao.selectPostDetail(postNum);
+        
+        // 3. 로그인한 사용자라면 좋아요 여부를 확인합니다.
+        if (post != null && userNum != null) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("postNum", postNum);
+            params.put("userNum", userNum);
+            int count = postDao.checkPostLike(params);
+            post.setIsLiked(count > 0);
+        } else if (post != null) {
+            post.setIsLiked(false);
+        }
+        
+        return post;
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public java.util.Map<String, Object> togglePostLike(Long postNum, Long userNum) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("postNum", postNum);
+        params.put("userNum", userNum);
+
+        // 1. 좋아요 여부 확인
+        int check = postDao.checkPostLike(params);
+        boolean isLiked = false;
+
+        if (check > 0) {
+            // 이미 좋아요를 누른 상태 -> 취소
+            postDao.deletePostLike(params);
+            params.put("amount", -1);
+            postDao.updatePostLikeCount(params);
+            isLiked = false;
+        } else {
+            // 좋아요를 누르지 않은 상태 -> 추가
+            postDao.insertPostLike(params);
+            params.put("amount", 1);
+            postDao.updatePostLikeCount(params);
+            isLiked = true;
+        }
+
+        // 2. 최신 좋아요 수 조회
+        PostDTO post = postDao.selectPostDetail(postNum);
+        int likeCount = post != null ? (post.getPostLikeCount() != null ? post.getPostLikeCount() : 0) : 0;
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("isLiked", isLiked);
+        result.put("likeCount", likeCount);
+
+        return result;
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public Long createPost(PostDTO postDto) {
+        // DB에 삽입 (MyBatis selectKey 기능으로 postDto에 생성된 PK가 담김)
+        postDao.insertPost(postDto);
+        return postDto.getPostNum();
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void updatePost(PostDTO postDto) {
+        int affectedRows = postDao.updatePost(postDto);
+        if (affectedRows == 0) {
+            throw new IllegalArgumentException("게시글이 존재하지 않거나 권한이 없습니다.");
+        }
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void deletePost(Long postNum, Long userNum) {
+        com.provit.dto.auth.UserDTO user = userDAO.selectByUserNum(userNum);
+        Map<String, Object> params = new HashMap<>();
+        params.put("postNum", postNum);
+        params.put("userNum", userNum);
+        params.put("userType", user != null ? user.getUserType() : "USER");
+        int affectedRows = postDao.deletePost(params);
+        if (affectedRows == 0) {
+            throw new IllegalArgumentException("게시글이 존재하지 않거나 권한이 없습니다.");
+        }
+    }
+
+    @Override
+    public java.util.List<PostDTO> getPopularPosts(int limit) {
+        return postDao.selectPopularPosts(limit);
+    }
+}

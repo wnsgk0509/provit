@@ -1,0 +1,26 @@
+/* 화면 라우팅 테스트용 최소 기본 스타일 */
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+#root,
+.app-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-layout {
+  min-height: calc(100vh - 68px);
+}
+
+.app-content {
+  flex: 1 0 auto;
+}
+
+@media (max-width: 991.98px) {
+  .app-layout {
+    min-height: calc(100vh - 62px);
+  }
+}

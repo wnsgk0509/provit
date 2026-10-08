@@ -1,0 +1,312 @@
+{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string"
+    },
+    "strengths": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/strength"
+      },
+      "maxItems": 3
+    },
+    "documentReviews": {
+      "type": "object",
+      "properties": {
+        "resume": {
+          "$ref": "#/$defs/feedback"
+        },
+        "coverLetter": {
+          "$ref": "#/$defs/feedback"
+        },
+        "portfolio": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/feedback"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "resume",
+        "coverLetter",
+        "portfolio"
+      ],
+      "additionalProperties": false
+    },
+    "consistencyIssues": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/consistency"
+      },
+      "maxItems": 5
+    },
+    "careerPreparation": {
+      "$ref": "#/$defs/careerPreparation"
+    }
+  },
+  "required": [
+    "summary",
+    "strengths",
+    "documentReviews",
+    "consistencyIssues",
+    "careerPreparation"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "feedback": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "strengths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/strength"
+          },
+          "maxItems": 3
+        },
+        "improvements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/improvement"
+          },
+          "maxItems": 5
+        }
+      },
+      "required": [
+        "summary",
+        "strengths",
+        "improvements"
+      ],
+      "additionalProperties": false
+    },
+    "improvement": {
+      "type": "object",
+      "properties": {
+        "section": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "issue": {
+          "type": "string"
+        },
+        "original": {
+          "type": "string"
+        },
+        "suggestion": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "section",
+        "title",
+        "issue",
+        "original",
+        "suggestion",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "consistency": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "mismatch",
+            "missingEvidence",
+            "needsConfirmation"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "recommendation": {
+          "type": "string"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          },
+          "minItems": 1,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "recommendation",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "documentType": {
+          "type": "string",
+          "enum": [
+            "resume",
+            "cover-letter",
+            "portfolio"
+          ]
+        },
+        "section": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "pageNumber": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      },
+      "required": [
+        "documentType",
+        "section",
+        "text",
+        "pageNumber"
+      ],
+      "additionalProperties": false
+    },
+    "careerPreparation": {
+      "type": "object",
+      "properties": {
+        "occupationCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "occupationName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "jobCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "jobName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "coverageNote": {
+          "type": "string"
+        },
+        "recommendations": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/preparationRecommendation"
+          }
+        }
+      },
+      "required": [
+        "occupationCode",
+        "occupationName",
+        "jobCode",
+        "jobName",
+        "summary",
+        "coverageNote",
+        "recommendations"
+      ],
+      "additionalProperties": false
+    },
+    "preparationRecommendation": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "experience",
+            "skill",
+            "certification",
+            "qualification"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          },
+          "minItems": 0,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "category",
+        "title",
+        "sources",
+        "reason",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "strength": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "원문 근거로 인정한 직무 역량"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          },
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "reason": {
+          "type": "string",
+          "description": "인용한 행동·판단·검증 결과가 왜 강점인지 설명"
+        },
+        "suggestion": {
+          "type": "string",
+          "description": "사실을 보존한 실제 유지·개선 문장"
+        }
+      },
+      "required": [
+        "title",
+        "sources",
+        "reason",
+        "suggestion"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

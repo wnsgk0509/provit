@@ -1,0 +1,106 @@
+import React, { useState } from 'react';
+import { createStudy } from '../../api/studyApi';
+import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../context/ModalContext';
+
+function StudyCreateModal({ show, onClose, onSuccess }) {
+    const { user } = useAuth();
+    const { showAlert, showToast } = useModal();
+    const [studyName, setStudyName] = useState('');
+    const [studyExplain, setStudyExplain] = useState('');
+    const [maxMembers, setMaxMembers] = useState(10);
+
+    if (!show) return null;
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        if (!user) {
+            showAlert('로그인이 필요합니다.', { type: 'warning' });
+            return;
+        }
+        if (!studyName.trim() || !studyExplain.trim()) {
+            showAlert('스터디 이름과 소개를 모두 입력해주세요.', { type: 'warning' });
+            return;
+        }
+
+        try {
+            const result = await createStudy({
+                userNum: user.userNum,
+                studyName,
+                studyExplain,
+                maxMembers
+            });
+            
+            if (result && result.responseCode && result.responseCode.code === 200) {
+                showToast('스터디가 성공적으로 개설되었습니다!', 'success');
+                setStudyName('');
+                setStudyExplain('');
+                setMaxMembers(10);
+                onSuccess(); // 목록 새로고침
+                onClose(); // 모달 닫기
+            } else {
+                showAlert(result?.message || '스터디 개설에 실패했습니다.', { type: 'error' });
+            }
+        } catch (error) {
+            showAlert('서버 오류가 발생했습니다.', { type: 'error' });
+        }
+    };
+
+    return (
+        <>
+            <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog modal-dialog-centered">
+                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '1rem' }}>
+                        <div className="modal-header border-bottom-0 pb-0">
+                            <h5 className="modal-title fw-bold">✏️ 스터디 만들기</h5>
+                            <button type="button" className="btn-close" onClick={onClose}></button>
+                        </div>
+                        <div className="modal-body p-4">
+                            <form id="studyForm" onSubmit={handleSubmit}>
+                                <div className="mb-3">
+                                    <label className="form-label fw-semibold small">스터디 이름</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-control" 
+                                        placeholder="예) 프론트엔드 모의 면접 스터디"
+                                        value={studyName}
+                                        onChange={(e) => setStudyName(e.target.value)}
+                                        maxLength={100}
+                                    />
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label fw-semibold small">최대 참여 인원</label>
+                                    <input 
+                                        type="number" 
+                                        className="form-control" 
+                                        min="2"
+                                        max="10"
+                                        value={maxMembers}
+                                        onChange={(e) => setMaxMembers(parseInt(e.target.value) || 2)}
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="form-label fw-bold small">스터디 소개 및 목표</label>
+                                    <textarea 
+                                        className="form-control" 
+                                        rows="5" 
+                                        placeholder="스터디 진행 방식, 목표, 링크 등을 입력해 주세요."
+                                        value={studyExplain}
+                                        onChange={(e) => setStudyExplain(e.target.value)}
+                                        style={{ resize: 'none' }}
+                                    ></textarea>
+                                </div>
+                                <button type="submit" className="btn btn-primary w-100 py-2 fw-bold rounded-3">
+                                    스터디 개설
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+}
+
+export default StudyCreateModal;

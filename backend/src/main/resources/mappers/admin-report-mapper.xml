@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.provit.mapper.AdminReportMapper">
+
+    <!-- 1. 신고 목록 페이징 조회 -->
+    <select id="selectReportList" parameterType="map" resultType="com.provit.dto.admin.AdminReportDTO">
+        SELECT 
+            R.REPORT_NUM as reportNum,
+            R.REPORTER_NUM as reporterNum,
+            U.USER_NICKNAME as reporterNickname,
+            R.TARGET_TYPE as targetType,
+            R.TARGET_NUM as targetNum,
+            R.REPORT_REASON as reportReason,
+            R.REPORT_STATUS as reportStatus,
+            R.REPORT_DATE as reportDate,
+            NVL(
+                CASE 
+                    WHEN R.TARGET_TYPE = 'POST' THEN SUBSTR(P.POST_TITLE, 1, 50)
+                    WHEN R.TARGET_TYPE = 'COMMENT' THEN SUBSTR(C.COMMENT_CONTENT, 1, 50)
+                END, 
+                '내용 없음 (삭제됨)'
+            ) as targetContentPreview,
+            C.POST_NUM as commentPostNum
+        FROM T_REPORT R
+        LEFT JOIN T_USER U ON R.REPORTER_NUM = U.USER_NUM
+        LEFT JOIN T_POST P ON R.TARGET_TYPE = 'POST' AND R.TARGET_NUM = P.POST_NUM
+        LEFT JOIN T_COMMENT C ON R.TARGET_TYPE = 'COMMENT' AND R.TARGET_NUM = C.COMMENT_NUM
+        <where>
+            <if test="status != null and status != ''">
+                R.REPORT_STATUS = #{status}
+            </if>
+        </where>
+        ORDER BY R.REPORT_DATE DESC
+        OFFSET #{offset} ROWS FETCH NEXT #{limit} ROWS ONLY
+    </select>
+
+    <!-- 관리자 여부 확인 -->
+    <select id="isAdmin" parameterType="long" resultType="int">
+        SELECT COUNT(*) 
+        FROM T_USER 
+        WHERE USER_NUM = #{userNum} AND USER_TYPE = 'ADMIN'
+    </select>
+
+    <!-- 2. 신고 건수 카운트 -->
+    <select id="selectReportCount" parameterType="map" resultType="int">
+        SELECT COUNT(*) 
+        FROM T_REPORT
+        <where>
+            <if test="status != null and status != ''">
+                REPORT_STATUS = #{status}
+            </if>
+        </where>
+    </select>
+
+    <!-- 3. 단일 신고 상세 조회 -->
+    <select id="selectReportDetail" parameterType="long" resultType="com.provit.dto.admin.AdminReportDTO">
+        SELECT 
+            R.REPORT_NUM as reportNum,
+            R.REPORTER_NUM as reporterNum,
+            R.TARGET_TYPE as targetType,
+            R.TARGET_NUM as targetNum,
+            R.REPORT_REASON as reportReason,
+            R.REPORT_STATUS as reportStatus
+        FROM T_REPORT R
+        WHERE R.REPORT_NUM = #{reportNum}
+    </select>
+
+    <!-- 4. 신고 상태 변경 -->
+    <update id="updateReportStatus" parameterType="map">
+        UPDATE T_REPORT
+        SET REPORT_STATUS = #{status}
+        WHERE REPORT_NUM = #{reportNum}
+    </update>
+
+    <!-- 5. 게시글 블라인드 (내용 덮어쓰기 및 첨부파일 제거) -->
+    <update id="blindPost" parameterType="long">
+        UPDATE T_POST
+        SET POST_TITLE = '관리자에 의해 블라인드 처리된 게시물입니다.',
+            POST_CONTENT = '신고 누적으로 인하여 관리자에 의해 삭제(블라인드) 조치되었습니다.',
+            POST_FILE = NULL
+        WHERE POST_NUM = #{postNum}
+    </update>
+
+    <!-- 6. 댓글 블라인드 (내용 덮어쓰기 및 삭제 처리) -->
+    <update id="blindComment" parameterType="long">
+        UPDATE T_COMMENT
+        SET COMMENT_CONTENT = '관리자에 의해 블라인드 처리된 댓글입니다.',
+            IS_DELETED = 1
+        WHERE COMMENT_NUM = #{commentNum}
+    </update>
+    <!-- 7. 대상(게시글/댓글) 작성자의 이메일 조회 -->
+    <select id="getTargetUserEmail" parameterType="map" resultType="string">
+        <if test="targetType == 'POST'">
+            SELECT U.USER_EMAIL
+            FROM T_POST P
+            JOIN T_USER U ON P.USER_NUM = U.USER_NUM
+            WHERE P.POST_NUM = #{targetNum}
+        </if>
+        <if test="targetType == 'COMMENT'">
+            SELECT U.USER_EMAIL
+            FROM T_COMMENT C
+            JOIN T_USER U ON C.USER_NUM = U.USER_NUM
+            WHERE C.COMMENT_NUM = #{targetNum}
+        </if>
+    </select>
+
+</mapper>

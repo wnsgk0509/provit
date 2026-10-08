@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.mapper.interview.InterviewResultMapper">
+
+    <sql id="interviewResultColumns">
+        HISTORY_NUM,
+        USER_NUM,
+        DOCUMENT_CONSISTENCY_SCORE,
+        EXPERTISE_SCORE,
+        PROBLEM_SOLVING_SCORE,
+        LOGIC_SCORE,
+        COMMUNICATION_SCORE,
+        TOTAL_SCORE,
+        STRENGTH,
+        WEAKNESS,
+        PREVIOUS_COMPARISON,
+        IMPROVEMENT_POINT,
+        INTERVIEW_DATE
+    </sql>
+
+    <resultMap id="interviewResultMap" type="com.provit.dto.interview.InterviewResultDTO">
+        <id property="historyNum" column="HISTORY_NUM" />
+        <id property="userNum" column="USER_NUM" />
+        <result property="documentConsistencyScore" column="DOCUMENT_CONSISTENCY_SCORE" />
+        <result property="expertiseScore" column="EXPERTISE_SCORE" />
+        <result property="problemSolvingScore" column="PROBLEM_SOLVING_SCORE" />
+        <result property="logicScore" column="LOGIC_SCORE" />
+        <result property="communicationScore" column="COMMUNICATION_SCORE" />
+        <result property="totalScore" column="TOTAL_SCORE" />
+        <result property="strengths" column="STRENGTH" />
+        <result property="weaknesses" column="WEAKNESS" />
+        <result property="comparison" column="PREVIOUS_COMPARISON" />
+        <result property="improvements" column="IMPROVEMENT_POINT" />
+        <result property="interviewDate" column="INTERVIEW_DATE" />
+    </resultMap>
+
+    <insert id="insertInterviewResult"
+            parameterType="com.provit.dto.interview.InterviewResultDTO">
+        INSERT INTO T_INTERVIEW_RESULT (
+            <include refid="interviewResultColumns" />
+        ) VALUES (
+            #{historyNum},
+            #{userNum},
+            #{documentConsistencyScore},
+            #{expertiseScore},
+            #{problemSolvingScore},
+            #{logicScore},
+            #{communicationScore},
+            #{totalScore},
+            #{strengths},
+            #{weaknesses},
+            #{comparison},
+            #{improvements},
+            NVL(#{interviewDate, jdbcType=DATE}, SYSDATE)
+        )
+    </insert>
+
+    <select id="selectInterviewResultListByUserNum"
+            parameterType="int"
+            resultMap="interviewResultMap">
+        SELECT
+            <include refid="interviewResultColumns" />
+        FROM T_INTERVIEW_RESULT
+        WHERE USER_NUM = #{userNum}
+        ORDER BY INTERVIEW_DATE DESC, HISTORY_NUM DESC
+    </select>
+
+    <select id="selectInterviewResult"
+            parameterType="map"
+            resultMap="interviewResultMap">
+        SELECT
+            <include refid="interviewResultColumns" />
+        FROM T_INTERVIEW_RESULT
+        WHERE HISTORY_NUM = #{number}
+          AND USER_NUM = #{userNum}
+    </select>
+
+    <select id="selectLatestInterviewResultByUserNum"
+            parameterType="int"
+            resultMap="interviewResultMap">
+        SELECT
+            <include refid="interviewResultColumns" />
+        FROM T_INTERVIEW_RESULT
+        WHERE USER_NUM = #{userNum}
+        ORDER BY INTERVIEW_DATE DESC, HISTORY_NUM DESC
+        FETCH FIRST 1 ROWS ONLY
+    </select>
+
+</mapper>

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.mapper.document.CoverLetterMapper">
+
+    <insert id="insertCoverLetter" parameterType="com.provit.dto.document.CoverLetterDTO">
+        <selectKey keyProperty="letterNum" resultType="int" order="BEFORE">
+            SELECT SEQ_T_COVER_LETTER.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_COVER_LETTER (
+            LETTER_NUM,
+            USER_NUM,
+            COVER_LETTER_TITLE,
+            GROWTH_PROCESS,
+            PERSONALITY_STRENGTHS_WEAKNESSES,
+            PROBLEM_SOLVING_EXPERIENCE,
+            POST_JOINING_ASPIRATION,
+            CREATED_AT,
+            UPDATED_AT
+        ) VALUES (
+            #{letterNum},
+            #{userNum},
+            #{coverLetterTitle},
+            #{growthProcess, jdbcType=VARCHAR},
+            #{personalityStrengthsWeaknesses, jdbcType=VARCHAR},
+            #{problemSolvingExperience, jdbcType=VARCHAR},
+            #{postJoiningAspiration, jdbcType=VARCHAR},
+            SYSDATE,
+            SYSDATE
+        )
+    </insert>
+
+    <update id="updateCoverLetter" parameterType="com.provit.dto.document.CoverLetterDTO">
+        UPDATE T_COVER_LETTER
+        SET
+            COVER_LETTER_TITLE = #{coverLetterTitle},
+            GROWTH_PROCESS = #{growthProcess, jdbcType=VARCHAR},
+            PERSONALITY_STRENGTHS_WEAKNESSES = #{personalityStrengthsWeaknesses, jdbcType=VARCHAR},
+            PROBLEM_SOLVING_EXPERIENCE = #{problemSolvingExperience, jdbcType=VARCHAR},
+            POST_JOINING_ASPIRATION = #{postJoiningAspiration, jdbcType=VARCHAR},
+            UPDATED_AT = SYSDATE
+        WHERE LETTER_NUM = #{letterNum}
+          AND USER_NUM = #{userNum}
+    </update>
+
+    <delete id="deleteCoverLetter">
+        DELETE FROM T_COVER_LETTER
+        WHERE LETTER_NUM = #{letterNum}
+          AND USER_NUM = #{userNum}
+    </delete>
+
+    <select id="selectCoverLetterListByUserNum"
+            parameterType="int"
+            resultType="com.provit.dto.interview.InterviewDocumentOptionDTO">
+        SELECT
+            LETTER_NUM AS DOCUMENT_NUM,
+            COVER_LETTER_TITLE AS DOCUMENT_TITLE
+        FROM T_COVER_LETTER
+        WHERE USER_NUM = #{userNum}
+        ORDER BY UPDATED_AT DESC, LETTER_NUM DESC
+    </select>
+
+    <select id="selectCoverLetterSummaryList"
+            parameterType="int"
+            resultType="com.provit.dto.document.DocumentSummaryDTO">
+        SELECT
+            LETTER_NUM AS DOCUMENT_NUM,
+            COVER_LETTER_TITLE AS DOCUMENT_TITLE,
+            CREATED_AT
+        FROM T_COVER_LETTER
+        WHERE USER_NUM = #{userNum}
+        ORDER BY CREATED_AT DESC, LETTER_NUM DESC
+    </select>
+
+    <select id="selectCoverLetter" resultType="com.provit.dto.document.CoverLetterDTO">
+        SELECT
+            LETTER_NUM,
+            USER_NUM,
+            COVER_LETTER_TITLE,
+            GROWTH_PROCESS,
+            PERSONALITY_STRENGTHS_WEAKNESSES,
+            PROBLEM_SOLVING_EXPERIENCE,
+            POST_JOINING_ASPIRATION,
+            CREATED_AT,
+            UPDATED_AT
+        FROM T_COVER_LETTER
+        WHERE LETTER_NUM = #{letterNum}
+          AND USER_NUM = #{userNum}
+    </select>
+
+</mapper>

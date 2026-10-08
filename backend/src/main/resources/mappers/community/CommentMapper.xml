@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.dao.community.CommentDAO">
+
+    <!-- 1. 특정 게시글의 댓글 목록 조회 -->
+    <select id="selectCommentList" resultType="com.provit.dto.community.CommentDTO" parameterType="Long">
+        SELECT 
+            C.COMMENT_NUM AS commentNum,
+            C.POST_NUM AS postNum,
+            C.USER_NUM AS userNum,
+            C.COMMENT_CONTENT AS commentContent,
+            TO_CHAR(C.COMMENT_DATE, 'YYYY-MM-DD HH24:MI:SS') AS commentDate,
+            U.USER_NICKNAME AS userNickname,
+            C.PARENT_COMMENT_NUM AS parentCommentNum,
+            C.IS_DELETED AS isDeleted
+        FROM 
+            T_COMMENT C
+        JOIN 
+            T_USER U ON C.USER_NUM = U.USER_NUM
+        WHERE 
+            C.POST_NUM = #{postNum}
+        ORDER BY 
+            NVL(C.PARENT_COMMENT_NUM, C.COMMENT_NUM) ASC, C.COMMENT_NUM ASC
+    </select>
+
+    <!-- 2. 댓글 작성 -->
+    <insert id="insertComment" parameterType="com.provit.dto.community.CommentDTO">
+        <selectKey keyProperty="commentNum" resultType="Long" order="BEFORE">
+            SELECT SEQ_T_COMMENT.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_COMMENT (
+            COMMENT_NUM,
+            POST_NUM,
+            USER_NUM,
+            COMMENT_CONTENT,
+            PARENT_COMMENT_NUM,
+            IS_DELETED
+        ) VALUES (
+            #{commentNum},
+            #{postNum},
+            #{userNum},
+            #{commentContent},
+            #{parentCommentNum, jdbcType=NUMERIC},
+            0
+        )
+    </insert>
+
+    <!-- 3. 댓글 수정 -->
+    <update id="updateComment" parameterType="com.provit.dto.community.CommentDTO">
+        UPDATE T_COMMENT
+        SET 
+            COMMENT_CONTENT = #{commentContent},
+            COMMENT_DATE = SYSDATE
+        WHERE 
+            COMMENT_NUM = #{commentNum} AND USER_NUM = #{userNum} AND IS_DELETED = 0
+    </update>
+
+    <!-- 4. 댓글 삭제 -->
+    <update id="deleteComment" parameterType="map">
+        UPDATE T_COMMENT
+        SET
+            IS_DELETED = 1,
+            COMMENT_CONTENT = '삭제된 댓글입니다.'
+        WHERE COMMENT_NUM = #{commentNum} 
+        <if test="userType != 'ADMIN'">
+            AND USER_NUM = #{userNum} 
+        </if>
+        AND IS_DELETED = 0
+    </update>
+
+    <!-- 5. 특정 댓글 상세 조회 (대댓글 검증용) -->
+    <select id="selectCommentDetail" resultType="com.provit.dto.community.CommentDTO" parameterType="Long">
+        SELECT 
+            COMMENT_NUM AS commentNum,
+            POST_NUM AS postNum,
+            USER_NUM AS userNum,
+            COMMENT_CONTENT AS commentContent,
+            TO_CHAR(COMMENT_DATE, 'YYYY-MM-DD HH24:MI:SS') AS commentDate,
+            PARENT_COMMENT_NUM AS parentCommentNum,
+            IS_DELETED AS isDeleted
+        FROM 
+            T_COMMENT
+        WHERE 
+            COMMENT_NUM = #{commentNum}
+    </select>
+
+    <select id="selectMyCommentList" resultType="com.provit.dto.community.CommentDTO" parameterType="Long">
+        SELECT
+            C.COMMENT_NUM AS commentNum,
+            C.POST_NUM AS postNum,
+            C.USER_NUM AS userNum,
+            C.COMMENT_CONTENT AS commentContent,
+            TO_CHAR(C.COMMENT_DATE, 'YYYY-MM-DD HH24:MI:SS') AS commentDate,
+            C.PARENT_COMMENT_NUM AS parentCommentNum,
+            C.IS_DELETED AS isDeleted,
+            P.POST_TITLE AS postTitle,
+            U.USER_NICKNAME AS userNickname
+        FROM T_COMMENT C
+        JOIN T_POST P ON C.POST_NUM = P.POST_NUM
+        JOIN T_USER U ON C.USER_NUM = U.USER_NUM
+        WHERE C.USER_NUM = #{value}
+          AND C.IS_DELETED = 0
+        ORDER BY C.COMMENT_DATE DESC, C.COMMENT_NUM DESC
+    </select>
+
+</mapper>

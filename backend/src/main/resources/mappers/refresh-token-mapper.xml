@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.provit.mapper.RefreshTokenMapper">
+
+    <resultMap id="RefreshTokenResultMap" type="com.provit.dto.auth.RefreshTokenDTO">
+        <id property="tokenId" column="TOKEN_ID" />
+        <result property="userNum" column="USER_NUM" />
+        <result property="expiresAt" column="EXPIRES_AT" />
+    </resultMap>
+
+    <insert id="insert" parameterType="com.provit.dto.auth.RefreshTokenDTO">
+        INSERT INTO T_REFRESH_TOKEN (TOKEN_ID, USER_NUM, EXPIRES_AT)
+        VALUES (#{tokenId}, #{userNum}, #{expiresAt, jdbcType=TIMESTAMP})
+    </insert>
+
+    <select id="selectByTokenId" parameterType="string" resultMap="RefreshTokenResultMap">
+        SELECT TOKEN_ID, USER_NUM, EXPIRES_AT
+        FROM T_REFRESH_TOKEN
+        WHERE TOKEN_ID = #{tokenId}
+    </select>
+
+    <delete id="deleteByTokenId" parameterType="string">
+        DELETE FROM T_REFRESH_TOKEN WHERE TOKEN_ID = #{tokenId}
+    </delete>
+
+    <delete id="deleteExpired">
+        DELETE FROM T_REFRESH_TOKEN WHERE EXPIRES_AT &lt;= SYSTIMESTAMP
+    </delete>
+</mapper>

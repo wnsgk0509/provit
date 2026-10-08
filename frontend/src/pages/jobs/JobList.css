@@ -1,0 +1,436 @@
+/* JobList.css - 채용 공고 리스트 스타일링 */
+
+.job-page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 필터 카드 */
+.filter-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* 공고 카드 */
+.job-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+                box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+                border-color 0.22s ease;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.job-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+    border-color: #93c5fd;
+}
+
+/* 마감 임박 공고 (D-Day 1~3일, 오늘마감) 긴급 액센트 바 */
+.job-card.urgent-deadline {
+    border-left: 4px solid #ef4444;
+}
+
+.job-card-title {
+    font-size: 1.08rem;
+    font-weight: 700;
+    line-height: 1.45;
+    color: #0f172a;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 3.1rem;
+    transition: color 0.15s ease;
+}
+
+.job-card:hover .job-card-title {
+    color: #4f46e5;
+}
+
+.job-card-company {
+    font-size: 0.92rem;
+    color: #475569;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+/* 근무지 & 경력 메타 뱃지 */
+.job-meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 0.76rem;
+    font-weight: 500;
+    padding: 0.25rem 0.55rem;
+    border-radius: 6px;
+}
+
+/* 직무/기술 태그 */
+.job-tag {
+    font-size: 0.74rem;
+    font-weight: 600;
+    background-color: #eef2ff;
+    color: #4338ca;
+    border: 1px solid #e0e7ff;
+    padding: 0.22rem 0.55rem;
+    border-radius: 20px;
+    display: inline-block;
+    margin-right: 0.35rem;
+    margin-bottom: 0.35rem;
+    transition: all 0.15s ease;
+}
+
+.job-tag:hover {
+    background-color: #e0e7ff;
+    color: #3730a3;
+    border-color: #c7d2fe;
+}
+
+/* 카드 푸터 */
+.job-card-footer {
+    background-color: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
+    padding: 0.85rem 1.25rem;
+}
+
+/* 모의면접 핵심 CTA 버튼 */
+.btn-interview-cta {
+    background-color: #2563eb;
+    border: 1px solid #2563eb;
+    color: #ffffff !important;
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.18s ease;
+}
+
+.btn-interview-cta:hover {
+    background-color: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.22);
+    transform: translateY(-1px);
+}
+
+.btn-interview-cta:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* D-Day 뱃지 */
+.badge-dday-urgent {
+    background-color: #ef4444;
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 6px;
+    padding: 0.28rem 0.55rem;
+}
+
+.badge-dday-warning {
+    background-color: #f59e0b;
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 6px;
+    padding: 0.28rem 0.55rem;
+}
+
+.badge-dday-normal {
+    background-color: #2563eb;
+    color: #ffffff;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 0.28rem 0.55rem;
+}
+
+.badge-dday-always {
+    background-color: #64748b;
+    color: #ffffff;
+    font-weight: 500;
+    border-radius: 6px;
+    padding: 0.28rem 0.55rem;
+}
+
+/* 관심 공고 스크랩(북마크) 버튼 */
+.job-scrap-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    padding: 0.3rem;
+    border-radius: 8px;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s ease, background-color 0.15s ease;
+}
+
+.job-scrap-btn:hover {
+    color: #f59e0b;
+    background-color: #fef3c7;
+    transform: scale(1.18);
+}
+
+.job-scrap-btn.active {
+    color: #f59e0b;
+}
+
+.job-scrap-btn.active:hover {
+    color: #d97706;
+}
+
+.job-scrap-btn:disabled {
+    cursor: wait;
+    opacity: 0.6;
+    transform: none;
+}
+
+/* 맞춤 추천 공고 섹션 */
+.recommend-section {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #2563eb;
+    border-radius: 16px;
+    padding: 1.6rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    position: relative;
+}
+
+.recommend-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.recommend-badge {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.28rem 0.65rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.recommend-badge-popular {
+    background-color: #fef2f2 !important;
+    color: #b91c1c !important;
+    border-color: #fecaca !important;
+}
+
+.recommend-pick-tag {
+    background-color: #1e293b;
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.16rem 0.45rem;
+    border-radius: 4px;
+    letter-spacing: -0.2px;
+    flex-shrink: 0;
+}
+
+.recommend-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+    height: 100%;
+    position: relative;
+}
+
+.recommend-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px -3px rgba(15, 23, 42, 0.08);
+    border-color: #93c5fd;
+}
+
+/* ==========================================
+   스켈레톤 로딩 (Skeleton Loading Shimmer)
+   ========================================== */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.job-skeleton-card {
+    pointer-events: none;
+    user-select: none;
+}
+
+.skeleton-shimmer {
+    background: linear-gradient(
+        90deg,
+        #f1f5f9 25%,
+        #e2e8f0 50%,
+        #f1f5f9 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+}
+
+.skeleton-company {
+    width: 45%;
+    height: 18px;
+}
+
+.skeleton-badge {
+    width: 64px;
+    height: 22px;
+    border-radius: 20px;
+}
+
+.skeleton-title {
+    width: 92%;
+    height: 22px;
+}
+
+.skeleton-title-sub {
+    width: 60%;
+    height: 22px;
+}
+
+.skeleton-pill {
+    width: 75px;
+    height: 24px;
+    border-radius: 6px;
+}
+
+.skeleton-tag {
+    width: 60px;
+    height: 20px;
+    border-radius: 20px;
+}
+
+.skeleton-btn {
+    flex: 1;
+    height: 31px;
+    border-radius: 6px;
+}
+
+/* ==========================================
+   활성 필터 태그 칩 (Active Filter Chips)
+   ========================================== */
+.active-filter-chips {
+    padding: 0.65rem 0.85rem;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px dashed #cbd5e1;
+}
+
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background-color: #ffffff;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    transition: all 0.15s ease;
+}
+
+.filter-chip:hover {
+    border-color: #94a3b8;
+    background-color: #f8fafc;
+}
+
+.filter-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    transition: all 0.15s ease;
+}
+
+.filter-chip button:hover {
+    background-color: #fee2e2;
+    color: #ef4444;
+}
+
+.filter-chip-scrap {
+    background-color: #fffbeb;
+    border-color: #fde68a;
+    color: #b45309;
+}
+
+.filter-reset-link {
+    color: #64748b;
+    transition: color 0.15s ease;
+}
+
+.filter-reset-link:hover {
+    color: #ef4444 !important;
+}
+
+/* ==========================================
+   정렬 탭 버튼 그룹 (Job Sort Group)
+   ========================================== */
+.job-sort-group {
+    background-color: #f1f5f9;
+    padding: 3px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.job-sort-group .btn {
+    border: none !important;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 0.32rem 0.75rem;
+    border-radius: 6px !important;
+    color: #64748b;
+    background: transparent;
+    transition: all 0.18s ease;
+}
+
+.job-sort-group .btn:hover {
+    color: #1e293b;
+    background-color: rgba(255, 255, 255, 0.65);
+}
+
+.job-sort-group .btn.active {
+    background-color: #ffffff !important;
+    color: #4f46e5 !important;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+
+

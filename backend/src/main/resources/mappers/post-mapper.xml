@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.provit.mapper.PostMapper">
+
+    <!-- 1. 게시글 목록 페이징 조회 (조인 포함) -->
+    <select id="selectPostList" resultType="com.provit.dto.community.PostDTO" parameterType="com.provit.dto.community.PostSearchDTO">
+        SELECT
+            p.POST_NUM,
+            p.CATEGORY_NUM,
+            c.CATEGORY_NAME,
+            p.USER_NUM,
+            u.USER_NICKNAME,
+            p.POST_TITLE,
+            p.POST_LIKE_COUNT,
+            p.VIEW_COUNT,
+            p.POST_DATE,
+            (SELECT COUNT(*) FROM T_COMMENT c2 WHERE c2.POST_NUM = p.POST_NUM) AS commentCount
+        FROM T_POST p
+        JOIN T_CATEGORY c ON p.CATEGORY_NUM = c.CATEGORY_NUM
+        JOIN T_USER u ON p.USER_NUM = u.USER_NUM
+        <where>
+            <!-- 카테고리 필터가 넘어왔을 때만 동작 -->
+            <if test="authorUserNum != null">
+                AND p.USER_NUM = #{authorUserNum}
+            </if>
+            <if test="categoryNum != null">
+                AND p.CATEGORY_NUM = #{categoryNum}
+            </if>
+            <!-- 검색어가 넘어왔을 때만 동작 (블라인드 게시글 제외) -->
+            <if test="keyword != null and keyword != ''">
+                AND p.POST_TITLE != '관리자에 의해 블라인드 처리된 게시물입니다.'
+                <choose>
+                    <when test="searchType == 'TITLE'">
+                        AND p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                    </when>
+                    <when test="searchType == 'CONTENT'">
+                        AND p.POST_CONTENT LIKE '%' || #{keyword} || '%'
+                    </when>
+                    <when test="searchType == 'WRITER'">
+                        AND u.USER_NICKNAME LIKE '%' || #{keyword} || '%'
+                    </when>
+                    <otherwise>
+                        AND (
+                            p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                            OR p.POST_CONTENT LIKE '%' || #{keyword} || '%'
+                            OR u.USER_NICKNAME LIKE '%' || #{keyword} || '%'
+                        )
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        ORDER BY p.POST_NUM DESC
+        <!-- 앞서 만든 DTO의 getOffset() 값을 활용해 지정된 갯수만큼만 끊어옵니다 -->
+        OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <!-- 인기 게시글 조회 (조회수 + 좋아요 수 기준) -->
+    <select id="selectPopularPosts" resultType="com.provit.dto.community.PostDTO" parameterType="int">
+        SELECT * FROM (
+            SELECT
+                p.POST_NUM,
+                p.CATEGORY_NUM,
+                c.CATEGORY_NAME,
+                p.USER_NUM,
+                u.USER_NICKNAME,
+                p.POST_TITLE,
+                p.POST_LIKE_COUNT,
+                p.VIEW_COUNT,
+                p.POST_DATE,
+                (SELECT COUNT(*) FROM T_COMMENT c2 WHERE c2.POST_NUM = p.POST_NUM) AS commentCount
+            FROM T_POST p
+            JOIN T_CATEGORY c ON p.CATEGORY_NUM = c.CATEGORY_NUM
+            JOIN T_USER u ON p.USER_NUM = u.USER_NUM
+            ORDER BY (p.VIEW_COUNT + (p.POST_LIKE_COUNT * 10)) DESC, p.POST_NUM DESC
+        )
+        WHERE ROWNUM &lt;= #{limit}
+    </select>
+
+    <!-- 2. 전체 게시글 갯수 카운트 (페이징 총 페이지 수 계산용) -->
+    <select id="countPosts" resultType="int" parameterType="com.provit.dto.community.PostSearchDTO">
+        SELECT COUNT(p.POST_NUM)
+        FROM T_POST p
+        JOIN T_USER u ON p.USER_NUM = u.USER_NUM
+        <where>
+            <if test="authorUserNum != null">
+                AND p.USER_NUM = #{authorUserNum}
+            </if>
+            <if test="categoryNum != null">
+                AND p.CATEGORY_NUM = #{categoryNum}
+            </if>
+            <!-- 검색어가 넘어왔을 때만 동작 (블라인드 게시글 제외) -->
+            <if test="keyword != null and keyword != ''">
+                AND p.POST_TITLE != '관리자에 의해 블라인드 처리된 게시물입니다.'
+                <choose>
+                    <when test="searchType == 'TITLE'">
+                        AND p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                    </when>
+                    <when test="searchType == 'CONTENT'">
+                        AND p.POST_CONTENT LIKE '%' || #{keyword} || '%'
+                    </when>
+                    <when test="searchType == 'WRITER'">
+                        AND u.USER_NICKNAME LIKE '%' || #{keyword} || '%'
+                    </when>
+                    <otherwise>
+                        AND (
+                            p.POST_TITLE LIKE '%' || #{keyword} || '%'
+                            OR p.POST_CONTENT LIKE '%' || #{keyword} || '%'
+                            OR u.USER_NICKNAME LIKE '%' || #{keyword} || '%'
+                        )
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </select>
+    
+    <!-- 3. 게시글 상세 조회 -->
+    <select id="selectPostDetail" resultType="com.provit.dto.community.PostDTO" parameterType="long">
+        SELECT
+            p.POST_NUM,
+            p.CATEGORY_NUM,
+            c.CATEGORY_NAME,
+            p.USER_NUM,
+            u.USER_NICKNAME,
+            p.POST_TITLE,
+            p.POST_CONTENT,
+            p.POST_LIKE_COUNT,
+            p.VIEW_COUNT,
+            p.POST_FILE,
+            p.POST_DATE
+        FROM T_POST p
+        JOIN T_CATEGORY c ON p.CATEGORY_NUM = c.CATEGORY_NUM
+        JOIN T_USER u ON p.USER_NUM = u.USER_NUM
+        WHERE p.POST_NUM = #{postNum}
+    </select>
+
+    <!-- 4. 게시글 조회수 1 증가 -->
+    <update id="updateViewCount" parameterType="long">
+        UPDATE T_POST
+        SET VIEW_COUNT = VIEW_COUNT + 1
+        WHERE POST_NUM = #{postNum}
+    </update>
+
+    <!-- 5. 게시글 등록 -->
+    <insert id="insertPost" parameterType="com.provit.dto.community.PostDTO">
+        <selectKey keyProperty="postNum" resultType="long" order="BEFORE">
+            SELECT SEQ_T_POST.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO T_POST (
+            POST_NUM, CATEGORY_NUM, USER_NUM, POST_TITLE, POST_CONTENT, POST_FILE, POST_DATE
+        ) VALUES (
+            #{postNum}, #{categoryNum}, #{userNum}, #{postTitle}, #{postContent}, #{postFile, jdbcType=VARCHAR}, SYSDATE
+        )
+    </insert>
+
+    <!-- 6. 게시글 수정 (제목, 내용, 카테고리, 첨부파일만 수정) -->
+    <update id="updatePost" parameterType="com.provit.dto.community.PostDTO">
+        UPDATE T_POST
+        SET
+            CATEGORY_NUM = #{categoryNum},
+            POST_TITLE = #{postTitle},
+            POST_CONTENT = #{postContent},
+            POST_FILE = #{postFile, jdbcType=VARCHAR}
+        WHERE POST_NUM = #{postNum} AND USER_NUM = #{userNum}
+    </update>
+
+    <!-- 7. 게시글 삭제 -->
+    <delete id="deletePost" parameterType="map">
+        DELETE FROM T_POST
+        WHERE POST_NUM = #{postNum}
+        <if test="userType != 'ADMIN'">
+            AND USER_NUM = #{userNum}
+        </if>
+    </delete>
+
+    <!-- 8. 좋아요(공감) 확인 -->
+    <select id="checkPostLike" resultType="int" parameterType="map">
+        SELECT COUNT(*) 
+        FROM T_POST_LIKE
+        WHERE POST_NUM = #{postNum} AND USER_NUM = #{userNum}
+    </select>
+
+    <!-- 9. 좋아요 추가 -->
+    <insert id="insertPostLike" parameterType="map">
+        INSERT INTO T_POST_LIKE (POST_NUM, USER_NUM, CREATED_AT)
+        VALUES (#{postNum}, #{userNum}, SYSDATE)
+    </insert>
+
+    <!-- 10. 좋아요 취소 -->
+    <delete id="deletePostLike" parameterType="map">
+        DELETE FROM T_POST_LIKE
+        WHERE POST_NUM = #{postNum} AND USER_NUM = #{userNum}
+    </delete>
+
+    <!-- 11. 게시글 총 좋아요 수 증감 -->
+    <update id="updatePostLikeCount" parameterType="map">
+        UPDATE T_POST
+        SET POST_LIKE_COUNT = POST_LIKE_COUNT + #{amount}
+        WHERE POST_NUM = #{postNum}
+    </update>
+
+</mapper>
