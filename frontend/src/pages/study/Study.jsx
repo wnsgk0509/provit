@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { fetchStudyList, deleteStudy, joinStudy, leaveStudy } from '../../api/studyApi';
 import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../context/ModalContext';
 import StudyCreateModal from '../../components/study/StudyCreateModal';
 
 function Study() {
     const { user, isLoggedIn } = useAuth();
+    const { showAlert, showConfirm, showToast } = useModal();
     const [studies, setStudies] = useState([]);
     const [showModal, setShowModal] = useState(false);
 
@@ -25,49 +27,66 @@ function Study() {
     };
 
     const handleDelete = async (studyNum) => {
-        if (!window.confirm('정말로 이 스터디를 삭제하시겠습니까?\n모든 참여자 정보가 함께 삭제됩니다.')) return;
+        const ok = await showConfirm('정말로 이 스터디를 삭제하시겠습니까?\n모든 참여자 정보가 함께 삭제됩니다.', {
+            title: '스터디 삭제',
+            type: 'warning',
+            confirmText: '삭제',
+            cancelText: '취소',
+            isDestructive: true
+        });
+        if (!ok) return;
         try {
             const result = await deleteStudy(studyNum);
             if (result && result.responseCode && result.responseCode.code === 200) {
+                showToast('스터디가 삭제되었습니다.', 'info');
                 loadStudies();
             } else {
-                alert('삭제에 실패했습니다.');
+                showAlert(result?.message || '삭제에 실패했습니다.', { type: 'error' });
             }
         } catch (error) {
-            alert('서버 오류가 발생했습니다.');
+            showAlert('서버 오류가 발생했습니다.', { type: 'error' });
         }
     };
 
     const handleJoin = async (studyNum) => {
         if (!isLoggedIn) {
-            alert('로그인 후 참여할 수 있습니다.');
+            showAlert('로그인 후 참여할 수 있습니다.', { type: 'warning' });
             return;
         }
         try {
             const result = await joinStudy(studyNum, user.userNum);
             if (result && result.responseCode && result.responseCode.code === 200) {
+                showToast('스터디에 참여되었습니다!', 'success');
                 loadStudies();
             } else {
-                alert(result?.responseCode?.message || '정원이 가득 찼거나 이미 처리된 요청입니다.');
+                showAlert(result?.responseCode?.message || '정원이 가득 찼거나 이미 처리된 요청입니다.', { type: 'error' });
                 loadStudies(); // 실패 시에도 목록 동기화
             }
         } catch (error) {
-            alert(error.response?.data?.message || '동시 요청으로 인해 참여에 실패했습니다. (이미 모집 마감되었을 수 있습니다.)');
+            showAlert(error.response?.data?.message || '동시 요청으로 인해 참여에 실패했습니다. (이미 모집 마감되었을 수 있습니다.)', { type: 'error' });
             loadStudies(); // catch 시에도 최신 목록으로 비동기 리렌더링
         }
     };
 
     const handleLeave = async (studyNum) => {
-        if (!window.confirm('정말 스터디 참여를 취소하시겠습니까?')) return;
+        const ok = await showConfirm('정말 스터디 참여를 취소하시겠습니까?', {
+            title: '참여 취소',
+            type: 'warning',
+            confirmText: '참여 취소',
+            cancelText: '닫기',
+            isDestructive: true
+        });
+        if (!ok) return;
         try {
             const result = await leaveStudy(studyNum, user.userNum);
             if (result && result.responseCode && result.responseCode.code === 200) {
+                showToast('스터디 참여가 취소되었습니다.', 'info');
                 loadStudies();
             } else {
-                alert('참여 취소에 실패했습니다.');
+                showAlert('참여 취소에 실패했습니다.', { type: 'error' });
             }
         } catch (error) {
-            alert('서버 오류가 발생했습니다.');
+            showAlert('서버 오류가 발생했습니다.', { type: 'error' });
         }
     };
 

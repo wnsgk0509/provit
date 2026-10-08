@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createCoverLetter, updateCoverLetter } from '../../../api/documentApi';
+import { useModal } from '../../../context/ModalContext';
 
 const coverLetterFields = [
     { name: 'growthProcess', label: '성장 과정', placeholder: '성장 과정에서 형성된 가치관과 직무에 영향을 준 경험을 작성해 주세요.' },
@@ -19,6 +20,7 @@ const emptyCoverLetter = {
 
 function CoverLetterWrite({ initialData = null, onSaved, onCancel }) {
     const navigate = useNavigate();
+    const { showToast } = useModal();
     const isEditMode = Boolean(initialData?.letterNum);
     const [coverLetter, setCoverLetter] = useState(() => (
         Object.keys(emptyCoverLetter).reduce((normalized, key) => ({
@@ -49,7 +51,7 @@ function CoverLetterWrite({ initialData = null, onSaved, onCancel }) {
                 return;
             }
             if (!letterNum) throw new Error('저장된 자기소개서 번호를 확인하지 못했습니다.');
-            window.alert('자기소개서가 저장되었습니다.');
+            showToast('자기소개서가 저장되었습니다.', 'success');
             navigate(`/documents/cover-letter/${letterNum}`, { replace: true });
             window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
         } catch (error) {

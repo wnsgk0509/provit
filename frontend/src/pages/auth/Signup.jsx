@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import client from "../../api/client";
+import { useModal } from "../../context/ModalContext";
 
 const PASSWORD_PATTERN = /^(?=\S{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).*$/;
 // 백엔드 회원 정보 검증과 동일한 입력 길이 기준이다.
@@ -10,6 +11,7 @@ const NICKNAME_MAX_LENGTH = 20;
 
 function Signup() {
     const navigate = useNavigate();
+    const { showAlert } = useModal();
 
     // 입력 폼 상태
     const [formData, setFormData] = useState({
@@ -371,7 +373,10 @@ function Signup() {
             const res = await client.post("/auth/signup", payload);
 
             if (res.status === 201 || res.data?.responseCode?.code === 301) {
-                alert("회원가입이 성공적으로 완료되었습니다! 로그인 페이지로 이동합니다.");
+                await showAlert("회원가입이 성공적으로 완료되었습니다!\n로그인 페이지로 이동합니다.", {
+                    title: "회원가입 완료",
+                    type: "success"
+                });
                 navigate("/login");
             }
         } catch (error) {

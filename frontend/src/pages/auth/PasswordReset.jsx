@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import { useModal } from "../../context/ModalContext";
 
 const PASSWORD_PATTERN = /^(?=\S{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).*$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -9,6 +10,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function PasswordReset() {
     const navigate = useNavigate();
     const { logout } = useAuth();
+    const { showAlert } = useModal();
     const timerRef = useRef(null);
 
     const [email, setEmail] = useState("");
@@ -190,7 +192,7 @@ function PasswordReset() {
                 confirmPassword,
             });
             await logout();
-            window.alert("비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.");
+            await showAlert("비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.", { title: "비밀번호 변경 완료", type: "success" });
             navigate("/login", { replace: true });
         } catch (error) {
             setAlertMsg({ type: "danger", text: getErrorMessage(error, "비밀번호 변경에 실패했습니다.") });

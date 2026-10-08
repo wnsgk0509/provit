@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronRight, Eye, EyeOff, FileText, KeyRound, ShieldCheck, Sparkles, Star } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../context/ModalContext';
 import client from '../../api/client';
 import { getCoverLetterList, getPortfolioList, getResumeList } from '../../api/documentApi';
 import './MyPage.css';
@@ -24,6 +25,7 @@ const DOCUMENT_OPTIONS = [
 
 function MyPage() {
     const { user, updateUser, logout } = useAuth();
+    const { showConfirm, showAlert } = useModal();
     const navigate = useNavigate();
     const userEmail = user?.userEmail || user?.email || '';
     const userName = user?.userName || user?.name || '';
@@ -198,7 +200,7 @@ function MyPage() {
             if (passwordChangeRequested) {
                 // 비밀번호 변경 뒤 서버가 기존 JWT를 무효화하므로 즉시 재로그인한다.
                 logout();
-                window.alert('비밀번호가 변경되었습니다. 다시 로그인해 주세요.');
+                await showAlert('비밀번호가 변경되었습니다. 다시 로그인해 주세요.', { title: '비밀번호 변경 완료', type: 'success' });
                 navigate('/login', { replace: true });
                 return;
             }
@@ -224,9 +226,16 @@ function MyPage() {
         }
     };
 
-    const handleWithdrawalClick = () => {
+    const handleWithdrawalClick = async () => {
         // 첫 확인 뒤에만 현재 비밀번호 입력 영역을 열어 실수로 탈퇴하는 일을 줄인다.
-        if (window.confirm('정말로 탈퇴하시겠습니까? 탈퇴 후에는 동일한 이메일로 재가입할 수 없습니다.')) {
+        const ok = await showConfirm('정말로 탈퇴하시겠습니까?\n탈퇴 후에는 동일한 이메일로 재가입할 수 없습니다.', {
+            title: '회원 탈퇴 확인',
+            type: 'warning',
+            confirmText: '탈퇴 진행',
+            cancelText: '취소',
+            isDestructive: true
+        });
+        if (ok) {
             // 이전 탈퇴 시도에서 입력·표시된 민감 정보를 남기지 않는다.
             setWithdrawalPassword('');
             setShowWithdrawalPassword(false);

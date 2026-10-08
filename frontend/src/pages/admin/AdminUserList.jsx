@@ -1,14 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { getAdminUserList, updateAdminUserStatus } from "../../api/adminApi";
 import { Link } from "react-router-dom";
+import { useModal } from "../../context/ModalContext";
+import Pagination from "../../components/common/Pagination";
+import { AlertTriangle } from "lucide-react";
 
 const AdminUserList = () => {
+  const { showAlert, showConfirm, showToast } = useModal();
   const [users, setUsers] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [keyword, setKeyword] = useState("");
   const [searchInput, setSearchInput] = useState("");
+
+  // 정지 기간 선택 모달 상태
+  const [blockModal, setBlockModal] = useState({
+    isOpen: false,
+    userNum: null,
+    days: 7,
+  });
 
   const fetchUsers = async () => {
     try {
@@ -19,7 +30,7 @@ const AdminUserList = () => {
       }
     } catch (error) {
       console.error("회원 목록 조회 실패:", error);
-      alert("회원 목록을 불러오는데 실패했습니다.");
+      showAlert("회원 목록을 불러오는데 실패했습니다.", { type: "error" });
     }
   };
 
@@ -36,34 +47,52 @@ const AdminUserList = () => {
   const handleStatusChange = async (userNum, currentBlockedDate) => {
     const isCurrentlyBlocked = currentBlockedDate && new Date(currentBlockedDate) > new Date();
     
-    let blockDays = 0;
     if (!isCurrentlyBlocked) {
-      const action = window.prompt(
-        "정지 기간을 선택하세요.\n7 (7일 정지)\n30 (30일 정지)\n9999 (무기한 정지)",
-        "7"
-      );
-      if (action === null) return;
-      blockDays = parseInt(action, 10);
-      if (![7, 30, 9999].includes(blockDays)) {
-        alert("올바른 정지 기간을 입력해주세요 (7, 30, 9999 중 택1)");
-        return;
-      }
+      // 정지 모달 오픈
+      setBlockModal({
+        isOpen: true,
+        userNum,
+        days: 7,
+      });
     } else {
-      if (!window.confirm("이 회원의 정지 상태를 해제하시겠습니까?")) return;
-      blockDays = 0;
+      const ok = await showConfirm("이 회원의 정지 상태를 해제하시겠습니까?", {
+        title: "정지 해제 확인",
+        type: "confirm",
+        confirmText: "해제하기",
+        cancelText: "취소"
+      });
+      if (!ok) return;
+
+      try {
+        const data = await updateAdminUserStatus(userNum, 0);
+        if (data.responseCode && data.responseCode.code === 200) {
+          showToast("정지가 정상적으로 해제되었습니다.", "success");
+          fetchUsers();
+        } else {
+          showAlert(data.responseCode?.message || "상태 변경에 실패했습니다.", { type: "error" });
+        }
+      } catch (error) {
+        console.error("상태 변경 실패:", error);
+        showAlert("서버 오류가 발생했습니다.", { type: "error" });
+      }
     }
+  };
+
+  const handleConfirmBlock = async () => {
+    const { userNum, days } = blockModal;
+    setBlockModal({ isOpen: false, userNum: null, days: 7 });
 
     try {
-      const data = await updateAdminUserStatus(userNum, blockDays);
+      const data = await updateAdminUserStatus(userNum, days);
       if (data.responseCode && data.responseCode.code === 200) {
-        alert("계정 상태가 변경되었습니다.");
+        showToast("계정 정지가 적용되었습니다.", "success");
         fetchUsers();
       } else {
-        alert(data.responseCode?.message || "상태 변경에 실패했습니다.");
+        showAlert(data.responseCode?.message || "상태 변경에 실패했습니다.", { type: "error" });
       }
     } catch (error) {
       console.error("상태 변경 실패:", error);
-      alert("서버 오류가 발생했습니다.");
+      showAlert("서버 오류가 발생했습니다.", { type: "error" });
     }
   };
 
@@ -265,28 +294,67 @@ const AdminUserList = () => {
       </div>
 
       {/* 페이지네이션 */}
-      {totalPages > 1 && (
-        <nav className="mt-4">
-          <ul className="pagination justify-content-center">
-            <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
-              <button className="page-link" onClick={() => setPage(p => Math.max(1, p - 1))}>
-                이전
+      {totalPages > 0 && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
+      )}
+
+      {/* 회원 정지 기간 선택 모달 */}
+      {blockModal.isOpen && (
+        <div className="app-modal-backdrop" onClick={() => setBlockModal({ isOpen: false, userNum: null, days: 7 })}>
+          <div className="app-modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="app-modal-header">
+              <div className="app-modal-icon-wrapper warning">
+                <AlertTriangle className="app-modal-icon" size={24} />
+              </div>
+              <h3 className="app-modal-title">계정 정지 기간 설정</h3>
+            </div>
+            <div className="app-modal-body">
+              <p className="app-modal-message">정지할 기간을 선택해주세요. 정지 기간 동안 해당 계정의 로그인이 제한됩니다.</p>
+              <div className="d-flex flex-column gap-2 mt-3 text-start">
+                {[
+                  { days: 7, label: '7일 정지 (경고성 일시 제한)' },
+                  { days: 30, label: '30일 정지 (중대 위반 제한)' },
+                  { days: 9999, label: '영구 정지 (무기한 제한)' }
+                ].map(opt => (
+                  <label
+                    key={opt.days}
+                    className={`p-3 border rounded-3 d-flex align-items-center gap-2 cursor-pointer transition ${blockModal.days === opt.days ? 'border-primary bg-primary bg-opacity-10' : 'bg-light'}`}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <input
+                      type="radio"
+                      name="blockDays"
+                      className="form-check-input mt-0"
+                      checked={blockModal.days === opt.days}
+                      onChange={() => setBlockModal(prev => ({ ...prev, days: opt.days }))}
+                    />
+                    <span className="fw-semibold text-dark ms-2">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="app-modal-footer">
+              <button
+                type="button"
+                className="app-modal-btn cancel"
+                onClick={() => setBlockModal({ isOpen: false, userNum: null, days: 7 })}
+              >
+                취소
               </button>
-            </li>
-            {[...Array(totalPages)].map((_, i) => (
-              <li key={i + 1} className={`page-item ${page === i + 1 ? "active" : ""}`}>
-                <button className="page-link" onClick={() => setPage(i + 1)}>
-                  {i + 1}
-                </button>
-              </li>
-            ))}
-            <li className={`page-item ${page === totalPages ? "disabled" : ""}`}>
-              <button className="page-link" onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
-                다음
+              <button
+                type="button"
+                className="app-modal-btn destructive"
+                onClick={handleConfirmBlock}
+              >
+                정지 적용
               </button>
-            </li>
-          </ul>
-        </nav>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

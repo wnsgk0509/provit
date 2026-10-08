@@ -19,17 +19,21 @@ import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.ExecutorType;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.mybatis.spring.SqlSessionTemplate;
+import org.mybatis.spring.MyBatisExceptionTranslator;
 import org.mybatis.spring.transaction.SpringManagedTransactionFactory;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.support.EncodedResource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.support.SQLStateSQLExceptionTranslator;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
@@ -59,6 +63,7 @@ public class OracleDocumentReviewPersistenceTest {
     private DocumentReviewService service;
     private DocumentService documents;
     private DataSourceTransactionManager transactionManager;
+    private SqlSessionFactory sessionFactory;
     private ResumeDetailDTO resume;
     private byte[] pdf = "%PDF-1.7\nportfolio snapshot".getBytes(StandardCharsets.US_ASCII);
     private boolean documentsDeleted;
@@ -98,7 +103,8 @@ public class OracleDocumentReviewPersistenceTest {
         try (var reader = new java.io.StringReader(xml)) {
             new XMLMapperBuilder(reader, configuration, "review-test-mapper", configuration.getSqlFragments()).parse();
         }
-        dao = new DocumentReviewDAOImpl(new SqlSessionTemplate(new SqlSessionFactoryBuilder().build(configuration)));
+        sessionFactory = new SqlSessionFactoryBuilder().build(configuration);
+        dao = new DocumentReviewDAOImpl(new SqlSessionTemplate(sessionFactory));
         transactionManager = new DataSourceTransactionManager(dataSource);
         transaction = new TransactionTemplate(transactionManager);
         resume = new ResumeDetailDTO();
@@ -287,6 +293,89 @@ public class OracleDocumentReviewPersistenceTest {
                 return reviewFixture(request.getPortfolioNum() != null);
             } catch (Exception exception) { throw new AssertionError(exception); }
         });
+    }
+
+    @Test
+    public void concurrentAuthenticatedRequestsReuseOneOracleRecordAndGenerateOnce() throws Exception {
+        assertConcurrentAuthenticatedRequests(dao);
+    }
+
+    @Test
+    public void concurrentRequestsAlsoReuseRecordWithSqlStateExceptionTranslation() throws Exception {
+        // SQL-state fallback classifies Oracle ORA-00001 as DataIntegrityViolationException,
+        // rather than DuplicateKeyException. Exercise the real failing insert, not a fake DAO.
+        var translator = new MyBatisExceptionTranslator(SQLStateSQLExceptionTranslator::new, true);
+        var fallbackDAO = new DocumentReviewDAOImpl(new SqlSessionTemplate(sessionFactory, ExecutorType.SIMPLE, translator));
+        assertConcurrentAuthenticatedRequests(fallbackDAO);
+    }
+
+    private void assertConcurrentAuthenticatedRequests(DocumentReviewDAO concurrentDAO) throws Exception {
+        var initialLookups = new java.util.concurrent.atomic.AtomicInteger();
+        var barrier = new java.util.concurrent.CyclicBarrier(2);
+        var racedDAO = (DocumentReviewDAO) Proxy.newProxyInstance(DocumentReviewDAO.class.getClassLoader(),
+                new Class<?>[] { DocumentReviewDAO.class }, (proxy, method, args) -> {
+                    Object value;
+                    try { value = method.invoke(concurrentDAO, args); }
+                    catch (java.lang.reflect.InvocationTargetException exception) { throw exception.getCause(); }
+                    if (method.getName().equals("selectByRequestId") && initialLookups.incrementAndGet() <= 2) {
+                        assertNull(value);
+                        barrier.await(10, java.util.concurrent.TimeUnit.SECONDS);
+                    }
+                    return value;
+                });
+        var aiCalls = new java.util.concurrent.atomic.AtomicInteger();
+        var started = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        com.provit.service.document.generator.DocumentReviewGenerator generator = (request, snapshots) -> {
+            assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+            aiCalls.incrementAndGet(); started.countDown();
+            try {
+                assertTrue(release.await(15, java.util.concurrent.TimeUnit.SECONDS));
+                return reviewFixture(false);
+            } catch (Exception exception) { throw new AssertionError(exception); }
+        };
+        var owner = new org.springframework.web.method.support.HandlerMethodArgumentResolver() {
+            @Override public boolean supportsParameter(org.springframework.core.MethodParameter parameter) {
+                return parameter.hasParameterAnnotation(com.provit.common.annotation.LoginUser.class);
+            }
+            @Override public Object resolveArgument(org.springframework.core.MethodParameter parameter,
+                    org.springframework.web.method.support.ModelAndViewContainer container,
+                    org.springframework.web.context.request.NativeWebRequest webRequest,
+                    org.springframework.web.bind.support.WebDataBinderFactory binder) { return 7L; }
+        };
+        var controllers = List.of(
+                new DocumentReviewController(transactionalService(racedDAO, generator)),
+                new DocumentReviewController(transactionalService(racedDAO, generator)));
+        var mapper = new ObjectMapper();
+        String body = mapper.writeValueAsString(request(false));
+        var executor = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var results = new java.util.concurrent.ExecutorCompletionService<org.springframework.mock.web.MockHttpServletResponse>(executor);
+            for (var controller : controllers) results.submit(() -> MockMvcBuilders.standaloneSetup(controller)
+                    .setCustomArgumentResolvers(owner).setControllerAdvice(new GlobalExceptionHandler()).build()
+                    .perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/document-reviews")
+                            .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse());
+            assertTrue(started.await(10, java.util.concurrent.TimeUnit.SECONDS));
+            var first = results.poll(10, java.util.concurrent.TimeUnit.SECONDS);
+            assertNotNull(first);
+            var processing = first.get();
+            assertEquals(processing.getContentAsString(), 201, processing.getStatus());
+            var processingData = mapper.readTree(processing.getContentAsByteArray()).path("data");
+            assertEquals("PROCESSING", processingData.path("reviewStatus").asText());
+            release.countDown();
+            var second = results.poll(10, java.util.concurrent.TimeUnit.SECONDS);
+            assertNotNull(second);
+            var completed = second.get();
+            assertEquals(completed.getContentAsString(), 201, completed.getStatus());
+            var completedData = mapper.readTree(completed.getContentAsByteArray()).path("data");
+            assertEquals("COMPLETED", completedData.path("reviewStatus").asText());
+            assertEquals(processingData.path("reviewNum"), completedData.path("reviewNum"));
+            assertEquals(1, aiCalls.get());
+            assertCounts(1, 2, 0, 3, 1, 3);
+        } finally {
+            release.countDown(); executor.shutdownNow();
+            assertTrue(executor.awaitTermination(10, java.util.concurrent.TimeUnit.SECONDS));
+        }
     }
 
     @Test

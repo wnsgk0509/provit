@@ -3,9 +3,11 @@ import { Download, FileText, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { deletePortfolio, downloadPortfolioFile } from '../../../api/documentApi';
 import { DocumentDate } from './ResumeRead';
+import { useModal } from '../../../context/ModalContext';
 
 function PortfolioRead({ document }) {
     const navigate = useNavigate();
+    const { showConfirm, showToast, showAlert } = useModal();
     const [isDownloading, setIsDownloading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [downloadError, setDownloadError] = useState('');
@@ -35,21 +37,29 @@ function PortfolioRead({ document }) {
     };
 
     const handleDelete = async () => {
-        if (!window.confirm('포트폴리오를 삭제하시겠습니까? 첨부된 PDF도 함께 삭제되며 복구할 수 없습니다.')) return;
+        const ok = await showConfirm('포트폴리오를 삭제하시겠습니까?\n첨부된 PDF도 함께 삭제되며 복구할 수 없습니다.', {
+            title: '포트폴리오 삭제',
+            type: 'warning',
+            confirmText: '삭제',
+            cancelText: '취소',
+            isDestructive: true
+        });
+        if (!ok) return;
 
         setIsDeleting(true);
         setDeleteError('');
         try {
             await deletePortfolio(document.portfolioNum);
+            showToast('포트폴리오가 삭제되었습니다.', 'info');
             navigate('/mypage', { replace: true });
             window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
         } catch (error) {
             const responseData = error.response?.data;
-            setDeleteError(
-                responseData?.data
+            const errMsg = responseData?.data
                 || responseData?.responseCode?.message
-                || '포트폴리오를 삭제하지 못했습니다.',
-            );
+                || '포트폴리오를 삭제하지 못했습니다.';
+            setDeleteError(errMsg);
+            showAlert(errMsg, { type: 'error' });
         } finally {
             setIsDeleting(false);
         }

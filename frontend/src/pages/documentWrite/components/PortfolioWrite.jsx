@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { FileUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPortfolio } from '../../../api/documentApi';
+import { useModal } from '../../../context/ModalContext';
 
 const MAX_PORTFOLIO_FILE_SIZE = 20 * 1000 * 1000;
 const PDF_SIGNATURE = [0x25, 0x50, 0x44, 0x46, 0x2d];
 
 function PortfolioWrite() {
     const navigate = useNavigate();
+    const { showToast } = useModal();
     const [portfolioTitle, setPortfolioTitle] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
     const [selectedFileName, setSelectedFileName] = useState('');
@@ -108,7 +110,7 @@ function PortfolioWrite() {
             const savedPortfolio = await createPortfolio(trimmedTitle, selectedFile);
             const portfolioNum = savedPortfolio?.portfolioNum;
             if (!portfolioNum) throw new Error('저장된 포트폴리오 번호를 확인하지 못했습니다.');
-            window.alert('포트폴리오가 저장되었습니다.');
+            showToast('포트폴리오가 저장되었습니다.', 'success');
             navigate(`/documents/portfolio/${portfolioNum}`, { replace: true });
             window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
         } catch (error) {

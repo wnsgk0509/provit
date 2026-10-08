@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { submitReport } from '../../api/communityApi';
+import { useModal } from '../../context/ModalContext';
 
 const REASONS = [
     { value: 'SPAM', label: '스팸/홍보성' },
@@ -10,6 +11,7 @@ const REASONS = [
 ];
 
 function ReportModal({ show, onClose, targetType, targetNum }) {
+    const { showToast, showAlert } = useModal();
     const [reason, setReason] = useState('SPAM');
     const [loading, setLoading] = useState(false);
 
@@ -24,14 +26,14 @@ function ReportModal({ show, onClose, targetType, targetNum }) {
                 reportReason: reason
             });
             if (result && result.responseCode && result.responseCode.code === 200) {
-                alert('신고가 정상적으로 접수되었습니다.');
+                showToast('신고가 정상적으로 접수되었습니다.', 'success');
                 onClose();
             } else {
                 // 백엔드에서 에러 발생 시 data(예외 메시지) 또는 responseCode.message를 보여줌
-                alert(result.data || result.responseCode?.message || '신고 처리에 실패했습니다.');
+                showAlert(result?.data || result?.responseCode?.message || '신고 처리에 실패했습니다.', { type: 'error' });
             }
         } catch (error) {
-            alert(error.response?.data?.data || error.response?.data?.responseCode?.message || '신고 접수 중 오류가 발생했습니다.');
+            showAlert(error.response?.data?.data || error.response?.data?.responseCode?.message || '신고 접수 중 오류가 발생했습니다.', { type: 'error' });
         } finally {
             setLoading(false);
         }

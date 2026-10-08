@@ -1,0 +1,275 @@
+/* ==========================================================================
+   Provit Custom Modal & Toast System Styles
+   ========================================================================== */
+
+/* 1. Modal Backdrop */
+.provit-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1.25rem;
+  animation: provitFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 2. Modal Dialog Card */
+.provit-modal-card {
+  position: relative;
+  background: #ffffff;
+  width: 100%;
+  max-width: 440px;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  padding: 2rem 1.75rem 1.5rem;
+  text-align: center;
+  overflow: hidden;
+  animation: provitScaleUp 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Close button (X) */
+.provit-modal-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.provit-modal-close-btn:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+/* 3. Icon Container */
+.provit-modal-icon-wrap {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 1.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.provit-modal-icon-wrap.info {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.provit-modal-icon-wrap.success {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.provit-modal-icon-wrap.warning {
+  background-color: #fffbeb;
+  color: #d97706;
+}
+
+.provit-modal-icon-wrap.danger {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.provit-modal-icon-wrap.confirm {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+/* 4. Text Elements */
+.provit-modal-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.6rem;
+  letter-spacing: -0.02em;
+}
+
+.provit-modal-message {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #475569;
+  white-space: pre-line;
+  word-break: keep-all;
+  margin-bottom: 1.75rem;
+  padding: 0 0.5rem;
+}
+
+/* 5. Buttons Action Container */
+.provit-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.provit-modal-btn {
+  flex: 1;
+  padding: 0.72rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.provit-modal-btn.cancel {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.provit-modal-btn.cancel:hover {
+  background-color: #e2e8f0;
+  color: #1e293b;
+}
+
+.provit-modal-btn.primary {
+  background-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.provit-modal-btn.primary:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+.provit-modal-btn.danger {
+  background-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.provit-modal-btn.danger:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+}
+
+.provit-modal-btn:active {
+  transform: translateY(0);
+}
+
+/* 6. Toast Notifications Container */
+.provit-toast-container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  pointer-events: none;
+  max-width: 400px;
+}
+
+.provit-toast-item {
+  pointer-events: auto;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  padding: 0.85rem 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  animation: provitToastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: all 0.2s;
+}
+
+.provit-toast-item.exiting {
+  animation: provitToastSlideOut 0.25s forwards;
+}
+
+.provit-toast-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.provit-toast-item.info .provit-toast-icon { color: #2563eb; }
+.provit-toast-item.success .provit-toast-icon { color: #059669; }
+.provit-toast-item.warning .provit-toast-icon { color: #d97706; }
+.provit-toast-item.danger .provit-toast-icon { color: #dc2626; }
+
+.provit-toast-content {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.provit-toast-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.provit-toast-close:hover {
+  color: #475569;
+}
+
+/* 7. Keyframes */
+@keyframes provitFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes provitScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes provitToastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(30px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes provitToastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(30px) scale(0.95);
+  }
+}
