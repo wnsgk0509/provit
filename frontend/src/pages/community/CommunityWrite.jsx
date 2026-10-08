@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPost, updatePost, deletePost } from '../../api/communityApi';
 import { uploadFile } from '../../api/fileApi';
 import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../context/ModalContext';
 import MDEditor from '@uiw/react-md-editor';
 import rehypeSanitize from 'rehype-sanitize';
 
@@ -15,6 +16,7 @@ const CATEGORIES = [
 function CommunityWrite() {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { showAlert, showConfirm, showToast } = useModal();
     const [loading, setLoading] = useState(false);
     const [file, setFile] = useState(null); // 첨부파일 상태 추가
     const fileInputRef = useRef(null);
@@ -72,18 +74,18 @@ function CommunityWrite() {
         e.preventDefault();
         
         if (!user) {
-            alert('로그인이 필요한 기능입니다.');
+            await showAlert('로그인이 필요한 기능입니다.', { type: 'warning' });
             navigate('/login');
             return;
         }
 
         if (!formData.postTitle.trim()) {
-            alert('제목을 입력해주세요.');
+            showAlert('제목을 입력해주세요.', { type: 'warning' });
             return;
         }
 
         if (!formData.postContent.trim()) {
-            alert('내용을 입력해주세요.');
+            showAlert('내용을 입력해주세요.', { type: 'warning' });
             return;
         }
 
@@ -117,26 +119,36 @@ function CommunityWrite() {
                         } catch (rollbackError) {
                             console.error("롤백 처리 중 오류:", rollbackError);
                         }
-                        alert("첨부파일 업로드 중 오류가 발생하여 게시글 등록이 취소되었습니다.");
+                        showAlert("첨부파일 업로드 중 오류가 발생하여 게시글 등록이 취소되었습니다.", { type: 'error' });
                         return; // 함수 강제 종료 (성공 알럿 띄우지 않음)
                     }
                 }
 
-                alert('게시글이 성공적으로 등록되었습니다.');
+                showToast('게시글이 성공적으로 등록되었습니다.', 'success');
                 setIsDirty(false); // 서밋 성공 시 경고 해제
                 navigate('/community');
             } else {
-                alert(result.message || '게시글 등록에 실패했습니다.');
+                showAlert(result?.message || '게시글 등록에 실패했습니다.', { type: 'error' });
             }
         } catch (error) {
-            alert('서버와의 통신 오류가 발생했습니다.');
+            showAlert('서버와의 통신 오류가 발생했습니다.', { type: 'error' });
         } finally {
             setLoading(false);
         }
     };
 
-    const handleCancel = () => {
-        if (window.confirm('작성을 취소하시겠습니까? 작성 중인 내용은 저장되지 않습니다.')) {
+    const handleCancel = async () => {
+        if (!isDirty) {
+            navigate('/community');
+            return;
+        }
+        const ok = await showConfirm('작성을 취소하시겠습니까?\n작성 중인 내용은 저장되지 않습니다.', {
+            title: '작성 취소',
+            type: 'warning',
+            confirmText: '작성 취소',
+            cancelText: '계속 작성'
+        });
+        if (ok) {
             navigate('/community');
         }
     };

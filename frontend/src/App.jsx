@@ -28,9 +28,11 @@ import PolicyPage from './pages/policy/PolicyPage';
 import BootstrapTemplate from './pages/bootstrap';
 import AdminReportList from './pages/admin/AdminReportList';
 import AdminUserList from './pages/admin/AdminUserList';
+import { ModalProvider, useModal } from './context/ModalContext';
 
 function RequireAuth({ children, alertMessage }) {
   const { isLoading, isLoggedIn, isSessionExpired, clearSessionExpired } = useAuth();
+  const { showAlert } = useModal();
   const navigate = useNavigate();
   const hasRedirected = useRef(false);
 
@@ -41,12 +43,16 @@ function RequireAuth({ children, alertMessage }) {
     const message = isSessionExpired
       ? '로그인 시간이 만료되었습니다. 다시 로그인해 주세요.'
       : alertMessage;
-    if (message) {
-      window.alert(message);
-    }
-    if (isSessionExpired) clearSessionExpired();
-    navigate('/login', { replace: true });
-  }, [alertMessage, clearSessionExpired, isLoading, isLoggedIn, isSessionExpired, navigate]);
+
+    const handleRedirect = async () => {
+      if (message) {
+        await showAlert(message, { title: '로그인 안내', type: 'info' });
+      }
+      if (isSessionExpired) clearSessionExpired();
+      navigate('/login', { replace: true });
+    };
+    handleRedirect();
+  }, [alertMessage, clearSessionExpired, isLoading, isLoggedIn, isSessionExpired, navigate, showAlert]);
 
   if (isLoading || !isLoggedIn) return null;
 
@@ -65,6 +71,7 @@ function ScrollToTop() {
 
 function RequireAdmin({ children, alertMessage }) {
   const { isLoading, isLoggedIn, user } = useAuth();
+  const { showAlert } = useModal();
   const navigate = useNavigate();
   const hasRedirected = useRef(false);
 
@@ -73,12 +80,15 @@ function RequireAdmin({ children, alertMessage }) {
 
     if (!isLoggedIn || user?.userType !== 'ADMIN') {
       hasRedirected.current = true;
-      if (alertMessage) {
-        window.alert(alertMessage);
-      }
-      navigate('/home', { replace: true });
+      const handleRedirect = async () => {
+        if (alertMessage) {
+          await showAlert(alertMessage, { title: '접근 권한 제한', type: 'warning' });
+        }
+        navigate('/home', { replace: true });
+      };
+      handleRedirect();
     }
-  }, [alertMessage, isLoading, isLoggedIn, user, navigate]);
+  }, [alertMessage, isLoading, isLoggedIn, user, navigate, showAlert]);
 
   if (isLoading || !isLoggedIn || user?.userType !== 'ADMIN') return null;
 
@@ -88,11 +98,12 @@ function RequireAdmin({ children, alertMessage }) {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <ScrollToTop />
-        <Navbar />
-        <div className="app-layout">
-        <main className="container my-4 app-content">
+      <ModalProvider>
+        <BrowserRouter>
+          <ScrollToTop />
+          <Navbar />
+          <div className="app-layout">
+          <main className="container my-4 app-content">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/home" element={<Home />} />
@@ -135,7 +146,8 @@ function App() {
         </main>
         <Footer />
         </div>
-      </BrowserRouter>
+        </BrowserRouter>
+      </ModalProvider>
     </AuthProvider>
   );
 }

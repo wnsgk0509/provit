@@ -9,6 +9,8 @@ import {
     fetchUserJobRecommendations,
 } from "../../api/recruitmentApi";
 import { useAuth } from "../../context/AuthContext";
+import { useModal } from "../../context/ModalContext";
+import { Pagination } from "../../components/common/Pagination";
 import { Bookmark, RotateCcw, X } from "lucide-react";
 import "./JobList.css";
 
@@ -64,6 +66,7 @@ const updateScrapStatusInList = (list, targetId, forcedStatus = null) => {
 function JobList() {
     const navigate = useNavigate();
     const { isLoggedIn, user } = useAuth();
+    const { showAlert, showConfirm, showToast } = useModal();
 
     // 0. 회원 직무 맞춤 / 실시간 인기 추천 공고 상태 및 동시성 요청 제어 ref
     const [recommendation, setRecommendation] = useState(null);
@@ -387,7 +390,11 @@ function JobList() {
         e.preventDefault();
 
         if (!isLoggedIn) {
-            if (window.confirm("관심 공고 스크랩은 로그인이 필요한 서비스입니다.\n로그인 페이지로 이동하시겠습니까?")) {
+            const ok = await showConfirm(
+                "관심 공고 스크랩은 로그인이 필요한 서비스입니다.\n로그인 페이지로 이동하시겠습니까?",
+                { title: "로그인 필요", confirmText: "로그인하기" }
+            );
+            if (ok) {
                 navigate("/login");
             }
             return;
@@ -423,7 +430,7 @@ function JobList() {
             console.error("스크랩 토글 에러:", error);
             // 6. 실패 시 이전 상태로 안전하게 롤백 (재토글로 원복)
             updateScrapStatus(recruitmentNum);
-            alert("스크랩 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+            showToast("스크랩 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.", "danger");
         } finally {
             // 7. Pending 상태 해제
             setPendingScraps((prev) => {
@@ -435,9 +442,13 @@ function JobList() {
     };
 
     // '내 스크랩 공고만 보기' 필터 토글
-    const handleToggleScrapOnly = () => {
+    const handleToggleScrapOnly = async () => {
         if (!isLoggedIn && !params.scrapOnly) {
-            if (window.confirm("스크랩한 공고를 확인하려면 로그인이 필요합니다.\n로그인 페이지로 이동하시겠습니까?")) {
+            const ok = await showConfirm(
+                "스크랩한 공고를 확인하려면 로그인이 필요합니다.\n로그인 페이지로 이동하시겠습니까?",
+                { title: "로그인 필요", confirmText: "로그인하기" }
+            );
+            if (ok) {
                 navigate("/login");
             }
             return;
@@ -452,18 +463,20 @@ function JobList() {
     // 수동 크롤링 동기화 실행
     const handleManualSync = async () => {
         if (syncing) return;
-        if (!window.confirm("사람인에서 실시간 인기 공고 100건을 수집하여 DB를 최신화하시겠습니까? (약 5~10초 소요)")) {
-            return;
-        }
+        const ok = await showConfirm(
+            "사람인에서 실시간 인기 공고 100건을 수집하여 DB를 최신화하시겠습니까? (약 5~10초 소요)",
+            { title: "채용공고 최신화", confirmText: "동기화 시작" }
+        );
+        if (!ok) return;
 
         setSyncing(true);
         try {
             const res = await syncRecruitments(100);
-            alert(res?.data || "동기화가 완료되었습니다.");
+            showToast(res?.data || "동기화가 완료되었습니다.", "success");
             loadRecruitments(); // 목록 새로고침
             loadRecommendations(); // 추천 공고도 최신 데이터로 새로고침
         } catch (err) {
-            alert("동기화 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+            showAlert("동기화 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.", { type: "error" });
         } finally {
             setSyncing(false);
         }
@@ -538,97 +551,9 @@ function JobList() {
         return diffDays >= 0 && diffDays <= 3;
     };
 
-    // ==========================================
-    // 📄 페이징 블록 계산 (5페이지 단위)
-    // ==========================================
-    const renderPagination = () => {
-        const { currentPage, totalPages, hasPrevious, hasNext } = pageInfo;
-        if (totalPages <= 1) return null;
-
-        const blockSize = 5;
-        const currentBlock = Math.ceil(currentPage / blockSize);
-        const startPage = (currentBlock - 1) * blockSize + 1;
-        const endPage = Math.min(startPage + blockSize - 1, totalPages);
-
-        const pageNumbers = [];
-        for (let i = startPage; i <= endPage; i++) {
-            pageNumbers.push(i);
-        }
-
-        return (
-            <nav className="d-flex justify-content-center my-4" aria-label="Job pagination">
-                <ul className="pagination shadow-sm">
-                    <li className={`page-item ${!hasPrevious ? "disabled" : ""}`}>
-                        <button
-                            className="page-link"
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={!hasPrevious}
-                        >
-                            &laquo; 이전
-                        </button>
-                    </li>
-
-                    {pageNumbers.map((num) => (
-                        <li key={num} className={`page-item ${num === currentPage ? "active" : ""}`}>
-                            <button className="page-link" onClick={() => handlePageChange(num)}>
-                                {num}
-                            </button>
-                        </li>
-                    ))}
-
-                    <li className={`page-item ${!hasNext ? "disabled" : ""}`}>
-                        <button
-                            className="page-link"
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={!hasNext}
-                        >
-                            다음 &raquo;
-                        </button>
-                    </li>
-                </ul>
-            </nav>
-        );
-    };
-
     return (
         <div className="job-page-container">
-            {/* 1. 상단 배너 헤더 */}
-            <div className="job-header-card d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                <div>
-                    <h2 className="fw-bold mb-2">🎯 실시간 채용 공고 & 맞춤 면접</h2>
-                    <p className="mb-0 text-white-50">
-                        사람인의 실시간 인기 채용공고를 탐색하고, 관심 있는 기업의 JD로 1:1 개인화 AI 모의면접을 시작해
-                        보세요!
-                    </p>
-                </div>
-                {user?.userType === "ADMIN" && (
-                    <div>
-                        <button
-                            type="button"
-                            className="btn btn-outline-light btn-sm d-flex align-items-center gap-2 text-nowrap"
-                            onClick={handleManualSync}
-                            disabled={syncing}
-                        >
-                            {syncing ? (
-                                <>
-                                    <span
-                                        className="spinner-border spinner-border-sm"
-                                        role="status"
-                                        aria-hidden="true"
-                                    ></span>
-                                    공고 수집 중...
-                                </>
-                            ) : (
-                                <>
-                                    <span>🔄</span> 실시간 공고 수집 (100건)
-                                </>
-                            )}
-                        </button>
-                    </div>
-                )}
-            </div>
-
-            {/* 1-1. 사용자 직무 맞춤 / 실시간 인기 추천 공고 섹션 */}
+            {/* 1. 사용자 직무 맞춤 / 실시간 인기 추천 공고 섹션 */}
             {!recommendLoading &&
                 recommendation &&
                 recommendation.recruitments &&
@@ -878,6 +803,26 @@ function JobList() {
                                 >
                                     {params.scrapOnly ? "⭐ 스크랩 모아보기 중" : "☆ 내 스크랩 공고"}
                                 </button>
+                                {user?.userType === "ADMIN" && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-primary px-3 text-nowrap d-flex align-items-center gap-1"
+                                        onClick={handleManualSync}
+                                        disabled={syncing}
+                                        title="사람인 실시간 공고 수집"
+                                    >
+                                        {syncing ? (
+                                            <>
+                                                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                                수집 중...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <RotateCcw size={14} /> 공고 수집
+                                            </>
+                                        )}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1118,7 +1063,13 @@ function JobList() {
             )}
 
             {/* 5. 페이징 네비게이션 */}
-            {!loading && renderPagination()}
+            {!loading && (
+                <Pagination
+                    currentPage={pageInfo.currentPage}
+                    totalPages={pageInfo.totalPages}
+                    onPageChange={handlePageChange}
+                />
+            )}
         </div>
     );
 }

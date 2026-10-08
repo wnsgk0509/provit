@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { fetchPostDetail, deletePost, togglePostLike } from '../../api/communityApi';
 import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../context/ModalContext';
 import CommentSection from '../../components/community/CommentSection';
 import ReportModal from '../../components/community/ReportModal';
 import MDEditor from '@uiw/react-md-editor';
@@ -11,6 +12,7 @@ function CommunityDetail() {
     const { postNum } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { showAlert, showConfirm, showToast } = useModal();
     
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -30,11 +32,11 @@ function CommunityDetail() {
             if (result && result.responseCode && result.responseCode.code === 200) {
                 setPost(result.data);
             } else {
-                alert(result.message || '게시글을 불러오는데 실패했습니다.');
+                await showAlert(result?.message || '게시글을 불러오는데 실패했습니다.', { type: 'error' });
                 navigate('/community');
             }
         } catch (error) {
-            alert('서버와의 통신 오류가 발생했습니다.');
+            await showAlert('서버와의 통신 오류가 발생했습니다.', { type: 'error' });
             navigate('/community');
         } finally {
             setLoading(false);
@@ -42,24 +44,31 @@ function CommunityDetail() {
     };
 
     const handleDelete = async () => {
-        if (window.confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
+        const ok = await showConfirm('정말로 이 게시글을 삭제하시겠습니까?', {
+            title: '게시글 삭제',
+            type: 'warning',
+            confirmText: '삭제',
+            cancelText: '취소',
+            isDestructive: true
+        });
+        if (ok) {
             try {
                 const result = await deletePost(postNum);
                 if (result && result.responseCode && result.responseCode.code === 200) {
-                    alert('삭제되었습니다.');
+                    showToast('게시글이 삭제되었습니다.', 'info');
                     navigate('/community');
                 } else {
-                    alert(result.message || '삭제에 실패했습니다.');
+                    showAlert(result?.message || '삭제에 실패했습니다.', { type: 'error' });
                 }
             } catch (error) {
-                alert('서버 오류로 삭제에 실패했습니다.');
+                showAlert('서버 오류로 삭제에 실패했습니다.', { type: 'error' });
             }
         }
     };
 
     const handleLike = async () => {
         if (!user) {
-            alert('로그인 후 이용할 수 있습니다.');
+            showAlert('로그인 후 이용할 수 있습니다.', { type: 'warning' });
             return;
         }
         try {
@@ -71,16 +80,16 @@ function CommunityDetail() {
                     postLikeCount: result.data.likeCount
                 });
             } else {
-                alert(result.message || '처리 중 오류가 발생했습니다.');
+                showAlert(result?.message || '처리 중 오류가 발생했습니다.', { type: 'error' });
             }
         } catch (error) {
-            alert('서버와의 통신 중 오류가 발생했습니다.');
+            showAlert('서버와의 통신 중 오류가 발생했습니다.', { type: 'error' });
         }
     };
 
     const handleReport = () => {
         if (!user) {
-            alert('로그인 후 이용할 수 있습니다.');
+            showAlert('로그인 후 이용할 수 있습니다.', { type: 'warning' });
             return;
         }
         setShowReportModal(true);
@@ -88,7 +97,7 @@ function CommunityDetail() {
 
     const handleShare = async () => {
         const shareData = {
-            title: post.postTitle,
+            title: post?.postTitle || '',
             text: 'Provit에서 이 게시글을 확인해보세요!',
             url: window.location.href,
         };
@@ -114,10 +123,10 @@ function CommunityDetail() {
                     document.execCommand("copy");
                     document.body.removeChild(textArea);
                 }
-                alert('게시글 주소가 복사되었습니다!');
+                showToast('게시글 주소가 복사되었습니다!', 'success');
             } catch (err) {
                 console.error(err);
-                alert('주소 복사에 실패했습니다. 브라우저 주소창에서 직접 복사해주세요.');
+                showAlert('주소 복사에 실패했습니다. 브라우저 주소창에서 직접 복사해주세요.', { type: 'warning' });
             }
         }
     };
@@ -186,10 +195,14 @@ function CommunityDetail() {
                         </div>
                     )}
                     <div data-color-mode="light">
-                        <MDEditor.Markdown 
-                            source={post.postContent} 
+                        <MDEditor 
+                            value={post.postContent} 
+                            preview="preview"
+                            hideToolbar={true}
                             style={{ whiteSpace: 'pre-wrap', backgroundColor: 'transparent' }} 
-                            rehypePlugins={[[rehypeSanitize]]} 
+                            previewOptions={{
+                                rehypePlugins: [[rehypeSanitize]]
+                            }}
                         />
                     </div>
                 </div>
