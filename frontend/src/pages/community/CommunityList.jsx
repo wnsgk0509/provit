@@ -154,7 +154,7 @@ function CommunityList() {
                             <input
                                 type="text"
                                 className="form-control px-4 w-100"
-                                placeholder={params.categoryNum === 'study' ? "스터디 이름을 검색하세요" : "제목, 내용, 작성자로 검색해보세요"}
+                                placeholder={params.categoryNum === 'study' ? "스터디 이름을 검색하세요" : "제목, 내용으로 검색해보세요"}
                                 value={searchInput.keyword}
                                 onChange={(e) => setSearchInput({ ...searchInput, keyword: e.target.value })}
                                 style={{ borderRadius: '20px', fontSize: '0.85rem', color: 'darkgray', height: '32px' }}
