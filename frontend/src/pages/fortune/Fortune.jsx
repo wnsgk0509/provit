@@ -188,7 +188,11 @@ function Fortune() {
                     </span>
                 </h2>
                 <p className="text-muted mb-0">
-                    <strong className="text-dark">{fortune.userNickname}</strong>님의 타고난 사주와 오늘 일진의 상호작용을 분석한 맞춤 취업 가이드입니다.
+                    {!user
+                        ? '예시 결과 화면입니다.'
+                        : !user.userBirthDate
+                            ? '생년월일 미입력에 따른 예시 결과입니다.'
+                            : <><strong className="text-dark">{fortune.userNickname}</strong>님의 타고난 사주와 오늘 일진의 상호작용을 분석한 맞춤 취업 가이드입니다.</>}
                 </p>
             </div>
 
