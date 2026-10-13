@@ -43,7 +43,7 @@ function Interview() {
     const location = useLocation();
     const navigate = useNavigate();
     const { user } = useAuth();
-    const userNum = user.userNum;
+    const userNum = user?.userNum;
     const [recruitment, setRecruitment] = useState(() => location.state?.recruitment ?? null);
     const [step, setStep] = useState(INTERVIEW_STEP.CUSTOM);
     const [settings, setSettings] = useState(INITIAL_SETTINGS);

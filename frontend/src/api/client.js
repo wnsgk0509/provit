@@ -4,6 +4,9 @@ const client = axios.create({
   baseURL: '/api',
   timeout: 10000,
   withCredentials: true,
+  headers: {
+    'ngrok-skip-browser-warning': 'true',
+  },
 });
 
 let refreshRequest = null;
