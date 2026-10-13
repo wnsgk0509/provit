@@ -1,0 +1,16 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/:path*",
+            "destination": "https://whooping-deluxe-cranial.ngrok-free.dev/api/:path*"
+        },
+        {
+            "source": "/uploads/:path*",
+            "destination": "https://whooping-deluxe-cranial.ngrok-free.dev/uploads/:path*"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}
